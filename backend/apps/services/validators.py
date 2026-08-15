@@ -17,6 +17,6 @@ def validate_service_slug(slug, instance=None):
 
 def validate_price_type(value):
     """Validate price type."""
-    valid_types = [choice[0] for choice in Service.PRICE_TYPE_CHOICES]
-    if value not in valid_types:
+    valid_types = ['fixed', 'hourly', 'project', 'custom']
+    if value and value not in valid_types:
         raise ValidationError(f'Invalid price type. Must be one of: {valid_types}')

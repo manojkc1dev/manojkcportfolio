@@ -7,7 +7,7 @@ from .models import Hero
 
 def validate_hero_availability(value):
     """Validate availability status."""
-    valid_statuses = [choice[0] for choice in Hero.AVAILABILITY_STATUS_CHOICES]
+    valid_statuses = ['available', 'busy', 'offline']
     if value not in valid_statuses:
         raise ValidationError(f'Invalid availability status. Must be one of: {valid_statuses}')
 

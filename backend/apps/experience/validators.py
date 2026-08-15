@@ -7,7 +7,7 @@ from .models import Experience
 
 def validate_employment_type(value):
     """Validate employment type."""
-    valid_types = [choice[0] for choice in Experience.EMPLOYMENT_TYPE_CHOICES]
+    valid_types = [choice[0] for choice in Experience.EMPLOYMENT_TYPES]
     if value not in valid_types:
         raise ValidationError(f'Invalid employment type. Must be one of: {valid_types}')
 

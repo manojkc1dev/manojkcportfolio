@@ -1,15 +1,16 @@
 """
-Tests for skills app models.
+Tests for skills app services.
 """
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from ..models import Skill, SkillCategory
+from ..services import SkillService
 
 User = get_user_model()
 
 
-class SkillModelTest(TestCase):
-    """Test Skill model."""
+class SkillServiceTest(TestCase):
+    """Test Skill service."""
     
     def setUp(self):
         """Set up test data."""
@@ -24,7 +25,21 @@ class SkillModelTest(TestCase):
             created_by=self.user,
             updated_by=self.user
         )
-        self.skill = Skill.objects.create(
+    
+    def test_create_skill(self):
+        """Test creating a skill."""
+        data = {
+            'name': 'JavaScript',
+            'slug': 'javascript',
+            'category': self.category,
+            'percentage': 75
+        }
+        skill = SkillService.create_skill(data, self.user)
+        self.assertEqual(skill.name, 'JavaScript')
+    
+    def test_toggle_featured(self):
+        """Test toggling featured status."""
+        skill = Skill.objects.create(
             name='Python',
             slug='python',
             category=self.category,
@@ -32,13 +47,5 @@ class SkillModelTest(TestCase):
             created_by=self.user,
             updated_by=self.user
         )
-    
-    def test_skill_creation(self):
-        """Test skill creation."""
-        self.assertEqual(self.skill.name, 'Python')
-        self.assertEqual(self.skill.slug, 'python')
-        self.assertEqual(self.skill.percentage, 85)
-    
-    def test_skill_str(self):
-        """Test skill string representation."""
-        self.assertEqual(str(self.skill), 'Python')
+        featured_skill = SkillService.toggle_featured(skill.id, self.user)
+        self.assertTrue(featured_skill.is_featured)
