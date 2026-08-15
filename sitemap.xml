@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://manojkc1.com.np/</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    
+    <!-- Primary Profile Image -->
+    <image:image>
+      <image:loc>https://manojkc1.com.np/static/images/manoj-kc-python-backend-developer.jpg</image:loc>
+      <image:caption>Manoj K.C. - Professional Python and Django Backend Developer portfolio.</image:caption>
+    </image:image>
+
+    <!-- Project 1: CalcPro -->
+    <image:image>
+      <image:loc>https://manojkc1.com.np/static/images/calcpro-django-rest-api-calculator.png</image:loc>
+      <image:caption>CalcPro REST API calculator project built with Django and Python.</image:caption>
+    </image:image>
+
+    <!-- Project 2: Shabdhabhandar -->
+    <image:image>
+      <image:loc>https://manojkc1.com.np/static/images/shabdhabhandar-django-rest-api-calculator.png</image:loc>
+      <image:caption>Shabdhabhandar dictionary project: REST API built with Django and Python.</image:caption>
+    </image:image>
+  </url>
+</urlset>
