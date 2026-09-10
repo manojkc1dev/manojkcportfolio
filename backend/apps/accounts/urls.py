@@ -6,7 +6,7 @@ from .views import (
     CustomTokenObtainPairView, CustomTokenRefreshView, RegisterView, UserListView,
     UserDetailView, CurrentUserView, ChangePasswordView,
     LogoutView, UserProfileView, LoginLogListView,
-    verify_email, forgot_password, reset_password
+    verify_email, resend_verification_email, forgot_password, reset_password
 )
 
 app_name = 'accounts'
@@ -18,6 +18,7 @@ urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
     path('auth/verify-email/', verify_email, name='verify-email'),
+    path('auth/resend-verification/', resend_verification_email, name='resend-verification'),
     path('auth/forgot-password/', forgot_password, name='forgot-password'),
     path('auth/reset-password/', reset_password, name='reset-password'),
     

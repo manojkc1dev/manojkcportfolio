@@ -4,7 +4,7 @@ import { WhatsAppIcon } from '../common/WhatsAppIcon';
 import { Mail, Send, CheckCircle2, MapPin, ShieldCheck, Terminal } from 'lucide-react';
 
 export const ContactSection: React.FC = () => {
-  const { hero, addContactMessage, setViewMode } = useCMS();
+  const { hero, addContactMessage } = useCMS();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -99,13 +99,6 @@ export const ContactSection: React.FC = () => {
                 Messages submitted via the form opposite immediately arrive in the CMS Admin Message Inbox with IP and device telemetry.
               </p>
             </div>
-
-            <button
-              onClick={() => setViewMode('CMS_ADMIN')}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2"
-            >
-              <Terminal className="w-4 h-4" /> Open CMS Admin Inbox
-            </button>
           </div>
 
           {/* Contact Form (Col 6-12) */}

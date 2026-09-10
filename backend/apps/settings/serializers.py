@@ -63,7 +63,7 @@ class PublicSettingsSerializer(serializers.ModelSerializer):
             'homepage_sections'
         ]
 
-    def get_homepage_sections(self, obj):
+    def get_homepage_sections(self, obj) -> list:
         """Get enabled homepage sections ordered correctly."""
         sections = HomepageSection.objects.filter(is_enabled=True).order_by('order')
         return HomepageSectionSerializer(sections, many=True).data

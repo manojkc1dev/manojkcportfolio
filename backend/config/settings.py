@@ -44,7 +44,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
@@ -159,7 +159,6 @@ if 'postgresql' in env('DATABASE_URL', default=''):
 
 # Cache configuration
 if DEBUG:
-    # Use local memory cache for development
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -172,7 +171,6 @@ if DEBUG:
         }
     }
 else:
-    # Use Redis for production
     CACHES = {
         'default': {
             'BACKEND': 'django_redis.cache.RedisCache',
@@ -198,46 +196,29 @@ SESSION_COOKIE_AGE = 86400 * 7  # 7 days
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 12,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 12}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
-# Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# drf-spectacular settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Portfolio CMS API',
     'DESCRIPTION': 'Enterprise-grade Portfolio Content Management System API with JWT authentication, RBAC, and comprehensive content management features.',
@@ -245,46 +226,6 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': '/api/v1',
-    'TAGS': [
-        {'name': 'Authentication', 'description': 'User authentication and management with JWT tokens'},
-        {'name': 'Hero', 'description': 'Hero section management'},
-        {'name': 'About', 'description': 'About section management'},
-        {'name': 'Skills', 'description': 'Skills and skill categories'},
-        {'name': 'Tech Stack', 'description': 'Technology stack items and categories'},
-        {'name': 'Experience', 'description': 'Work experience entries'},
-        {'name': 'Education', 'description': 'Education and qualifications'},
-        {'name': 'Certifications', 'description': 'Professional certifications'},
-        {'name': 'Projects', 'description': 'Project portfolio management'},
-        {'name': 'Blogs', 'description': 'Blog posts and categories'},
-        {'name': 'Services', 'description': 'Services offered'},
-        {'name': 'Clients', 'description': 'Client testimonials and reviews'},
-        {'name': 'Contact', 'description': 'Contact form and messages'},
-        {'name': 'Socials', 'description': 'Social media links'},
-        {'name': 'Resume', 'description': 'Resume management'},
-        {'name': 'Media', 'description': 'Media file management and uploads'},
-        {'name': 'Settings', 'description': 'Site settings and configuration'},
-        {'name': 'Analytics', 'description': 'Analytics and statistics'},
-        {'name': 'SEO', 'description': 'SEO metadata management'},
-        {'name': 'FAQs', 'description': 'Frequently asked questions'},
-        {'name': 'Testimonials', 'description': 'Client testimonials'},
-        {'name': 'Timeline', 'description': 'Timeline events'},
-        {'name': 'Achievements', 'description': 'Achievements and awards'},
-        {'name': 'Newsletter', 'description': 'Newsletter management'},
-        {'name': 'Dashboard', 'description': 'Dashboard analytics'},
-        {'name': 'Search', 'description': 'Search functionality'},
-        {'name': 'Notifications', 'description': 'Notification management'},
-        {'name': 'Audit Logs', 'description': 'Audit trail and logs'},
-    ],
-    'ENUM_NAME_OVERRIDES': {
-        'UserRole': 'accounts.User.Role',
-    },
-    'SERVERS': [
-        {'url': 'http://localhost:8000', 'description': 'Development server'},
-        {'url': 'https://api.yourdomain.com', 'description': 'Production server'},
-    ],
-    'SCHEMA_COVERED_NS': ['apps', 'core', 'api'],
-    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
-    # POSTPROCESSING_HOOKS removed - module does not exist
 }
 
 # REST Framework Configuration
@@ -293,7 +234,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # <--- FIXED FOR PUBLIC ACCESS
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -346,7 +287,7 @@ SIMPLE_JWT = {
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -354,7 +295,6 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
-    # CSRF Trusted Origins for production
     CSRF_TRUSTED_ORIGINS = env.list(
         'CSRF_TRUSTED_ORIGINS',
         default=['https://portfolio.example.com', 'https://admin.example.com']
@@ -364,44 +304,28 @@ else:
     SECURE_HSTS_SECONDS = 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
     SECURE_HSTS_PRELOAD = False
-    # CSRF Trusted Origins for development
-    CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
-
-# Content Security Policy
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
-CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_FONT_SRC = ("'self'",)
-CSP_CONNECT_SRC = ("'self'",)
-CSP_FRAME_ANCESTORS = ("'none'",)
-CSP_FORM_ACTION = ("'self'",)
-CSP_BASE_URI = ("'self'",)
+    CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001']
 
 # CORS Configuration
 if DEBUG:
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:5173",  # <--- ADDED FOR ADMIN FRONTEND
+        "http://127.0.0.1:5173",  # <--- ADDED FOR ADMIN FRONTEND
         "http://localhost:8000",
     ]
 else:
-    # Production origins - configure via environment
     CORS_ALLOWED_ORIGINS = env.list(
         'CORS_ALLOWED_ORIGINS',
         default=['https://portfolio.example.com', 'https://admin.example.com']
     )
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
+    'accept', 'accept-encoding', 'authorization', 'content-type',
+    'dnt', 'origin', 'user-agent', 'x-csrftoken', 'x-requested-with',
 ]
 
 # Cloudinary Configuration
@@ -411,15 +335,13 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': env('CLOUDINARY_API_SECRET'),
 }
 
-# AWS S3 Configuration (Alternative to Cloudinary)
+# AWS S3 Configuration
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME')
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',
-}
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
 AWS_DEFAULT_ACL = 'public-read'
 AWS_S3_FILE_OVERWRITE = False
 
@@ -433,6 +355,9 @@ EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = EMAIL_HOST_USER
 
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+SITE_NAME = env('SITE_NAME', default='Portfolio CMS')
+
 # Celery Configuration
 CELERY_BROKER_URL = env('REDIS_URL')
 CELERY_RESULT_BACKEND = env('REDIS_URL')
@@ -441,120 +366,63 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
+CELERY_BEAT_SCHEDULER = 'celery.beat.PersistentScheduler'  # <--- CHANGED
 
-# Sentry Configuration (commented out for development)
-# SENTRY_DSN = env('SENTRY_DSN', default='')
-# if SENTRY_DSN and SENTRY_DSN.strip():
-#     import sentry_sdk
-#     from sentry_sdk.integrations.django import DjangoIntegration
-#     from sentry_sdk.integrations.celery import CeleryIntegration
-# 
-#     sentry_sdk.init(
-#         dsn=SENTRY_DSN,
-#         integrations=[DjangoIntegration(), CeleryIntegration()],
-#         traces_sample_rate=0.1,
-#         send_default_pii=False,
-#         environment='production' if not DEBUG else 'development',
-#     )
-
-# Security Settings
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = 'DENY'
-    CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_SAMESITE = 'Lax'
+# Celery Beat Schedule
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'calculate-dashboard-stats-daily': {
+        'task': 'apps.dashboard.tasks.calculate_dashboard_stats',
+        'schedule': crontab(hour=0, minute=5),
+    },
+}
 
 # Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
+        'verbose': {'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}', 'style': '{'},
+        'simple': {'format': '{levelname} {message}', 'style': '{'},
     },
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-        },
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
+        'file': {'class': 'logging.FileHandler', 'filename': BASE_DIR / 'logs' / 'django.log', 'formatter': 'verbose'},
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
+    'root': {'handlers': ['console'], 'level': 'INFO'},
     'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['console', 'file'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'apps': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
+        'django': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
+        'django.request': {'handlers': ['console', 'file'], 'level': 'ERROR', 'propagate': False},
+        'apps': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
     },
 }
 
-# Create logs directory if it doesn't exist
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 
 # File Upload Settings
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
-# Image Upload Validation
 ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']
 ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv']
 ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx']
 
-# Rate Limiting
 RATELIMIT_ENABLE = True
 RATELIMIT_USE_CACHE = 'default'
 RATELIMIT_VIEW = 'rest_framework.throttling.UserRateThrottle'
 
-# Analytics
 GOOGLE_ANALYTICS_ID = env('GOOGLE_ANALYTICS_ID')
 POSTHOG_API_KEY = env('POSTHOG_API_KEY')
 POSTHOG_HOST = env('POSTHOG_HOST')
 
-# Soft Delete
 SOFT_DELETE = True
-
-# API Versioning
 API_VERSION = 'v1'
 API_PREFIX = f'/api/{API_VERSION}'
 
-# Admin Configuration
 ADMIN_SITE_HEADER = 'Portfolio CMS'
 ADMIN_SITE_TITLE = 'Portfolio CMS Admin'
 ADMIN_INDEX_TITLE = 'Welcome to Portfolio CMS'
-
-# Custom Admin
 ADMIN_ENABLED = True

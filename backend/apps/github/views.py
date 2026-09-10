@@ -1,8 +1,9 @@
 """
 Views for GitHub integration.
 """
-from rest_framework import generics
+from rest_framework import generics, serializers
 from rest_framework.decorators import api_view, permission_classes
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from core.permissions import IsAdminOrSuperAdmin
@@ -93,6 +94,10 @@ class PublicGitHubProfileView(generics.RetrieveAPIView):
             return Response({'detail': 'GitHub profile not configured'}, status=404)
 
 
+@extend_schema(
+    request=None,
+    responses={200: None}
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def github_stats(request):

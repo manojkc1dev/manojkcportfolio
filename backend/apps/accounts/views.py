@@ -1,8 +1,10 @@
 """
 Views for accounts app.
 """
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status, permissions, serializers
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -11,7 +13,9 @@ from .models import UserProfile, LoginLog
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     ChangePasswordSerializer, UserProfileSerializer,
-    CustomTokenObtainPairSerializer, LoginLogSerializer
+    CustomTokenObtainPairSerializer, LoginLogSerializer,
+    VerifyEmailSerializer, ResendVerificationSerializer,
+    ForgotPasswordSerializer, ResetPasswordSerializer
 )
 from .permissions import IsOwnerOrReadOnly, CanManageUser
 from core.permissions import IsSuperAdmin, IsAdminUser
@@ -20,11 +24,27 @@ from .services import log_login
 User = get_user_model()
 
 
+class LoginRateThrottle(AnonRateThrottle):
+    """Rate limit for login attempts."""
+    rate = '5/min'
+
+
+class RegisterRateThrottle(AnonRateThrottle):
+    """Rate limit for registration attempts."""
+    rate = '3/hour'
+
+
+class AuthActionRateThrottle(AnonRateThrottle):
+    """Rate limit for password reset and verification actions."""
+    rate = '10/hour'
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     Custom token obtain view with enhanced logging and HttpOnly cookie support.
     """
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request, *args, **kwargs):
         try:
@@ -95,14 +115,19 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = UserCreateSerializer
+    throttle_classes = [RegisterRateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
+        # Queue verification email
+        from .tasks import send_verification_email
+        send_verification_email.delay(str(user.id))
+        
         return Response({
-            'message': 'User registered successfully',
+            'message': 'User registered successfully. Please check your email to verify your account.',
             'user': UserSerializer(user).data
         }, status=status.HTTP_201_CREATED)
 
@@ -178,11 +203,17 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response({'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
 
 
+class LogoutSerializer(serializers.Serializer):
+    """Serializer for logout endpoint."""
+    pass
+
+
 class LogoutView(generics.GenericAPIView):
     """
     Logout user by blacklisting refresh token and clearing cookie.
     """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = LogoutSerializer
 
     def post(self, request, *args, **kwargs):
         try:
@@ -226,39 +257,160 @@ class LoginLogListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.is_admin():
+        # Handle DRF-Spectacular schema generation (swagger_fake_view)
+        if getattr(self, 'swagger_fake_view', False):
+            return LoginLog.objects.none()
+
+        if self.request.user.is_authenticated and self.request.user.is_admin():
             return LoginLog.objects.all()
         return LoginLog.objects.filter(user=self.request.user)
 
 
+@extend_schema(
+    request=VerifyEmailSerializer,
+    responses={200: None}
+)
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def verify_email(request):
     """
-    Verify user email (placeholder for email verification).
+    Verify user email with token.
     """
-    return Response({'message': 'Email verification endpoint'}, status=status.HTTP_200_OK)
+    serializer = VerifyEmailSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    token = serializer.validated_data['token']
+    
+    try:
+        user = User.objects.get(verification_token=token)
+        
+        # Check if token is valid
+        if not user.is_verification_token_valid(token):
+            return Response({
+                'error': 'Invalid or expired verification token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if already verified
+        if user.is_verified:
+            return Response({
+                'message': 'Email already verified'
+            }, status=status.HTTP_200_OK)
+        
+        # Verify user
+        user.is_verified = True
+        user.clear_verification_token()
+        
+        return Response({
+            'message': 'Email verified successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({
+            'error': 'Invalid verification token'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    request=ResendVerificationSerializer,
+    responses={200: None}
+)
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def resend_verification_email(request):
+    """
+    Resend verification email.
+    """
+    serializer = ResendVerificationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data['email']
+    
+    try:
+        user = User.objects.get(email=email)
+        
+        # Check if already verified
+        if user.is_verified:
+            return Response({
+                'message': 'Email already verified'
+            }, status=status.HTTP_200_OK)
+        
+        # Queue new verification email
+        from .tasks import send_verification_email
+        send_verification_email.delay(str(user.id))
+        
+        return Response({
+            'message': 'Verification email sent'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        # Generic response to prevent user enumeration
+        return Response({
+            'message': 'If an account exists with this email, a verification email has been sent'
+        }, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    request=ForgotPasswordSerializer,
+    responses={200: None}
+)
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def forgot_password(request):
     """
-    Request password reset (placeholder for email sending).
+    Request password reset.
     """
-    email = request.data.get('email')
-    if not email:
-        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = ForgotPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data['email']
     
-    # TODO: Implement password reset email sending
-    return Response({'message': 'Password reset email sent if account exists'}, status=status.HTTP_200_OK)
+    try:
+        user = User.objects.get(email=email)
+        
+        # Queue password reset email
+        from .tasks import send_password_reset_email
+        send_password_reset_email.delay(str(user.id))
+        
+    except User.DoesNotExist:
+        # Generic response to prevent user enumeration
+        pass
+    
+    return Response({
+        'message': 'If an account exists with this email, a password reset link has been sent'
+    }, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    request=ResetPasswordSerializer,
+    responses={200: None}
+)
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def reset_password(request):
     """
-    Reset password with token (placeholder).
+    Reset password with token.
     """
-    # TODO: Implement password reset with token
-    return Response({'message': 'Password reset endpoint'}, status=status.HTTP_200_OK)
+    serializer = ResetPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    token = serializer.validated_data['token']
+    new_password = serializer.validated_data['new_password']
+    
+    try:
+        user = User.objects.get(password_reset_token=token)
+        
+        # Check if token is valid
+        if not user.is_password_reset_token_valid(token):
+            return Response({
+                'error': 'Invalid or expired reset token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Set new password
+        user.set_password(new_password)
+        user.clear_password_reset_token()
+        user.save()
+        
+        return Response({
+            'message': 'Password reset successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({
+            'error': 'Invalid reset token'
+        }, status=status.HTTP_400_BAD_REQUEST)

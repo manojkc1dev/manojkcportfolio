@@ -31,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
             'date_joined', 'last_login', 'created_at', 'updated_at'
         ]
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         return obj.get_full_name()
 
 
@@ -66,8 +66,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
-        # Create user profile
-        UserProfile.objects.create(user=user)
+        # Create user profile if it doesn't exist
+        UserProfile.objects.get_or_create(user=user)
         return user
 
 
@@ -184,3 +184,43 @@ class LoginLogSerializer(serializers.ModelSerializer):
             'device_type', 'created_at'
         ]
         read_only_fields = fields
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    """
+    Serializer for email verification.
+    """
+    token = serializers.CharField(required=True, max_length=255)
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    """
+    Serializer for resending verification email.
+    """
+    email = serializers.EmailField(required=True)
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    """
+    Serializer for forgot password request.
+    """
+    email = serializers.EmailField(required=True)
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    """
+    Serializer for password reset confirmation.
+    """
+    token = serializers.CharField(required=True, max_length=255)
+    new_password = serializers.CharField(
+        required=True,
+        validators=[validate_password]
+    )
+    new_password_confirm = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({
+                "new_password": "Password fields didn't match."
+            })
+        return attrs

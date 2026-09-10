@@ -4,6 +4,7 @@ User model and authentication models for Portfolio CMS.
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from core.models import BaseModel, SoftDeleteModel
+import secrets
 
 
 class User(AbstractUser, BaseModel):
@@ -36,6 +37,14 @@ class User(AbstractUser, BaseModel):
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     failed_login_attempts = models.PositiveIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
+    
+    # Email verification
+    verification_token = models.CharField(max_length=255, blank=True, null=True)
+    verification_token_expires_at = models.DateTimeField(null=True, blank=True)
+    
+    # Password reset
+    password_reset_token = models.CharField(max_length=255, blank=True, null=True)
+    password_reset_token_expires_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'users'
@@ -76,8 +85,9 @@ class User(AbstractUser, BaseModel):
         """Increment failed login attempts."""
         self.failed_login_attempts += 1
         if self.failed_login_attempts >= 5:
-            from datetime import datetime, timedelta
-            self.locked_until = datetime.now() + timedelta(minutes=30)
+            from django.utils import timezone
+            from datetime import timedelta
+            self.locked_until = timezone.now() + timedelta(minutes=30)
         self.save()
 
     def reset_failed_login(self):
@@ -96,6 +106,54 @@ class User(AbstractUser, BaseModel):
                 self.locked_until = None
                 self.save()
         return False
+
+    def generate_verification_token(self):
+        """Generate a secure email verification token."""
+        from django.utils import timezone
+        from datetime import timedelta
+        self.verification_token = secrets.token_urlsafe(64)
+        self.verification_token_expires_at = timezone.now() + timedelta(hours=24)
+        self.save()
+        return self.verification_token
+
+    def generate_password_reset_token(self):
+        """Generate a secure password reset token."""
+        from django.utils import timezone
+        from datetime import timedelta
+        self.password_reset_token = secrets.token_urlsafe(64)
+        self.password_reset_token_expires_at = timezone.now() + timedelta(hours=1)
+        self.save()
+        return self.password_reset_token
+
+    def is_verification_token_valid(self, token):
+        """Check if verification token is valid."""
+        from django.utils import timezone
+        if not self.verification_token or self.verification_token != token:
+            return False
+        if self.verification_token_expires_at and timezone.now() > self.verification_token_expires_at:
+            return False
+        return True
+
+    def is_password_reset_token_valid(self, token):
+        """Check if password reset token is valid."""
+        from django.utils import timezone
+        if not self.password_reset_token or self.password_reset_token != token:
+            return False
+        if self.password_reset_token_expires_at and timezone.now() > self.password_reset_token_expires_at:
+            return False
+        return True
+
+    def clear_verification_token(self):
+        """Clear verification token after successful verification."""
+        self.verification_token = None
+        self.verification_token_expires_at = None
+        self.save()
+
+    def clear_password_reset_token(self):
+        """Clear password reset token after successful reset."""
+        self.password_reset_token = None
+        self.password_reset_token_expires_at = None
+        self.save()
 
 
 class UserProfile(BaseModel):

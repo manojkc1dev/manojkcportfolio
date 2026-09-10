@@ -16,6 +16,12 @@ class Contact(BaseModel, StatusModel):
         ('spam', 'Spam'),
     ]
     
+    REPLY_EMAIL_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+    
     # Contact Information
     name = models.CharField(max_length=255, db_index=True)
     email = models.EmailField(db_index=True)
@@ -43,6 +49,16 @@ class Contact(BaseModel, StatusModel):
         blank=True,
         related_name='replied_contacts'
     )
+    
+    # Email Delivery Tracking
+    reply_email_status = models.CharField(
+        max_length=20,
+        choices=REPLY_EMAIL_STATUS_CHOICES,
+        default='pending',
+        blank=True
+    )
+    reply_email_sent_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.TextField(blank=True)
     
     # Flags
     is_starred = models.BooleanField(default=False, db_index=True)

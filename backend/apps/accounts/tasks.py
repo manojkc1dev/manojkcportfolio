@@ -4,13 +4,15 @@ Celery tasks for accounts app.
 from celery import shared_task
 from django.core.mail import send_mail
 from django.conf import settings
+from django.template.loader import render_to_string
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task
-def send_verification_email(user_id):
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_verification_email(self, user_id):
     """
     Send email verification email to user.
     """
@@ -19,14 +21,50 @@ def send_verification_email(user_id):
     
     try:
         user = User.objects.get(id=user_id)
-        # TODO: Implement actual email sending with verification link
+        
+        # Generate verification token
+        token = user.generate_verification_token()
+        
+        # Build verification URL
+        frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:3000'
+        verification_url = f"{frontend_url}/verify-email?token={token}"
+        
+        # Render email templates
+        context = {
+            'user': user,
+            'verification_url': verification_url,
+            'site_name': settings.SITE_NAME if hasattr(settings, 'SITE_NAME') else 'Portfolio CMS',
+            'year': timezone.now().year,
+        }
+        
+        html_message = render_to_string('accounts/verification_email.html', context)
+        plain_message = render_to_string('accounts/verification_email.txt', context)
+        
+        # Send email
+        send_mail(
+            subject='Verify Your Email Address',
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        
         logger.info(f"Verification email sent to {user.email}")
+        return {'status': 'success', 'user_id': user_id}
+        
     except User.DoesNotExist:
         logger.error(f"User with id {user_id} not found")
+        return {'status': 'error', 'message': 'User not found'}
+    except Exception as e:
+        logger.error(f"Failed to send verification email to user {user_id}: {str(e)}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {'status': 'error', 'message': str(e)}
 
 
-@shared_task
-def send_password_reset_email(user_id):
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_password_reset_email(self, user_id):
     """
     Send password reset email to user.
     """
@@ -35,10 +73,46 @@ def send_password_reset_email(user_id):
     
     try:
         user = User.objects.get(id=user_id)
-        # TODO: Implement actual email sending with reset link
+        
+        # Generate password reset token
+        token = user.generate_password_reset_token()
+        
+        # Build reset URL
+        frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:3000'
+        reset_url = f"{frontend_url}/reset-password?token={token}"
+        
+        # Render email templates
+        context = {
+            'user': user,
+            'reset_url': reset_url,
+            'site_name': settings.SITE_NAME if hasattr(settings, 'SITE_NAME') else 'Portfolio CMS',
+            'year': timezone.now().year,
+        }
+        
+        html_message = render_to_string('accounts/password_reset_email.html', context)
+        plain_message = render_to_string('accounts/password_reset_email.txt', context)
+        
+        # Send email
+        send_mail(
+            subject='Reset Your Password',
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        
         logger.info(f"Password reset email sent to {user.email}")
+        return {'status': 'success', 'user_id': user_id}
+        
     except User.DoesNotExist:
         logger.error(f"User with id {user_id} not found")
+        return {'status': 'error', 'message': 'User not found'}
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to user {user_id}: {str(e)}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {'status': 'error', 'message': str(e)}
 
 
 @shared_task

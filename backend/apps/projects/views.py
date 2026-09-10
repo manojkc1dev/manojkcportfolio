@@ -2,11 +2,26 @@
 Views for projects app.
 """
 from core.views import BaseListCreateView, BaseRetrieveUpdateDestroyView
-from core.permissions import IsPublicOrAuthenticated, IsContentManagerOrAbove
+from core.permissions import IsContentManagerOrAbove
 from core.responses import StandardResponse
-from rest_framework import status
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import Project
 from .serializers import ProjectSerializer, ProjectListSerializer
+
+
+class IsPublicReadOrContentManagerWrite(BasePermission):
+    """
+    Custom permission:
+    - Allow anonymous GET/HEAD/OPTIONS (Read-only)
+    - Require Content Manager or above for POST/PUT/PATCH/DELETE (Write)
+    """
+    def has_permission(self, request, view):
+        # Allow safe methods (GET, HEAD, OPTIONS) for anyone (including anonymous)
+        if request.method in SAFE_METHODS:
+            return True
+        
+        # Require Content Manager or above for write operations
+        return IsContentManagerOrAbove().has_permission(request, view)
 
 
 class ProjectListCreateView(BaseListCreateView):
@@ -14,7 +29,8 @@ class ProjectListCreateView(BaseListCreateView):
     List and create projects with standardized API responses.
     """
     queryset = Project.objects.select_related('category')
-    permission_classes = [IsContentManagerOrAbove]
+    # FIXED: Allow anonymous GET, but require Content Manager or above for POST
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     filterset_fields = ['status', 'is_active', 'visibility', 'is_featured', 'is_pinned', 'category']
     search_fields = ['title', 'slug', 'description', 'short_description']
     ordering_fields = ['order', 'created_at', 'view_count', 'like_count', 'share_count']
@@ -43,7 +59,8 @@ class ProjectDetailView(BaseRetrieveUpdateDestroyView):
     """
     queryset = Project.objects.select_related('category')
     serializer_class = ProjectSerializer
-    permission_classes = [IsContentManagerOrAbove]
+    # FIXED: Allow anonymous GET, but require Content Manager or above for write
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     lookup_field = 'slug'
 
     def get_queryset(self):
