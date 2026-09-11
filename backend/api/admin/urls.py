@@ -1,80 +1,48 @@
 """
 Admin API URL configuration.
-All admin-specific endpoints are under /api/v1/admin/
-"""
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 
-# Import existing app URL configs for admin operations
-from apps.projects.urls import urlpatterns as projects_urls
-from apps.techstack.urls import urlpatterns as techstack_urls
-from apps.skills.urls import urlpatterns as skills_urls
-from apps.hero.urls import urlpatterns as hero_urls
-from apps.about.urls import urlpatterns as about_urls
-from apps.experience.urls import urlpatterns as experience_urls
-from apps.education.urls import urlpatterns as education_urls
-from apps.certifications.urls import urlpatterns as certifications_urls
-from apps.services.urls import urlpatterns as services_urls
-from apps.clients.urls import urlpatterns as clients_urls
-from apps.testimonials.urls import urlpatterns as testimonials_urls
-from apps.blogs.urls import urlpatterns as blogs_urls
-from apps.contact.urls import urlpatterns as contact_urls
-from apps.resume.urls import urlpatterns as resume_urls
-from apps.socials.urls import urlpatterns as socials_urls
-from apps.media.urls import urlpatterns as media_urls
-from apps.settings.urls import urlpatterns as settings_urls
+⚠️  This module intentionally does NOT re-include any app urls.py.
+
+Reasons:
+- The previous implementation re-mounted every public viewset under
+  /api/v1/admin/, exposing admin actions (create/update/delete) at
+  URLs that were not protected by IsAdminUser.
+- Duplicating the same viewset at two URL prefixes means a single
+  permission_classes mistake becomes a public vulnerability twice over.
+- Admin-only actions are already gated by DRF permission_classes on
+  the viewsets themselves. The URL namespace is not the security
+  boundary — permission_classes are.
+
+If you need an admin-only endpoint, define it explicitly below with
+permission_classes=[IsAdminUser] (or a custom RBAC permission).
+"""
+from django.urls import path
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
 
 app_name = 'admin_api'
 
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_ping(request):
+    """
+    Lightweight health check for the admin API surface.
+
+    Confirms:
+    - JWT authentication is working
+    - The authenticated user has staff/admin privileges
+    """
+    return Response({
+        'status': 'ok',
+        'user': request.user.email,
+        'role': getattr(request.user, 'role', None),
+        'is_staff': request.user.is_staff,
+        'is_superuser': request.user.is_superuser,
+    })
+
+
 urlpatterns = [
-    # Projects
-    path('projects/', include(projects_urls)),
-    
-    # Tech Stack
-    path('tech-stack/', include(techstack_urls)),
-    
-    # Skills
-    path('skills/', include(skills_urls)),
-    
-    # Hero
-    path('hero/', include(hero_urls)),
-    
-    # About
-    path('about/', include(about_urls)),
-    
-    # Experience
-    path('experience/', include(experience_urls)),
-    
-    # Education
-    path('education/', include(education_urls)),
-    
-    # Certifications
-    path('certifications/', include(certifications_urls)),
-    
-    # Services
-    path('services/', include(services_urls)),
-    
-    # Clients
-    path('clients/', include(clients_urls)),
-    
-    # Testimonials
-    path('testimonials/', include(testimonials_urls)),
-    
-    # Blogs
-    path('blogs/', include(blogs_urls)),
-    
-    # Contact
-    path('contact/', include(contact_urls)),
-    
-    # Resume
-    path('resume/', include(resume_urls)),
-    
-    # Social Links
-    path('socials/', include(socials_urls)),
-    
-    # Media
-    path('media/', include(media_urls)),
-    
-    # Settings
-    path('settings/', include(settings_urls)),
+    path('ping/', admin_ping, name='admin-ping'),
 ]
