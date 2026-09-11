@@ -4,7 +4,7 @@ Custom permissions for Portfolio CMS.
 from rest_framework import permissions
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-from core.permissions import IsContentManagerOrAbove
+from .permissions import IsContentManagerOrAbove
 
 
 class IsAdminUser(permissions.BasePermission):
@@ -45,13 +45,12 @@ class IsEditorOrAbove(permissions.BasePermission):
 
 class IsPublicReadOrContentManagerWrite(permissions.BasePermission):
     """
-    Allow anonymous users read-only access (GET/HEAD/OPTIONS).
+    Allow anonymous read-only access (GET/HEAD/OPTIONS).
     Require Content Manager or above for writes.
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        from .permissions import IsContentManagerOrAbove
         return IsContentManagerOrAbove().has_permission(request, view)
 
 
