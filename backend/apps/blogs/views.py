@@ -3,7 +3,7 @@ Views for blogs app.
 """
 from rest_framework import generics
 from rest_framework.response import Response
-from core.permissions import IsPublicOrAuthenticated
+from core.permissions import IsPublicOrAuthenticated, IsPublicReadOrContentManagerWrite
 from .models import Blog, BlogCategory, BlogTag
 from .serializers import (
     BlogSerializer, BlogListSerializer,
@@ -17,7 +17,7 @@ class BlogCategoryListCreateView(generics.ListCreateAPIView):
     """
     queryset = BlogCategory.objects.all()
     serializer_class = BlogCategorySerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     filterset_fields = ['status', 'is_active']
     search_fields = ['name', 'slug', 'description']
     ordering_fields = ['order', 'name']
@@ -41,7 +41,7 @@ class BlogCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = BlogCategory.objects.all()
     serializer_class = BlogCategorySerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     lookup_field = 'slug'
 
     def get_queryset(self):
@@ -63,7 +63,7 @@ class BlogTagListCreateView(generics.ListCreateAPIView):
     """
     queryset = BlogTag.objects.all()
     serializer_class = BlogTagSerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     search_fields = ['name', 'slug']
     ordering_fields = ['name']
 
@@ -86,7 +86,7 @@ class BlogTagDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = BlogTag.objects.all()
     serializer_class = BlogTagSerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     lookup_field = 'slug'
 
     def get_queryset(self):
@@ -107,7 +107,7 @@ class BlogListCreateView(generics.ListCreateAPIView):
     List and create blog posts.
     """
     queryset = Blog.objects.select_related('category', 'author').prefetch_related('tags')
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     filterset_fields = ['status', 'is_active', 'category', 'is_featured', 'allow_comments']
     search_fields = ['title', 'slug', 'excerpt', 'content']
     ordering_fields = ['published_at', 'created_at', 'title', 'view_count', 'like_count']
@@ -136,7 +136,7 @@ class BlogDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Blog.objects.select_related('category', 'author').prefetch_related('tags')
     serializer_class = BlogSerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     lookup_field = 'slug'
 
     def get_queryset(self):

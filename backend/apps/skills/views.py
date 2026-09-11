@@ -2,7 +2,7 @@
 Views for skills app.
 """
 from rest_framework import generics
-from core.permissions import IsPublicOrAuthenticated
+from core.permissions import IsPublicOrAuthenticated, IsPublicReadOrContentManagerWrite
 from .models import Skill, SkillCategory
 from .serializers import SkillSerializer, SkillListSerializer, SkillCategorySerializer
 
@@ -13,7 +13,7 @@ class SkillCategoryListCreateView(generics.ListCreateAPIView):
     """
     queryset = SkillCategory.objects.all()
     serializer_class = SkillCategorySerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     filterset_fields = ['status', 'is_active']
     search_fields = ['name', 'slug', 'description']
     ordering_fields = ['order', 'name']
@@ -37,7 +37,7 @@ class SkillCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = SkillCategory.objects.all()
     serializer_class = SkillCategorySerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     lookup_field = 'slug'
 
     def get_queryset(self):
@@ -58,7 +58,7 @@ class SkillListCreateView(generics.ListCreateAPIView):
     List and create skills.
     """
     queryset = Skill.objects.select_related('category')
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     filterset_fields = ['status', 'is_active', 'category', 'is_featured', 'show_on_homepage']
     search_fields = ['name', 'slug', 'category__name']
     ordering_fields = ['priority', 'order', 'percentage', 'name']
@@ -87,7 +87,7 @@ class SkillDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Skill.objects.select_related('category')
     serializer_class = SkillSerializer
-    permission_classes = [IsPublicOrAuthenticated]
+    permission_classes = [IsPublicReadOrContentManagerWrite]
     lookup_field = 'slug'
 
     def get_queryset(self):
