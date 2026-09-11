@@ -195,7 +195,7 @@ export const TechStackManager: React.FC = () => {
                 <td className="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Code2 className="w-4 h-4 text-indigo-500" />
                   {item.name}
-                  {item.featured && <Sparkles className="w-3 h-3 text-amber-500" title="Featured" />}
+                  {item.featured && <Sparkles className="w-3 h-3 text-amber-500" />}
                 </td>
                 <td className="p-3.5 font-mono text-indigo-500 font-semibold">{item.category}</td>
                 <td className="p-3.5 font-mono">{item.skillLevel}%</td>

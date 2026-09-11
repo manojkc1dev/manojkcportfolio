@@ -1,14 +1,14 @@
-import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -34,11 +34,13 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-          <p className="text-gray-600">Welcome to the Portfolio CMS Admin Panel.</p>
+          <p className="text-gray-600">
+            Welcome to the Portfolio CMS Admin Panel.
+          </p>
           <p className="text-gray-600 mt-2">Role: {user?.role}</p>
           <p className="text-gray-600">Email: {user?.email}</p>
         </div>
       </div>
     </div>
-  )
+  );
 }

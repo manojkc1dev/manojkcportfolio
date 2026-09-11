@@ -26,6 +26,17 @@ export interface ContactFormData {
   message: string;
 }
 
+export interface ContactReplyData {
+  reply: string;
+}
+
+export interface ContactReplyResponse {
+  contact_id: string;
+  reply: string;
+  task_id: string;
+  status: string;
+}
+
 // Contact service
 export const contactService = {
   // Get all contact messages
@@ -56,5 +67,10 @@ export const contactService = {
   // Delete contact message
   delete: async (id: string) => {
     return api.delete(`/contact/${id}/`);
+  },
+
+  // Send reply to contact
+  reply: async (id: string, data: ContactReplyData) => {
+    return api.post<ContactReplyResponse>(`/contact/${id}/reply/`, data);
   },
 };

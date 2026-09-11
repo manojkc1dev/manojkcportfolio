@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCMS } from '../../context/CMSContext';
 import {
   ResponsiveContainer,
@@ -27,7 +27,8 @@ import {
   Activity,
   ShieldCheck,
   TrendingUp,
-  Globe
+  Globe,
+  RefreshCw
 } from 'lucide-react';
 
 export const DashboardOverview: React.FC = () => {
@@ -40,13 +41,28 @@ export const DashboardOverview: React.FC = () => {
     newsletter,
     analytics,
     auditLogs,
-    resume
+    resume,
+    dashboardAnalytics,
+    fetchDashboardAnalytics
   } = useCMS();
 
-  const totalProjects = projects.length;
-  const publishedProjects = projects.filter((p) => p.status === 'Published').length;
-  const draftProjects = projects.filter((p) => p.status === 'Draft').length;
-  const unreadMessages = messages.filter((m) => m.status === 'Unread').length;
+  useEffect(() => {
+    fetchDashboardAnalytics();
+  }, [fetchDashboardAnalytics]);
+
+  // Use real API data when available, fallback to context data
+  const totalProjects = dashboardAnalytics?.total_projects ?? projects.length;
+  const publishedProjects = dashboardAnalytics?.published_projects ?? projects.filter((p) => p.status === 'Published').length;
+  const draftProjects = dashboardAnalytics?.draft_projects ?? projects.filter((p) => p.status === 'Draft').length;
+  const totalVisitors = dashboardAnalytics?.total_visitors ?? analytics.totalVisitors;
+  const totalContacts = dashboardAnalytics?.total_contacts ?? messages.length;
+  const newContacts = dashboardAnalytics?.new_contacts ?? messages.filter((m) => m.status === 'Unread').length;
+  const totalSubscribers = dashboardAnalytics?.total_subscribers ?? newsletter.length;
+  const totalBlogs = dashboardAnalytics?.total_blogs ?? blogs.length;
+  const totalSkills = dashboardAnalytics?.total_skills ?? skills.length;
+  const totalCertifications = dashboardAnalytics?.total_certifications ?? 0;
+  const visitorCountries = dashboardAnalytics?.visitor_countries ?? analytics.visitorCountries;
+  const viewsOverTime = analytics.viewsOverTime;
 
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6'];
 
@@ -100,7 +116,7 @@ export const DashboardOverview: React.FC = () => {
             <span className="text-[11px] font-semibold uppercase">Visitors</span>
             <Users className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{analytics.totalVisitors.toLocaleString()}</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{totalVisitors.toLocaleString()}</div>
           <div className="text-[10px] text-emerald-500 font-mono font-semibold">+14.2% this week</div>
         </div>
 
@@ -110,8 +126,8 @@ export const DashboardOverview: React.FC = () => {
             <span className="text-[11px] font-semibold uppercase">Inquiries</span>
             <MessageSquare className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{messages.length}</div>
-          <div className="text-[10px] text-amber-500 font-mono font-semibold">{unreadMessages} Unread</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{totalContacts}</div>
+          <div className="text-[10px] text-amber-500 font-mono font-semibold">{newContacts} New</div>
         </div>
 
         {/* Card 4: Resume Downloads */}
@@ -127,11 +143,11 @@ export const DashboardOverview: React.FC = () => {
         {/* Card 5: Tech Stack & Skills */}
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
           <div className="flex justify-between text-slate-400">
-            <span className="text-[11px] font-semibold uppercase">Tech Items</span>
+            <span className="text-[11px] font-semibold uppercase">Skills</span>
             <Code2 className="w-4 h-4 text-sky-500" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{techStack.length}</div>
-          <div className="text-[10px] text-slate-500 font-mono">{skills.length} Competencies</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{totalSkills}</div>
+          <div className="text-[10px] text-slate-500 font-mono">{totalCertifications} Certs</div>
         </div>
 
         {/* Card 6: Blog Posts */}
@@ -140,8 +156,8 @@ export const DashboardOverview: React.FC = () => {
             <span className="text-[11px] font-semibold uppercase">Blog Posts</span>
             <BookOpen className="w-4 h-4 text-rose-500" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{blogs.length}</div>
-          <div className="text-[10px] text-slate-500 font-mono">{newsletter.length} Subscribers</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{totalBlogs}</div>
+          <div className="text-[10px] text-slate-500 font-mono">{totalSubscribers} Subscribers</div>
         </div>
 
       </div>

@@ -15,6 +15,14 @@ export { contactService } from './contact.service';
 export { socialsService } from './socials.service';
 export { resumeService } from './resume.service';
 export { newsletterService } from './newsletter.service';
+export { dashboardService } from './dashboard.service';
+export { servicesService } from './services.service';
+export { clientsService } from './clients.service';
+export { testimonialsService } from './testimonials.service';
+export { analyticsService } from './analytics.service';
+export { mediaService } from './media.service';
+export { auditLogsService } from './audit-logs.service';
+export { seoService } from './seo.service';
 
 // Export types
 export type { LoginCredentials, RegisterData, AuthResponse, ChangePasswordData } from './auth.service';
@@ -32,3 +40,4 @@ export type { ContactFormData } from './contact.service';
 export type { SocialLink } from '../types';
 export type { ResumeData } from '../types';
 export type { NewsletterSubscriber } from '../types';
+export type { DashboardAnalytics, DashboardAnalyticsResponse } from './dashboard.service';

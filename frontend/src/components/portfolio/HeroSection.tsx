@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 export const HeroSection: React.FC = () => {
-  const { hero, setViewMode, setIsResumeModalOpen } = useCMS();
+  const { hero, setIsResumeModalOpen } = useCMS();
 
   // Typing animation text state
   const [typingIndex, setTypingIndex] = useState(0);
