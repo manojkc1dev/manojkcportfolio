@@ -1,64 +1,399 @@
-# Manoj K.C. | Backend Developer
+# Enterprise Portfolio CMS
 
-## 📬 Let's Collaborate
-I’m always interested in hearing about new projects, backend architecture challenges, or job opportunities. Feel free to reach out!
+A production-ready, enterprise-grade Portfolio Content Management System built with Django 5, Django REST Framework, PostgreSQL, Redis, Celery, and Docker. Designed for professional software engineers to manage their portfolio content through a powerful admin panel and RESTful APIs.
 
-| [![Portfolio](https://img.shields.io/badge/Portfolio-Live_Site-blue?style=for-the-badge&logo=🌐)](https://manojkc1.com.np) |
-| :---: |
-| [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/manojkc1dev) [![GitHub](https://img.shields.io/badge/GitHub-View_Work-black?style=for-the-badge&logo=github)](https://github.com/manojkc1dev) [![Email](https://img.shields.io/badge/Email-manojkc1dev@gmail.com-red?style=for-the-badge&logo=gmail)](mailto:manojkc1dev@gmail.com) |
----
+## Features
 
-## 👨‍💻 About Me
-I am a **Python & Django Backend Developer** based in Nepal, specializing in building scalable server-side systems, REST APIs, and secure authentication flows. I focus on writing clean, well-documented, and maintainable code that solves real-world problems.
+### Core Features
+- **JWT Authentication** with role-based access control (RBAC)
+- **Soft Delete** functionality for data recovery
+- **Audit Logging** for complete compliance tracking
+- **API Versioning** with OpenAPI/Swagger/ReDoc documentation
+- **Redis Caching** for optimal performance
+- **Celery** for background task processing
+- **Docker** containerization for easy deployment
+- **Nginx** reverse proxy with SSL support
 
-I am currently open to **Backend Developer roles, SaaS MVP contracts, and freelance API projects.**
+### Portfolio Modules
+- **Hero Section** - Fully customizable hero with typing animation
+- **About Section** - Bio, mission, vision, highlights
+- **Tech Stack** - Dynamic technology categories and items
+- **Skills** - Skill categories with proficiency levels
+- **Projects** - Comprehensive project management with galleries, videos, features
+- **Experience** - Work experience with achievements
+- **Education** - Academic background
+- **Certifications** - Professional certifications
+- **Services** - Service offerings
+- **Clients** - Client information and reviews
+- **Testimonials** - Client testimonials
+- **Blog CMS** - Markdown blog with rich editor
+- **Contact** - Contact form with spam detection
+- **Resume** - Resume management with download tracking
+- **Social Links** - All social media platforms
+- **SEO** - Complete SEO optimization with schema.org
+- **Analytics** - Visitor tracking and statistics
+- **Newsletter** - Email subscription management
+- **Timeline** - Career timeline
+- **FAQs** - Frequently asked questions
+- **Achievements** - Awards and achievements
+- **Media Manager** - File management with compression
+- **Search** - Global search functionality
+- **Dashboard** - Analytics dashboard with charts
 
-## 🛠 Tech Stack
+## Technology Stack
 
-| Category | Technologies |
-| :--- | :--- |
-| **Languages** | Python, JavaScript, SQL, HTML/CSS |
-| **Backend** | Django, Django REST Framework (DRF) |
-| **Database** | PostgreSQL, SQLite |
-| **Tools & Workflow** | Git & GitHub, JWT Authentication, REST APIs, Render, VS Code |
+### Backend
+- Python 3.11+
+- Django 5+
+- Django REST Framework
+- PostgreSQL
+- Redis
+- Celery
+- Docker
+- Gunicorn
+- Nginx
+- drf-spectacular (OpenAPI/Swagger/ReDoc)
+- django-filter
+- CORS
+- WhiteNoise
+- django-environ
+- Cloudinary / AWS S3
 
-## 🚀 Featured Projects
+### Frontend (To be implemented)
+- React
+- Next.js (optional)
+- TailwindCSS
+- Axios
+- React Query
+- Framer Motion
+- TypeScript (optional)
 
-### [CalcPro Calculator](https://manojkc-portfolio.onrender.com)
-*A responsive, multi-functional web calculator featuring Basic, Scientific, Programmer, and Financial modes.*
-* **Tech:** React, JavaScript, Vite, Math.js
-* [Live Preview](https://calcpro-calculator.onrender.com/) | [Source Code](https://github.com/manojkc1dev/calcpro-calculator)
+## Architecture
 
-### [Shabdhabhandar Dictionary](https://manojkc-portfolio.onrender.com)
-*A fast, English-to-Nepali dictionary web app featuring custom fault-tolerant Unicode search logic and automated database ingestion.*
-* **Tech:** Python, Django, JavaScript, SQLite
-* [Live Preview](https://sabdhabhandar.onrender.com/) | [Source Code](https://github.com/manojkc1dev/sabdhabhandar)
+The project follows **Clean Architecture** principles with feature-based apps. Every app contains:
+- `models.py` - Database models
+- `serializers.py` - DRF serializers
+- `views.py` - API views
+- `permissions.py` - Custom permissions
+- `filters.py` - Query filters
+- `selectors.py` - Query selectors
+- `services.py` - Business logic
+- `validators.py` - Custom validators
+- `signals.py` - Django signals
+- `urls.py` - URL routing
+- `admin.py` - Admin configuration
+- `tasks.py` - Celery tasks
+- `tests/` - Test suite
+- `docs/` - Documentation
 
----
+## Project Structure
 
-### 📊 GitHub Stats
-<p align="center">
-  <img src="https://github-readme-stats.shion.dev/api?username=manojkc1dev&theme=default_repocard&hide_border=false&include_all_commits=false&count_private=false" alt="GitHub Stats" />
-</p>
+```
+portfolio_backend/
+├── config/              # Django configuration
+│   ├── settings.py      # Main settings
+│   ├── urls.py          # Main URL routing
+│   ├── wsgi.py          # WSGI configuration
+│   ├── asgi.py          # ASGI configuration
+│   └── celery.py        # Celery configuration
+├── core/                # Core functionality
+│   ├── models.py        # Base models (BaseModel, SoftDelete, AuditLog)
+│   ├── permissions.py   # Custom permissions
+│   ├── paginators.py    # Custom paginators
+│   ├── filters.py       # Common filters
+│   ├── serializers.py   # Common serializers
+│   ├── middleware.py    # Custom middleware
+│   └── exceptions.py    # Custom exceptions
+├── apps/                # Feature-based apps
+│   ├── accounts/        # User authentication & management
+│   ├── hero/           # Hero section
+│   ├── about/          # About section
+│   ├── skills/         # Skills management
+│   ├── techstack/      # Technology stack
+│   ├── projects/       # Projects (main)
+│   ├── project_categories/
+│   ├── project_images/
+│   ├── project_gallery/
+│   ├── project_videos/
+│   ├── project_features/
+│   ├── project_technologies/
+│   ├── experience/     # Work experience
+│   ├── education/      # Education
+│   ├── certifications/  # Certifications
+│   ├── services/       # Services
+│   ├── clients/        # Clients
+│   ├── testimonials/   # Testimonials
+│   ├── blogs/          # Blog CMS
+│   ├── contact/        # Contact form
+│   ├── resume/         # Resume management
+│   ├── socials/        # Social links
+│   ├── seo/            # SEO settings
+│   ├── analytics/      # Analytics
+│   ├── newsletter/     # Newsletter
+│   ├── timeline/       # Timeline
+│   ├── faqs/           # FAQs
+│   ├── achievements/    # Achievements
+│   ├── media/          # Media manager
+│   ├── audit_logs/     # Audit logs
+│   ├── dashboard/      # Admin dashboard
+│   ├── search/         # Global search
+│   └── settings/       # App settings
+├── api/                # API configuration
+│   └── v1/             # API v1 endpoints
+├── common/             # Common utilities
+├── manage.py           # Django management script
+├── requirements.txt     # Python dependencies
+├── Dockerfile          # Docker configuration
+├── gunicorn.conf.py    # Gunicorn configuration
+└── .env.example        # Environment variables template
+```
 
-<p align="center">
-  <img src="https://streak-stats.demolab.com/?user=manojkc1dev&theme=default_repocard&hide_border" alt="GitHub Streak" />
-</p>
+## Installation
 
-<p align="center">
-  <img src="https://github-readme-stats.shion.dev/api/top-langs/?username=manojkc1dev&theme=default_repocard&hide_border=false&include_all_commits=false&count_private=false&layout=compact" alt="Top Languages" />
-</p>
+### Prerequisites
+- Python 3.11+
+- PostgreSQL 15+
+- Redis 7+
+- Docker & Docker Compose (optional but recommended)
 
----
+### Local Development Setup
 
-<p align="center">
-  <a href="https://github.com/manojkc1dev">
-    <img src="https://img.shields.io/github/followers/manojkc1dev?label=Follow%20Me&style=flat&color=0e75b6" alt="Followers" />
-  </a>
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd portfolio_backend
+```
 
-  <a href="https://github.com/manojkc1dev/manojkc1dev/stargazers">
-    <img src="https://img.shields.io/github/stars/manojkc1dev/manojkc1dev?label=Stars&style=flat&color=0e75b6" alt="Stars" />
-  </a>
+2. **Create virtual environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-  <img src="https://komarev.com/ghpvc/?username=manojkc1dev&label=Profile%20Views&color=0e75b6&style=flat" alt="Profile Views" />
-</p>
+3. **Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Configure environment variables**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+5. **Run database migrations**
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+6. **Create superuser**
+```bash
+python manage.py createsuperuser
+```
+
+7. **Run development server**
+```bash
+python manage.py runserver
+```
+
+### Docker Setup
+
+1. **Build and start containers**
+```bash
+docker-compose up -d
+```
+
+2. **Run migrations**
+```bash
+docker-compose exec backend python manage.py migrate
+```
+
+3. **Create superuser**
+```bash
+docker-compose exec backend python manage.py createsuperuser
+```
+
+4. **Access the application**
+- Backend API: http://localhost:8000
+- Admin Panel: http://localhost:8000/admin
+- API Docs (Swagger): http://localhost:8000/api/docs/
+- API Docs (ReDoc): http://localhost:8000/api/redoc/
+
+## User Roles
+
+The system supports role-based access control:
+
+- **Super Admin** - Full system access, can manage all users
+- **Admin** - Can manage content and users (except super admins)
+- **Editor** - Can create, edit, and publish content
+- **Content Manager** - Can manage content (no publishing)
+- **Viewer** - Read-only access to published content
+
+## API Endpoints
+
+### Authentication
+- `POST /api/v1/auth/login/` - Login and get JWT tokens
+- `POST /api/v1/auth/register/` - Register new user
+- `POST /api/v1/auth/logout/` - Logout (blacklist token)
+- `POST /api/v1/auth/refresh/` - Refresh access token
+
+### Projects
+- `GET /api/v1/projects/` - List all projects
+- `POST /api/v1/projects/` - Create new project
+- `GET /api/v1/projects/{slug}/` - Get project details
+- `PUT /api/v1/projects/{slug}/` - Update project
+- `DELETE /api/v1/projects/{slug}/` - Delete project
+- `POST /api/v1/projects/{slug}/like/` - Like project
+- `POST /api/v1/projects/{slug}/share/` - Share project
+- `POST /api/v1/projects/{slug}/publish/` - Publish project
+
+### Project Categories
+- `GET /api/v1/projects/categories/` - List categories
+- `POST /api/v1/projects/categories/` - Create category
+- `GET /api/v1/projects/categories/{slug}/` - Get category
+- `PUT /api/v1/projects/categories/{slug}/` - Update category
+- `DELETE /api/v1/projects/categories/{slug}/` - Delete category
+
+### Users
+- `GET /api/v1/users/` - List all users (admin only)
+- `GET /api/v1/users/me/` - Get current user
+- `PUT /api/v1/users/me/` - Update current user
+- `POST /api/v1/users/me/change-password/` - Change password
+- `GET /api/v1/users/me/profile/` - Get user profile
+- `PUT /api/v1/users/me/profile/` - Update user profile
+
+## Admin Panel
+
+Access the admin panel at `/admin/` with your superuser credentials.
+
+The admin panel includes:
+- User management with role assignment
+- Content management for all modules
+- Audit log viewing
+- Analytics dashboard
+- Media management
+- SEO settings
+
+## Celery Tasks
+
+Celery is configured for background task processing:
+
+### Available Tasks
+- Email sending (verification, password reset, welcome)
+- Login log cleanup
+- Account unlock
+- Analytics aggregation
+
+### Running Celery
+```bash
+# Start Celery worker
+celery -A config worker -l info
+
+# Start Celery beat (scheduled tasks)
+celery -A config beat -l info
+```
+
+## Testing
+
+Run the test suite:
+```bash
+pytest
+```
+
+Run with coverage:
+```bash
+pytest --cov=.
+```
+
+## Deployment
+
+### Production Deployment
+
+1. **Set environment variables**
+```bash
+DEBUG=False
+SECRET_KEY=<your-secret-key>
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+```
+
+2. **Build Docker images**
+```bash
+docker-compose -f docker-compose.yml build
+```
+
+3. **Start production containers**
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+4. **Run production commands**
+```bash
+docker-compose exec backend python manage.py collectstatic --noinput
+docker-compose exec backend python manage.py migrate
+```
+
+### Security Checklist
+
+- [ ] Change default SECRET_KEY
+- [ ] Set DEBUG=False in production
+- [ ] Configure ALLOWED_HOSTS
+- [ ] Enable HTTPS/SSL
+- [ ] Configure CORS properly
+- [ ] Set up rate limiting
+- [ ] Enable security headers
+- [ ] Configure firewall rules
+- [ ] Regular security updates
+- [ ] Backup database regularly
+
+### Performance Checklist
+
+- [ ] Enable Redis caching
+- [ ] Configure database connection pooling
+- [ ] Use select_related/prefetch_related
+- [ ] Optimize database queries
+- [ ] Enable CDN for static files
+- [ ] Configure Gunicorn workers
+- [ ] Enable Nginx caching
+- [ ] Monitor performance metrics
+- [ ] Use database indexes
+- [ ] Implement pagination
+
+## Monitoring
+
+### Health Check
+```bash
+curl http://localhost:8000/health/
+```
+
+### Logs
+- Application logs: `/app/logs/django.log`
+- Nginx logs: `/var/log/nginx/`
+
+### Metrics
+- API response times
+- Database query performance
+- Cache hit rates
+- Error rates
+- User activity
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Write tests
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For issues and questions, please open an issue on GitHub.
+
+## Acknowledgments
+
+Built with enterprise-grade technologies and following best practices from companies like Stripe, GitLab, Atlassian, Netflix, and Microsoft.

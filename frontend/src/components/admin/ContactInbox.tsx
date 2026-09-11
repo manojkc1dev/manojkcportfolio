@@ -1,28 +1,53 @@
 import React, { useState } from 'react';
 import { useCMS } from '../../context/CMSContext';
 import { ContactMessage } from '../../types';
-import { Mail, Star, Trash2, CheckCircle2, Reply, ShieldCheck, Globe, Smartphone, Clock, X } from 'lucide-react';
+import { contactService } from '../../services/contact.service';
+import { Mail, Star, Trash2, CheckCircle2, Reply, ShieldCheck, Globe, Smartphone, Clock, X, Loader2 } from 'lucide-react';
 
 export const ContactInbox: React.FC = () => {
-  const { messages, markMessageRead, toggleMessageStar, deleteMessage } = useCMS();
+  const { messages, updateContactMessage, deleteContactMessage } = useCMS();
   const [selectedMsg, setSelectedMsg] = useState<ContactMessage | null>(null);
   const [replyText, setReplyText] = useState('');
-  const [repliedSent, setRepliedSent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const handleSelectMessage = (msg: ContactMessage) => {
     setSelectedMsg(msg);
     if (msg.status === 'Unread') {
-      markMessageRead(msg.id);
+      updateContactMessage(msg.id, { status: 'Read' as any });
     }
   };
 
-  const handleSendReply = () => {
-    if (!replyText.trim() || !selectedMsg) return;
-    setRepliedSent(true);
-    setTimeout(() => {
-      setRepliedSent(false);
-      setReplyText('');
-    }, 3000);
+  const handleToggleStar = (msg: ContactMessage) => {
+    updateContactMessage(msg.id, { starred: !msg.starred } as any);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedMsg || isSending) return;
+    
+    setIsSending(true);
+    setSendSuccess(false);
+    setSendError(null);
+
+    try {
+      const response = await contactService.reply(selectedMsg.id, { reply: replyText.trim() });
+      
+      if (response.success) {
+        setSendSuccess(true);
+        setReplyText('');
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSendSuccess(false);
+        }, 3000);
+      } else {
+        setSendError(response.message || 'Failed to send reply');
+      }
+    } catch (error) {
+      setSendError('Network error. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -57,7 +82,7 @@ export const ContactInbox: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={(e) => { e.stopPropagation(); toggleMessageStar(msg.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleToggleStar(msg); }}
                     className={`p-1 rounded ${msg.starred ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500'}`}
                   >
                     <Star className="w-3.5 h-3.5 fill-current" />
@@ -78,7 +103,7 @@ export const ContactInbox: React.FC = () => {
               </p>
 
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-2">
-                <span>{msg.ipCountry}</span>
+                <span>{msg.country}</span>
                 <span>{new Date(msg.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
@@ -102,7 +127,7 @@ export const ContactInbox: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => deleteMessage(selectedMsg.id)}
+                  onClick={() => deleteContactMessage(selectedMsg.id)}
                   className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 hover:bg-rose-100"
                   title="Delete message"
                 >
@@ -112,8 +137,8 @@ export const ContactInbox: React.FC = () => {
 
               {/* Security & Geolocation Telemetry */}
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-mono text-slate-500">
-                <div>IP Address: <span className="text-slate-900 dark:text-white">{selectedMsg.ipAddress}</span></div>
-                <div>Country: <span className="text-slate-900 dark:text-white">{selectedMsg.ipCountry}</span></div>
+                <div>IP Address: <span className="text-slate-900 dark:text-white">{selectedMsg.ip}</span></div>
+                <div>Country: <span className="text-slate-900 dark:text-white">{selectedMsg.country}</span></div>
                 <div>Device: <span className="text-slate-900 dark:text-white truncate block">{selectedMsg.device}</span></div>
               </div>
 
@@ -133,20 +158,36 @@ export const ContactInbox: React.FC = () => {
                   placeholder="Type your official response..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={isSending}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                 />
 
-                {repliedSent && (
+                {sendSuccess && (
                   <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> Reply dispatched via Celery SMTP Queue!
+                    <CheckCircle2 className="w-4 h-4" /> Reply queued for email delivery
+                  </div>
+                )}
+
+                {sendError && (
+                  <div className="text-xs font-semibold text-rose-600 flex items-center gap-1">
+                    <X className="w-4 h-4" /> {sendError}
                   </div>
                 )}
 
                 <button
                   onClick={handleSendReply}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-2"
+                  disabled={isSending || !replyText.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-2"
                 >
-                  <Reply className="w-4 h-4" /> Send Email Reply
+                  {isSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Reply className="w-4 h-4" /> Send Email Reply
+                    </>
+                  )}
                 </button>
               </div>
 

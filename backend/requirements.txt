@@ -1,12 +1,67 @@
+# Django Core
 Django>=5.0,<6.0
-djangorestframework>=3.15.0
-djangorestframework-simplejwt>=5.3.1
-django-cors-headers>=4.3.1
-django-filter>=24.2
-drf-spectacular>=0.27.2
-cloudinary>=1.40.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.0.0
+django-filter>=23.0
+django-environ>=0.11.0
+whitenoise>=6.5.0
+django-extensions>=3.2.0
+
+# Authentication & Security
+djangorestframework-simplejwt>=5.3.0
+django-cryptography>=1.0
+
+# Database
+psycopg2-binary>=2.9.0
+django-redis>=5.4.0
+
+# API Documentation
+drf-spectacular>=0.27.0
+
+# Celery for Background Tasks
+celery>=5.3.0
+django-celery-beat>=2.5.0
+django-celery-results>=2.5.0
+
+# File Storage
+cloudinary>=1.36.0
 django-cloudinary-storage>=0.3.0
-whitenoise>=6.7.0
-psycopg2-binary>=2.9.9
-python-dotenv>=1.0.1
-Pillow>=10.3.0
+boto3>=1.28.0
+django-storages>=1.14.0
+
+# Email
+django-anymail>=10.0
+
+# Monitoring & Logging
+sentry-sdk>=1.32.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-django>=4.5.0
+pytest-cov>=4.1.0
+factory-boy>=3.3.0
+faker>=19.0.0
+django-debug-toolbar>=4.2.0
+
+# Code Quality
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+pylint>=2.17.0
+mypy>=1.5.0
+
+# Utilities
+python-decouple>=3.8
+Pillow>=10.0.0
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Performance
+django-cache-url>=3.4.0
+
+# Additional
+gunicorn>=21.2.0
+uvicorn>=0.23.0
+
+# HTTP Requests
+requests>=2.31.0

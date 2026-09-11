@@ -1,7 +1,13 @@
-from rest_framework.routers import DefaultRouter
-from .views import ContactMessageViewSet
+"""
+URL configuration for contact app.
+"""
+from django.urls import path
+from .views import ContactListCreateView, ContactDetailView, ContactReplyView
 
-router = DefaultRouter()
-router.register(r'', ContactMessageViewSet, basename='contact')
+app_name = 'contact'
 
-urlpatterns = router.urls
+urlpatterns = [
+    path('', ContactListCreateView.as_view(), name='contact-list'),
+    path('<uuid:id>/', ContactDetailView.as_view(), name='contact-detail'),
+    path('<uuid:id>/reply/', ContactReplyView.as_view(), name='contact-reply'),
+]

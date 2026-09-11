@@ -42,7 +42,7 @@ type AdminTab =
   | 'audit';
 
 export const AdminLayout: React.FC = () => {
-  const { setViewMode, logoutJwt, messages } = useCMS();
+  const { messages } = useCMS();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
 
   const unreadCount = messages.filter((m) => m.status === 'Unread').length;
@@ -80,7 +80,6 @@ export const AdminLayout: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setViewMode('PUBLIC_PORTFOLIO')}
               className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
               title="Return to Public Portfolio"
             >
@@ -136,13 +135,11 @@ export const AdminLayout: React.FC = () => {
         {/* Footer Quick Return & Logout Buttons */}
         <div className="pt-4 border-t border-slate-800 space-y-2">
           <button
-            onClick={() => setViewMode('PUBLIC_PORTFOLIO')}
             className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center gap-2"
           >
             <Globe className="w-3.5 h-3.5 text-indigo-400" /> Live Portfolio View
           </button>
           <button
-            onClick={logoutJwt}
             className="w-full py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/80 text-rose-300 text-xs font-semibold transition-colors flex items-center justify-center gap-2"
           >
             <LogOut className="w-3.5 h-3.5" /> Logout JWT Session

@@ -1,15 +1,57 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema
-from .selectors import get_all_experiences
-from .serializers import ExperienceOutputSerializer
+"""
+Views for experience app.
+"""
+from rest_framework import generics
+from core.permissions import IsPublicOrAuthenticated
+from .models import Experience
+from .serializers import ExperienceSerializer, ExperienceListSerializer
 
-class ExperienceListApi(APIView):
-    permission_classes = [AllowAny]
 
-    @extend_schema(responses=ExperienceOutputSerializer(many=True))
-    def get(self, request):
-        experiences = get_all_experiences()
-        serializer = ExperienceOutputSerializer(experiences, many=True)
-        return Response(serializer.data)
+class ExperienceListCreateView(generics.ListCreateAPIView):
+    """
+    List and create work experience.
+    """
+    queryset = Experience.objects.all()
+    permission_classes = [IsPublicOrAuthenticated]
+    filterset_fields = ['status', 'is_active', 'employment_type', 'is_current', 'show_on_homepage', 'is_featured']
+    search_fields = ['company', 'position', 'description']
+    ordering_fields = ['order', 'start_date', '-start_date']
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ExperienceListSerializer
+        return ExperienceSerializer
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions."""
+        queryset = super().get_queryset()
+        
+        if not self.request.user.is_authenticated:
+            return queryset.filter(status='published', is_active=True, show_on_homepage=True)
+        
+        if not self.request.user.is_content_manager():
+            return queryset.filter(status='published', is_active=True, show_on_homepage=True)
+        
+        return queryset
+
+
+class ExperienceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete work experience.
+    """
+    queryset = Experience.objects.all()
+    serializer_class = ExperienceSerializer
+    permission_classes = [IsPublicOrAuthenticated]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions."""
+        queryset = super().get_queryset()
+        
+        if not self.request.user.is_authenticated:
+            return queryset.filter(status='published', is_active=True, show_on_homepage=True)
+        
+        if not self.request.user.is_content_manager():
+            return queryset.filter(status='published', is_active=True, show_on_homepage=True)
+        
+        return queryset

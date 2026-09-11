@@ -30,9 +30,9 @@ export const ProjectManager: React.FC = () => {
     authentication: 'JWT + OAuth2 + RBAC',
     architectureDescription: 'High-throughput microservices layout with Celery workers',
     architectureNodes: [
-      { id: '1', name: 'Gateway', label: 'Nginx Reverse Proxy', type: 'Gateway', tech: 'Nginx' },
-      { id: '2', name: 'API Server', label: 'Django REST API', type: 'Service', tech: 'Django 5.0' },
-      { id: '3', name: 'Database', label: 'PostgreSQL Primary Cluster', type: 'Database', tech: 'PostgreSQL 16' },
+      { id: '1', label: 'Nginx Reverse Proxy', type: 'Gateway', tech: 'Nginx' },
+      { id: '2', label: 'Django REST API', type: 'Service', tech: 'Django 5.0' },
+      { id: '3', label: 'PostgreSQL Primary Cluster', type: 'Database', tech: 'PostgreSQL 16' },
     ]
   });
 
