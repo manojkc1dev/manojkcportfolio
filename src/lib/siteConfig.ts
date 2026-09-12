@@ -1,6 +1,6 @@
 export const siteConfig = {
     name: 'Manoj K.C.',
-    shortName: 'Manoj K.C.',
+    shortName: 'Manoj Khatri',
 
     role: 'Backend Software Engineer',
 
@@ -21,7 +21,7 @@ export const siteConfig = {
 
     contact: {
         email: 'manojkc1dev@gmail.com',
-        phone: '+977-9809807760',
+        phone: '+977-9842203976',
     },
 
     social: {
