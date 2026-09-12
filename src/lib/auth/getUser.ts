@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
 import type { User } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 
 export interface UserProfile {
   id: string;
@@ -18,7 +18,8 @@ export interface AuthContext {
 
 export async function getUser(): Promise<AuthContext> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
+
     const {
       data: { user },
       error: userError,
@@ -33,27 +34,29 @@ export async function getUser(): Promise<AuthContext> {
       };
     }
 
-    // Query profiles table
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .maybeSingle();
 
-    // Determine role (owner email manojkc1dev@gmail.com is always considered admin)
-    const isOwner = user.email?.toLowerCase() === 'manojkc1dev@gmail.com';
-    const resolvedRole = isOwner ? 'admin' : (profile?.role || 'viewer');
-    const isAdmin = resolvedRole === 'admin';
+    const isOwner =
+      user.email?.toLowerCase() === 'manojkc1dev@gmail.com';
+
+    const resolvedRole = isOwner
+      ? 'admin'
+      : profile?.role || 'viewer';
 
     return {
       user,
-      profile: profile || {
-        id: user.id,
-        email: user.email || '',
-        role: resolvedRole,
-      },
+      profile:
+        profile || {
+          id: user.id,
+          email: user.email || '',
+          role: resolvedRole,
+        },
       role: resolvedRole,
-      isAdmin,
+      isAdmin: resolvedRole === 'admin',
     };
   } catch {
     return {
