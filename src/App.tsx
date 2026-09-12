@@ -1,4 +1,3 @@
-'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { OWNER_PROFILE, SEO_CONFIG, type Project } from './lib/constants';
