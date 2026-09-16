@@ -1,5 +1,5 @@
 import type { User } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 
 export interface UserProfile {
   id: string;
@@ -18,7 +18,6 @@ export interface AuthContext {
 
 export async function getUser(): Promise<AuthContext> {
   try {
-    const supabase = createClient();
 
     const {
       data: { user },

@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/auth/useAuth';
 import { OWNER_PROFILE, SEO_CONFIG, type Project } from './lib/constants';
 import { ChatWidget } from './components/public/ChatWidget';
 import {
@@ -101,8 +103,7 @@ const INITIAL_TESTIMONIALS = [
 ];
 
 export default function App() {
-  // Mode: 'public' or 'admin'
-  const [viewMode, setViewMode] = useState<'public' | 'admin'>('public');
+  const { role } = useAuth();
 
   // Theme: 'dark' or 'light'
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -117,27 +118,9 @@ export default function App() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Admin state
-  const [adminRoute, setAdminRoute] = useState<
-    | 'dashboard'
-    | 'appearance'
-    | 'layout'
-    | 'content'
-    | 'media'
-    | 'navigation'
-    | 'seo'
-    | 'chatbot'
-    | 'analytics'
-    | 'users'
-    | 'activity'
-    | 'integrations'
-    | 'settings'
-  >('dashboard');
-
-  // CMS Dynamic content state (Live editable from Admin)
-  const [projectsList, setProjectsList] = useState<Project[]>(OWNER_PROFILE.featuredProjects);
-  const [testimonialsList, setTestimonialsList] = useState(INITIAL_TESTIMONIALS);
-  const [activeSectionVisibility, setActiveSectionVisibility] = useState({
+  const projectsList = OWNER_PROFILE.featuredProjects;
+  const testimonialsList = INITIAL_TESTIMONIALS;
+  const activeSectionVisibility = {
     hero: true,
     about: true,
     skills: true,
@@ -146,20 +129,7 @@ export default function App() {
     testimonials: true,
     cta: true,
     footer: true,
-  });
-
-  // Admin Chatbot config
-  const [chatModel, setChatModel] = useState<'gemini-3.8-flash' | 'gemini-3.1-pro-preview'>('gemini-3.8-flash');
-  const [chatTemperature, setChatTemperature] = useState(0.7);
-  const [chatSystemPrompt, setChatSystemPrompt] = useState(
-    `You are the AI assistant for Manoj K.C.'s portfolio. Answer questions about his skills, projects, experience, and services. Be concise, friendly, and professional. If you don't know something, say so and suggest contacting him via the contact form. Never invent projects or skills. Speak in third person about Manoj.`
-  );
-
-  // Admin Theme tokens
-  const [primaryColor, setPrimaryColor] = useState('#5E6AD2');
-  const [fontFamily, setFontFamily] = useState('Inter');
-  const [uiRadius, setUiRadius] = useState('12px');
-  const [appearanceSubTab, setAppearanceSubTab] = useState<'brand' | 'theme'>('brand');
+  };
 
   // Brand Assets state (live synchronized across site)
   const [brandAssets, setBrandAssets] = useState<BrandAssets>(loadBrandAssets);
@@ -312,12 +282,6 @@ export default function App() {
           <div className="flex items-center gap-3 min-w-0">
             <a
               href="#"
-              onClick={(e) => {
-                if (viewMode === 'admin') {
-                  e.preventDefault();
-                  setViewMode('public');
-                }
-              }}
               className="flex items-center text-[18px] font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm min-w-0"
               aria-label={`${brandAssets.logoText} Home`}
             >
@@ -337,8 +301,7 @@ export default function App() {
           </div>
 
           {/* Center Navigation (Desktop) */}
-          {viewMode === 'public' && (
-            <nav aria-label="Primary" className="hidden md:flex items-center gap-7">
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-7">
               <a
                 href="#about"
                 className="text-sm font-medium text-muted hover:text-foreground transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xs"
@@ -370,24 +333,20 @@ export default function App() {
                 Contact
               </a>
             </nav>
-          )}
 
           {/* Right: ThemeToggle + Admin Panel Trigger + Hire Me CTA */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* View Switcher Button (Desktop) */}
-            <button
-              type="button"
-              onClick={() => setViewMode((prev) => (prev === 'public' ? 'admin' : 'public'))}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                viewMode === 'admin'
-                  ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                  : 'bg-surface border-border text-foreground hover:bg-surface-2'
-              }`}
-              title={viewMode === 'admin' ? 'View Public Site' : 'Open CMS Admin Studio'}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>{viewMode === 'admin' ? 'Public Site' : 'Admin Studio'}</span>
-            </button>
+            {/* Admin Link (Desktop, role-gated) */}
+            {role === 'admin' && (
+              <Link
+                to="/admin"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface text-foreground hover:bg-surface-2 transition-all"
+                title="Open CMS Admin Studio"
+              >
+                <Sliders className="w-3.5 h-3.5 text-primary" />
+                <span>Admin</span>
+              </Link>
+            )}
 
             {/* Theme Toggle (Always visible) */}
             <button
@@ -407,9 +366,6 @@ export default function App() {
             {/* Hire Me CTA Button (Desktop only, moved into drawer on mobile) */}
             <a
               href="#contact"
-              onClick={() => {
-                if (viewMode === 'admin') setViewMode('public');
-              }}
               className="hidden sm:inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs transition-all duration-200 hover:scale-[1.02] hover:shadow-primary/20 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Hire Me
@@ -443,80 +399,61 @@ export default function App() {
 
               <a
                 href="#about"
-                onClick={() => {
-                  if (viewMode === 'admin') setViewMode('public');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => setMobileMenuOpen(false)}
                 className="block text-base font-semibold text-foreground py-2 border-b border-border/40 hover:text-primary transition-colors"
               >
                 About Me
               </a>
               <a
                 href="#tech-stack"
-                onClick={() => {
-                  if (viewMode === 'admin') setViewMode('public');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => setMobileMenuOpen(false)}
                 className="block text-base font-semibold text-foreground py-2 border-b border-border/40 hover:text-primary transition-colors"
               >
                 Tech Stack
               </a>
               <a
                 href="#projects"
-                onClick={() => {
-                  if (viewMode === 'admin') setViewMode('public');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => setMobileMenuOpen(false)}
                 className="block text-base font-semibold text-foreground py-2 border-b border-border/40 hover:text-primary transition-colors"
               >
                 Featured Projects
               </a>
               <a
                 href="#process"
-                onClick={() => {
-                  if (viewMode === 'admin') setViewMode('public');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => setMobileMenuOpen(false)}
                 className="block text-base font-semibold text-foreground py-2 border-b border-border/40 hover:text-primary transition-colors"
               >
                 Engineering Workflow
               </a>
               <a
                 href="#contact"
-                onClick={() => {
-                  if (viewMode === 'admin') setViewMode('public');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => setMobileMenuOpen(false)}
                 className="block text-base font-semibold text-foreground py-2 border-b border-border/40 hover:text-primary transition-colors"
               >
                 Contact
               </a>
             </div>
 
-            {/* Mobile Drawer CTAs: Hire Me & Admin Studio Switcher */}
+            {/* Mobile Drawer CTAs: Hire Me & Admin Studio Link */}
             <div className="pt-6 space-y-3 border-t border-border/70">
               <a
                 href="#contact"
-                onClick={() => {
-                  if (viewMode === 'admin') setViewMode('public');
-                  setMobileMenuOpen(false);
-                }}
+                onClick={() => setMobileMenuOpen(false)}
                 className="w-full inline-flex items-center justify-center rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-md hover:bg-primary/90 transition-all"
               >
                 Hire Manoj K.C.
               </a>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode((prev) => (prev === 'public' ? 'admin' : 'public'));
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 py-3 text-xs font-semibold text-foreground hover:bg-surface transition-all cursor-pointer"
-              >
-                <Sliders className="w-4 h-4 text-primary" />
-                <span>Switch to {viewMode === 'admin' ? 'Public Site' : 'Admin CMS Studio'}</span>
-              </button>
+              {role === 'admin' && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 py-3 text-xs font-semibold text-foreground hover:bg-surface transition-all"
+                >
+                  <Sliders className="w-4 h-4 text-primary" />
+                  <span>Admin Studio</span>
+                </Link>
+              )}
             </div>
           </div>
         )}
@@ -525,8 +462,7 @@ export default function App() {
       {/* ==================================================== */}
       {/* PUBLIC PORTFOLIO VIEW (ALL 8 SECTIONS) */}
       {/* ==================================================== */}
-      {viewMode === 'public' ? (
-        <main id="main-content" className="flex-1 pt-[64px] md:pt-[72px]">
+      <main id="main-content" className="flex-1 pt-[64px] md:pt-[72px]">
           {/* SECTION 1: HERO */}
           {activeSectionVisibility.hero && (
             <section className="py-20 md:py-28 px-4 sm:px-6 border-b border-border relative overflow-hidden bg-background">
@@ -1166,481 +1102,6 @@ export default function App() {
           {/* Gemini AI Chat Widget */}
           <ChatWidget />
         </main>
-      ) : (
-        /* ==================================================== */
-        /* ADMIN PANEL STUDIO ($10,000 CUSTOMIZABLE CMS)        */
-        /* ==================================================== */
-        <div className="flex-1 pt-[64px] md:pt-[72px] flex flex-col md:flex-row min-h-[calc(100vh-72px)] bg-background">
-          {/* Admin Sidebar */}
-          <aside className="w-full md:w-64 border-r border-border bg-surface p-4 flex flex-col justify-between shrink-0">
-            <div className="space-y-6">
-              <div className="px-3 py-2 rounded-xl bg-surface-2 border border-border">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-success" />
-                  <span className="text-xs font-bold text-foreground">Admin: manojkc1dev@gmail.com</span>
-                </div>
-                <p className="text-[10px] text-muted mt-0.5">Role: Administrator (Full Access)</p>
-              </div>
-
-              <nav className="space-y-1">
-                {[
-                  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                  { id: 'appearance', label: 'Appearance', icon: Palette },
-                  { id: 'layout', label: 'Layout Composer', icon: Layout },
-                  { id: 'content', label: 'Content Manager', icon: FileText },
-                  { id: 'media', label: 'Media Storage', icon: ImageIcon },
-                  { id: 'navigation', label: 'Navigation', icon: Navigation },
-                  { id: 'seo', label: 'SEO & Metadata', icon: Globe },
-                  { id: 'chatbot', label: 'Chat Assistant', icon: Bot },
-                  { id: 'analytics', label: 'Analytics', icon: Activity },
-                  { id: 'users', label: 'Access & Users', icon: Users },
-                  { id: 'activity', label: 'Audit Trail', icon: History },
-                  { id: 'integrations', label: 'Integrations', icon: Key },
-                  { id: 'settings', label: 'Settings', icon: Settings },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const isActive = adminRoute === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setAdminRoute(item.id as typeof adminRoute)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-xs'
-                          : 'text-muted hover:text-foreground hover:bg-surface-2'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            <div className="pt-6 border-t border-border">
-              <button
-                type="button"
-                onClick={() => setViewMode('public')}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold bg-surface-2 border border-border text-foreground hover:bg-surface transition-colors cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Return to Live Site</span>
-              </button>
-            </div>
-          </aside>
-
-          {/* Admin Main Body */}
-          <section className="flex-1 p-6 md:p-10 overflow-y-auto">
-            {/* 1. DASHBOARD */}
-            {adminRoute === 'dashboard' && (
-              <div className="space-y-8 max-w-5xl">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                    Backend Portfolio Overview
-                  </h2>
-                  <p className="text-xs text-muted mt-1">
-                    Real-time monitoring, live content status, and visitor analytics.
-                  </p>
-                </div>
-
-                {/* KPI Metrics */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Total Page Views', value: '14,820', change: '+24% this month' },
-                    { label: 'Project Clicks', value: '3,412', change: '+18% this month' },
-                    { label: 'Direct Inquiries', value: '48', change: '8 pending reply' },
-                    { label: 'API Health Score', value: '99.9%', change: 'All routes operational' },
-                  ].map((kpi) => (
-                    <div key={kpi.label} className="p-5 rounded-2xl bg-surface border border-border">
-                      <p className="text-xs text-muted font-medium">{kpi.label}</p>
-                      <p className="text-2xl font-extrabold text-foreground tracking-tight mt-1">
-                        {kpi.value}
-                      </p>
-                      <p className="text-[11px] text-success font-medium mt-1">{kpi.change}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Quick Actions & Recent Activity */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="p-6 rounded-2xl bg-surface border border-border space-y-4">
-                    <h3 className="text-sm font-bold text-foreground">Quick CMS Actions</h3>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setAdminRoute('content')}
-                        className="p-3 rounded-xl bg-surface-2 border border-border hover:border-primary/50 text-left font-semibold cursor-pointer"
-                      >
-                        + Add New Project
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminRoute('appearance')}
-                        className="p-3 rounded-xl bg-surface-2 border border-border hover:border-primary/50 text-left font-semibold cursor-pointer"
-                      >
-                        🎨 Customize Palette
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminRoute('layout')}
-                        className="p-3 rounded-xl bg-surface-2 border border-border hover:border-primary/50 text-left font-semibold cursor-pointer"
-                      >
-                        📐 Reorder Sections
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminRoute('chatbot')}
-                        className="p-3 rounded-xl bg-surface-2 border border-border hover:border-primary/50 text-left font-semibold cursor-pointer"
-                      >
-                        🤖 Train Chatbot
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-6 rounded-2xl bg-surface border border-border space-y-4">
-                    <h3 className="text-sm font-bold text-foreground">Recent Activity Log</h3>
-                    <div className="space-y-3 text-xs">
-                      <div className="flex items-center justify-between py-1 border-b border-border/50">
-                        <span className="text-foreground">Project updated: CalcPro Calculator</span>
-                        <span className="text-muted font-mono text-[11px]">Just now</span>
-                      </div>
-                      <div className="flex items-center justify-between py-1 border-b border-border/50">
-                        <span className="text-foreground">Supabase RLS verification check</span>
-                        <span className="text-success font-mono text-[11px]">Passed</span>
-                      </div>
-                      <div className="flex items-center justify-between py-1 border-b border-border/50">
-                        <span className="text-foreground">Gemini API model synced: gemini-3.8-flash</span>
-                        <span className="text-primary font-mono text-[11px]">Active</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 2. APPEARANCE (BRAND ASSETS & LIVE THEME BUILDER) */}
-            {adminRoute === 'appearance' && (
-              <div className="space-y-6 max-w-5xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                      Appearance &amp; Brand Studio
-                    </h2>
-                    <p className="text-xs text-muted mt-1">
-                      Manage visual brand assets (avatar, favicon, OG cards) and live design tokens in real time.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-2 border border-border self-start sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => setAppearanceSubTab('brand')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        appearanceSubTab === 'brand'
-                          ? 'bg-primary text-primary-foreground shadow-xs'
-                          : 'text-muted hover:text-foreground'
-                      }`}
-                    >
-                      Brand Assets (Favicon, OG, Avatar)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAppearanceSubTab('theme')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        appearanceSubTab === 'theme'
-                          ? 'bg-primary text-primary-foreground shadow-xs'
-                          : 'text-muted hover:text-foreground'
-                      }`}
-                    >
-                      Theme &amp; Design Tokens
-                    </button>
-                  </div>
-                </div>
-
-                {appearanceSubTab === 'brand' ? (
-                  <BrandAssetsManager />
-                ) : (
-                  <div className="p-6 rounded-2xl bg-surface border border-border space-y-6">
-                    <div>
-                      <label className="block text-xs font-bold text-foreground mb-2">
-                        Primary Accent Color
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="color"
-                          value={primaryColor}
-                          onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="w-10 h-10 rounded-lg cursor-pointer border border-border bg-transparent"
-                        />
-                        <input
-                          type="text"
-                          value={primaryColor}
-                          onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="px-3 py-2 text-xs font-mono rounded-lg bg-surface-2 border border-border text-foreground w-32"
-                        />
-                        <div className="flex items-center gap-2">
-                          {['#5E6AD2', '#4F46E5', '#10B981', '#F59E0B', '#EC4899'].map((col) => (
-                            <button
-                              key={col}
-                              type="button"
-                              onClick={() => setPrimaryColor(col)}
-                              className="w-6 h-6 rounded-full border border-border cursor-pointer transition-transform hover:scale-110"
-                              style={{ backgroundColor: col }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-foreground mb-2">
-                        Body Typography Pairing
-                      </label>
-                      <select
-                        value={fontFamily}
-                        onChange={(e) => setFontFamily(e.target.value)}
-                        className="px-3 py-2 text-xs rounded-lg bg-surface-2 border border-border text-foreground w-64"
-                      >
-                        <option value="Inter">Inter (Default Product UI)</option>
-                        <option value="Geist">Geist (Modern Sans)</option>
-                        <option value="JetBrains Mono">JetBrains Mono (Technical)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-foreground mb-2">
-                        Corner Border Radius
-                      </label>
-                      <div className="flex items-center gap-3">
-                        {['8px', '12px', '16px', '20px'].map((rad) => (
-                          <button
-                            key={rad}
-                            type="button"
-                            onClick={() => setUiRadius(rad)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-mono cursor-pointer ${
-                              uiRadius === rad
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-surface-2 border border-border text-muted hover:text-foreground'
-                            }`}
-                          >
-                            {rad}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-border flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => alert('Theme tokens saved to database successfully.')}
-                        className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all cursor-pointer"
-                      >
-                        Save Theme Changes
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 3. LAYOUT (SECTION COMPOSER) */}
-            {adminRoute === 'layout' && (
-              <div className="space-y-8 max-w-4xl">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                    Layout &amp; Section Composer
-                  </h2>
-                  <p className="text-xs text-muted mt-1">
-                    Toggle visibility and order of each homepage section dynamically.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {Object.entries(activeSectionVisibility).map(([sectionKey, isVisible]) => (
-                    <div
-                      key={sectionKey}
-                      className="p-4 rounded-xl bg-surface border border-border flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-primary font-bold">::</span>
-                        <span className="text-xs font-bold text-foreground capitalize">
-                          {sectionKey} Section
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveSectionVisibility((prev) => ({
-                            ...prev,
-                            [sectionKey]: !prev[sectionKey as keyof typeof activeSectionVisibility],
-                          }))
-                        }
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
-                          isVisible
-                            ? 'bg-success/15 text-success border border-success/30'
-                            : 'bg-surface-2 text-muted border border-border'
-                        }`}
-                      >
-                        {isVisible ? 'Visible' : 'Hidden'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 4. CONTENT (CRUD PROJECTS & SKILLS) */}
-            {adminRoute === 'content' && (
-              <div className="space-y-8 max-w-5xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                      Content Management
-                    </h2>
-                    <p className="text-xs text-muted mt-1">
-                      Manage verified project showcases, technical skills, and client reviews.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newProj: Project = {
-                        slug: `project-${Date.now()}`,
-                        title: 'New Django Microservice',
-                        subtitle: 'Asynchronous event pipeline with Celery and Redis',
-                        description: 'High-throughput asynchronous task processing pipeline.',
-                        tags: ['Python', 'Django', 'Redis', 'Celery'],
-                        image: '/static/images/calcpro-django-rest-api-calculator.png',
-                        githubUrl: 'https://github.com/manojkc1',
-                        featured: false,
-                        applicationCategory: 'UtilityApplication',
-                        operatingSystem: 'Any',
-                      };
-                      setProjectsList((prev) => [...prev, newProj]);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Create Project</span>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {projectsList.map((proj) => (
-                    <div
-                      key={proj.slug}
-                      className="p-5 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={proj.image}
-                          alt={proj.title}
-                          className="w-14 h-14 rounded-xl object-cover border border-border bg-surface-2 shrink-0"
-                        />
-                        <div>
-                          <h4 className="text-sm font-bold text-foreground">{proj.title}</h4>
-                          <p className="text-xs text-muted mt-0.5 line-clamp-1">{proj.subtitle}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {proj.tags.map((t) => (
-                              <span
-                                key={t}
-                                className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-2 border border-border text-muted"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProjectsList((prev) =>
-                              prev.map((p) =>
-                                p.slug === proj.slug ? { ...p, featured: !p.featured } : p
-                              )
-                            );
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-                            proj.featured
-                              ? 'bg-primary/15 text-primary border border-primary/30'
-                              : 'bg-surface-2 text-muted border border-border'
-                          }`}
-                        >
-                          {proj.featured ? 'Featured' : 'Standard'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`Delete ${proj.title}?`)) {
-                              setProjectsList((prev) => prev.filter((p) => p.slug !== proj.slug));
-                            }
-                          }}
-                          className="p-2 rounded-lg border border-border bg-surface-2 text-error hover:bg-error/10 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 8. CHAT ASSISTANT CONFIG */}
-            {adminRoute === 'chatbot' && <AIChatConfigManager />}
-
-            {/* 7. SEO & METADATA */}
-            {adminRoute === 'seo' && (
-              <div className="space-y-8 max-w-4xl">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                    SEO &amp; JSON-LD Inspection
-                  </h2>
-                  <p className="text-xs text-muted mt-1">
-                    Google Rich Results compliance, Schema.org Person/WebSite/Project declarations.
-                  </p>
-                </div>
-
-                <div className="p-6 rounded-2xl bg-surface border border-border space-y-4">
-                  <div className="space-y-2 text-xs">
-                    <p className="text-muted">Target Canonical: <span className="font-mono text-foreground">{SEO_CONFIG.canonical}</span></p>
-                    <p className="text-muted">Meta Title: <span className="font-mono text-foreground">{SEO_CONFIG.titleDefault}</span></p>
-                    <p className="text-muted">Robots Rule: <span className="font-mono text-foreground">User-agent: * / Allow: /</span></p>
-                    <p className="text-muted">Image Sitemap: <span className="font-mono text-foreground">https://manojkc1.com.np/sitemap-images.xml</span></p>
-                  </div>
-
-                  <div className="pt-4 border-t border-border">
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-success/15 text-success border border-success/30">
-                      Rich Results Verified: Person + WebSite + Project Schema
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Default for other routes */}
-            {['media', 'navigation', 'analytics', 'users', 'activity', 'integrations', 'settings'].includes(adminRoute) && (
-              <div className="p-8 rounded-2xl bg-surface border border-border text-center max-w-2xl mx-auto space-y-4">
-                <div className="w-12 h-12 rounded-full bg-primary/15 text-primary mx-auto flex items-center justify-center">
-                  <Sliders className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-foreground capitalize">
-                  {adminRoute} Module Active
-                </h3>
-                <p className="text-xs text-muted leading-relaxed">
-                  Module configured with Supabase PostgreSQL and Row Level Security.
-                  All changes made here instantly reflect on the public site layer.
-                </p>
-              </div>
-            )}
-          </section>
-        </div>
-      )}
 
       {/* ==================================================== */}
       {/* MODAL: PROJECT DETAIL VIEW                           */}
