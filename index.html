@@ -1,17 +1,280 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manoj K.C. | Python Django Backend Developer</title>
-    <meta name="description" content="Manoj K.C. — Python & Django backend developer from Kathmandu, Nepal. Specializing in Django REST Framework, PostgreSQL, JWT auth, and scalable REST APIs. Available for on-site & remote roles." />
-    <meta property="og:title" content="Manoj K.C. | Python Django Backend Developer" />
-    <meta property="og:description" content="Manoj K.C. — Python & Django backend developer from Kathmandu, Nepal. Specializing in Django REST Framework, PostgreSQL, JWT auth, and scalable REST APIs. Available for on-site & remote roles." />
+    <title>Manoj K.C. | Backend Software Engineer | Python, Django, DRF</title>
+    <meta name="description" content="Manoj K.C. is a Python/Django backend engineer in Kathmandu, Nepal, building secure REST APIs with DRF, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations." />
+    <meta name="keywords" content="Django developer Nepal, Python backend Kathmandu, DRF engineer remote, Manoj K.C., Manoj Khatri, Python developer Nepal, Django developer Kathmandu, DRF engineer, Django REST Framework, backend engineer Nepal, REST API developer, PostgreSQL developer, freelance Django developer, JWT authentication, Khalti integration, eSewa integration" />
+    <meta name="author" content="Manoj K.C." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://manojkc1.com.np/" />
+    <meta name="theme-color" content="#0e0e12" />
+
+    <!-- Instant Theme Detection Script -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('portfolio-theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (saved === 'dark' || (!saved && prefersDark)) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          }
+        } catch (_) {}
+      })();
+    </script>
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Manoj K.C. | Portfolio" />
+    <meta property="og:title" content="Manoj K.C. | Backend Software Engineer | Python, Django, DRF" />
+    <meta property="og:description" content="Manoj K.C. is a Python/Django backend engineer in Kathmandu, Nepal, building secure REST APIs with DRF, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations." />
+    <meta property="og:url" content="https://manojkc1.com.np/" />
+    <meta property="og:image" content="https://manojkc1.com.np/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@manojkc1dev" />
+    <meta name="twitter:creator" content="@manojkc1dev" />
+    <meta name="twitter:title" content="Manoj K.C. | Backend Software Engineer | Python, Django, DRF" />
+    <meta name="twitter:description" content="Manoj K.C. is a Python/Django backend engineer in Kathmandu, Nepal, building secure REST APIs with DRF, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations." />
+    <meta name="twitter:image" content="https://manojkc1.com.np/og-image.png" />
+
+    <!-- Web App Manifest & Icons -->
+    <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="author" href="/humans.txt" />
+
+    <!-- Performance: Preload hero portrait image and primary fonts -->
+    <link rel="preload" href="/images/manoj.jpg" as="image" type="image/jpeg" fetchpriority="high" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Schema.org Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@context": "https://schema.org",
+          "@type": "Person",
+          "@id": "https://manojkc1.com.np/#person",
+          "name": "Manoj K.C.",
+          "alternateName": "Manoj Khatri",
+          "jobTitle": "Backend Software Engineer",
+          "url": "https://manojkc1.com.np/",
+          "image": "https://manojkc1.com.np/images/manoj.jpg",
+          "email": "mailto:manojkc1dev@gmail.com",
+          "telephone": "+977-9842203976",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Kathmandu",
+            "addressCountry": "NP"
+          },
+          "alumniOf": {
+            "@type": "CollegeOrUniversity",
+            "name": "Mahendra Multiple Campus, Tribhuvan University"
+          },
+          "knowsAbout": [
+            "Python",
+            "Django",
+            "Django REST Framework",
+            "PostgreSQL",
+            "REST APIs",
+            "JWT",
+            "RBAC",
+            "Docker",
+            "Khalti API",
+            "eSewa API"
+          ],
+          "sameAs": [
+            "https://github.com/manojkc1dev/",
+            "https://linkedin.com/in/manojkc1dev/",
+            "https://twitter.com/manojkc1dev",
+            "https://instagram.com/manojkc1dev",
+            "https://facebook.com/manojkc1dev",
+            "https://tiktok.com/@manojkc1dev"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://manojkc1.com.np/#website",
+          "url": "https://manojkc1.com.np/",
+          "name": "Manoj K.C. | Backend Software Engineer",
+          "publisher": { "@id": "https://manojkc1.com.np/#person" },
+          "inLanguage": "en",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://manojkc1.com.np/projects?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://manojkc1.com.np/#webpage",
+          "url": "https://manojkc1.com.np/",
+          "name": "Manoj K.C. | Backend Software Engineer | Python, Django, DRF",
+          "description": "Manoj K.C. is a Python/Django backend engineer in Kathmandu, Nepal, building secure REST APIs with DRF, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations.",
+          "isPartOf": { "@id": "https://manojkc1.com.np/#website" },
+          "about": { "@id": "https://manojkc1.com.np/#person" }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://manojkc1.com.np/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What backend technologies does Manoj K.C. specialize in?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Manoj K.C. specializes in Python 3.12, Django 5.x, Django REST Framework (DRF), and PostgreSQL database architecture. His engineering core encompasses composite B-Tree query indexing, Celery asynchronous task queues, Redis caching, Docker containerization, and Linux server operations. He develops secure RESTful APIs fortified with JWT authentication, role-based access control (RBAC), and strict input validation."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Manoj K.C. available for remote freelance work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, Manoj K.C. is actively available for remote freelance engineering contracts, technical backend consulting, and full-time junior-to-mid backend engineering roles. Based in Kathmandu, Nepal (NPT / UTC+5:45), he collaborates effectively with international engineering teams across North America, Europe, and Asia-Pacific via asynchronous Git workflows, clear documentation, and prompt communication."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What payment gateways has Manoj K.C. integrated?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Manoj K.C. has built production-grade integrations with Nepalese fintech payment gateways including Khalti API v2 and eSewa EPAY v2 (with HMAC-SHA256 signature verification), as well as global gateways like Stripe. His payment architectures enforce strict transaction idempotency keys, automated reconciliation retries, and failure-safe webhook pipelines to guarantee zero duplicate charges."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Manoj K.C. optimize database performance in Django/PostgreSQL?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Manoj systematically profiles execution bottlenecks using PostgreSQL EXPLAIN ANALYZE and Django Debug Toolbar. He eliminates N+1 query loops using select_related and prefetch_related, designs composite indexes tailored to high-cardinality filters, and leverages Redis for cached hot query results—achieving verified ~30% API response time reductions on high-traffic endpoints."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-neutral-950 text-neutral-100 antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-300">
+    <div id="root">
+      <!-- Prerendered Semantic HTML for SEO, Screen Readers, and Non-JS Crawlers -->
+      <header class="py-4 px-6 border-b border-neutral-800 flex items-center justify-between">
+        <a href="/" class="text-lg font-bold text-white tracking-tight">Manoj K.C.</a>
+        <nav class="flex items-center gap-4 text-sm text-neutral-400">
+          <a href="/projects" class="hover:text-white">Projects</a>
+          <a href="/skills" class="hover:text-white">Skills</a>
+          <a href="/experience" class="hover:text-white">Experience</a>
+          <a href="#contact" class="hover:text-white">Contact</a>
+        </nav>
+      </header>
+
+      <main class="max-w-5xl mx-auto px-4 py-16">
+        <section class="text-center py-12">
+          <p class="text-indigo-400 font-mono text-sm uppercase tracking-wider mb-3">Available for work · Kathmandu / Remote</p>
+          <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight mb-4">
+            Manoj K.C. - Backend Software Engineer
+          </h1>
+          <p class="text-xl text-neutral-400 max-w-2xl mx-auto mb-6">
+            Python &amp; Django backend engineer in Kathmandu, Nepal, shipping secure REST APIs with DRF, PostgreSQL, JWT auth, RBAC, and Khalti/eSewa payment integrations for production web applications.
+          </p>
+          <div class="flex justify-center gap-4">
+            <a href="/projects" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-500">View Projects</a>
+            <a href="#contact" class="px-6 py-3 bg-neutral-800 text-white rounded-xl font-medium hover:bg-neutral-700">Contact Me</a>
+          </div>
+        </section>
+
+        <section class="py-12 border-t border-neutral-800" id="about">
+          <h2 class="text-2xl font-bold text-white mb-4">About Manoj Khatri (Manoj K.C.)</h2>
+          <p class="text-neutral-300 leading-relaxed mb-4">
+            Manoj K.C. (also known as Manoj Khatri) is a backend software engineer based in Kathmandu, Nepal. Specializing in Python 3.12, Django, and Django REST Framework, he builds scalable, clean-architecture web backends, optimizes relational PostgreSQL databases, and integrates secure digital payments with Khalti and eSewa.
+          </p>
+          <p class="text-neutral-400 text-sm">
+            Education: Bachelor in Information Technology (BIT), Mahendra Multiple Campus, Tribhuvan University.
+          </p>
+        </section>
+
+        <section class="py-12 border-t border-neutral-800" id="projects">
+          <h2 class="text-2xl font-bold text-white mb-6">Featured Backend Projects</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            <article class="p-6 bg-neutral-900 rounded-2xl border border-neutral-800">
+              <h3 class="text-lg font-bold text-white mb-2">AgriTech Marketplace</h3>
+              <p class="text-neutral-400 text-sm mb-4">B2B marketplace with Django, DRF, PostgreSQL, Khalti payment gateway, and SMS notifications.</p>
+              <a href="/projects" class="text-indigo-400 text-sm font-semibold hover:underline">Explore Project &rarr;</a>
+            </article>
+            <article class="p-6 bg-neutral-900 rounded-2xl border border-neutral-800">
+              <h3 class="text-lg font-bold text-white mb-2">Hospital Management System</h3>
+              <p class="text-neutral-400 text-sm mb-4">Multi-role healthcare management portal with JWT auth, doctor appointments, and medical record access control.</p>
+              <a href="/projects" class="text-indigo-400 text-sm font-semibold hover:underline">Explore Project &rarr;</a>
+            </article>
+            <article class="p-6 bg-neutral-900 rounded-2xl border border-neutral-800">
+              <h3 class="text-lg font-bold text-white mb-2">Task Management REST API</h3>
+              <p class="text-neutral-400 text-sm mb-4">Enterprise REST API featuring Celery background tasks, Redis caching, and automated Swagger/OpenAPI documentation.</p>
+              <a href="/projects" class="text-indigo-400 text-sm font-semibold hover:underline">Explore Project &rarr;</a>
+            </article>
+          </div>
+        </section>
+
+        <section class="py-12 border-t border-neutral-800" id="skills">
+          <h2 class="text-2xl font-bold text-white mb-6">Technical Skills &amp; Stack</h2>
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Python 3.12</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Django 5.x</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Django REST Framework</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">PostgreSQL</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Docker &amp; Docker Compose</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Redis</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Celery</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">JWT &amp; RBAC</span>
+            <span class="px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-300">Khalti &amp; eSewa APIs</span>
+          </div>
+        </section>
+
+        <section class="py-12 border-t border-neutral-800" id="faq">
+          <h2 class="text-2xl font-bold text-white mb-6">Frequently Asked Questions</h2>
+          <div class="space-y-4">
+            <div class="p-5 bg-neutral-900 rounded-xl border border-neutral-800">
+              <h3 class="text-base font-bold text-white mb-2">What backend technologies does Manoj K.C. specialize in?</h3>
+              <p class="text-neutral-300 text-sm">Manoj K.C. specializes in Python 3.12, Django 5.x, Django REST Framework (DRF), and PostgreSQL database architecture. His engineering core encompasses composite B-Tree query indexing, Celery asynchronous task queues, Redis caching, Docker containerization, and Linux server operations.</p>
+            </div>
+            <div class="p-5 bg-neutral-900 rounded-xl border border-neutral-800">
+              <h3 class="text-base font-bold text-white mb-2">Is Manoj K.C. available for remote freelance work?</h3>
+              <p class="text-neutral-300 text-sm">Yes, Manoj K.C. is actively available for remote freelance engineering contracts, technical backend consulting, and full-time junior-to-mid backend engineering roles from Kathmandu, Nepal (UTC+5:45).</p>
+            </div>
+            <div class="p-5 bg-neutral-900 rounded-xl border border-neutral-800">
+              <h3 class="text-base font-bold text-white mb-2">What payment gateways has Manoj K.C. integrated?</h3>
+              <p class="text-neutral-300 text-sm">Manoj K.C. has integrated Nepalese payment gateways including Khalti API v2 and eSewa EPAY v2 (with HMAC-SHA256 signature verification), as well as Stripe.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="py-8 px-6 border-t border-neutral-800 text-center text-xs text-neutral-500">
+        <p>Written &amp; Engineered by Manoj K.C. · Kathmandu, Nepal · &copy; 2026</p>
+        <div class="flex justify-center gap-4 mt-2">
+          <a href="/projects" class="hover:text-white">All Projects</a>
+          <a href="/skills" class="hover:text-white">Technical Skills</a>
+          <a href="/experience" class="hover:text-white">Experience Timeline</a>
+          <a href="https://github.com/manojkc1dev" target="_blank" rel="noopener noreferrer" class="hover:text-white">GitHub</a>
+          <a href="https://linkedin.com/in/manojkc1dev" target="_blank" rel="noopener noreferrer" class="hover:text-white">LinkedIn</a>
+        </div>
+      </footer>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

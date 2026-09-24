@@ -1,0 +1,10 @@
+/* TEAM */
+Name: Manoj K.C.
+Role: Backend Software Engineer
+Contact: manojkc1dev@gmail.com
+Location: Kathmandu, Nepal
+
+/* SITE */
+Standards: HTML5, CSS3, ES2022
+Components: React, Vite, Tailwind CSS, Firebase
+Software: VS Code, Postman, Docker

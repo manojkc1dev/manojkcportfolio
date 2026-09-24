@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Contact Message",
+      "description": "Incoming inquiries and project requests sent via the portfolio contact form",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Sender's full name"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 150,
+          "format": "email",
+          "description": "Sender's verified contact email address"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000,
+          "description": "Inquiry message body"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Whether the message has been viewed by the administrator"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the message was received"
+        }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Authenticated user profile and role definition",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "User display name"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "user"],
+          "description": "Access authorization tier"
+        }
+      },
+      "required": ["email"]
+    },
+    "RateLimit": {
+      "title": "Rate Limit Record",
+      "description": "Sliding window rate limit timestamp tracker",
+      "type": "object",
+      "properties": {
+        "ipHash": {
+          "type": "string",
+          "description": "Hashed client IP address"
+        },
+        "timestamps": {
+          "type": "array",
+          "description": "Request timestamps within active sliding window"
+        }
+      },
+      "required": ["ipHash", "timestamps"]
+    }
+  },
+  "firestore": {
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of contact inquiries received from visitors"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile records indexed by auth UID"
+    },
+    "/rateLimits/{docId}": {
+      "schema": "RateLimit",
+      "description": "Server-authoritative rate limiting storage"
+    }
+  }
+}

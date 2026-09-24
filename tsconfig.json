@@ -17,11 +17,22 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
-        "./src/*",
-        "./*"
+        "./src/*"
       ]
     },
     "allowImportingTsExtensions": true,
+    "types": [
+      "@testing-library/jest-dom/vitest"
+    ],
     "noEmit": true
-  }
+  },
+  "include": [
+    "src",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "functions",
+    "node_modules",
+    "dist"
+  ]
 }

@@ -1,8 +1,11 @@
 node_modules/
-build/
 dist/
-coverage/
-.DS_Store
+.env
+.env.local
+.env.*.local
+functions/lib/
+.firebase/
 *.log
-.env*
-!.env.example
+.DS_Store
+.vscode/
+.idea/

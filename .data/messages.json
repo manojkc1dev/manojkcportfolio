@@ -1,0 +1,29 @@
+[
+  {
+    "id": "msg-seed-1",
+    "name": "Aarav Sharma",
+    "email": "aarav.sharma@techfin.np",
+    "message": "Hi Manoj, I reviewed your Django REST API and Hospital Management portfolio project. We are looking for a Senior Django Backend Engineer for our fintech team in Kathmandu (hybrid/remote). Would you be open for an introductory call this week?",
+    "createdAt": "2026-09-20T03:01:34.255Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-seed-2",
+    "name": "Sophia Martinez",
+    "email": "sophia@cloudscale.io",
+    "message": "Hello Manoj! We are migrating a monolithic service to Python 3.12, Django REST Framework, Celery workers, and Redis caching. Are you available for a 3-month contract consulting engagement?",
+    "createdAt": "2026-09-19T10:01:34.255Z",
+    "read": true,
+    "replied": false
+  },
+  {
+    "id": "msg-seed-3",
+    "name": "Bikash Thapa",
+    "email": "bthapa@innovate.com.np",
+    "message": "Namaste Manoj dai! Impressed by your clean architecture and Postgres query optimization case studies. We have an e-learning platform experiencing high concurrency bottlenecks. Let us know your availability for a technical audit.",
+    "createdAt": "2026-09-18T12:01:34.255Z",
+    "read": false,
+    "replied": false
+  }
+]
