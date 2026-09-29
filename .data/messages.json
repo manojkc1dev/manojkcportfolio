@@ -1,0 +1,92 @@
+[
+  {
+    "id": "msg-1790349198357-25x44",
+    "name": "Devendra Shrestha",
+    "email": "devendra.shrestha@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for django rest architecture. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:18.357Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-1790349197458-bikx2",
+    "name": "Pooja Karki",
+    "email": "pooja.karki@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for postgresql audit & scaling. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:17.458Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-1790349196050-gbq6j",
+    "name": "Rohan Bhattarai",
+    "email": "rohan.bhattarai@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for payment gateway integration. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:16.050Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-1790349194944-dofup",
+    "name": "Pooja Karki",
+    "email": "pooja.karki@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for postgresql audit & scaling. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:14.944Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-1790349193591-52nj4",
+    "name": "Devendra Shrestha",
+    "email": "devendra.shrestha@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for django rest architecture. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:13.591Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-1790349189622-7m037",
+    "name": "Pooja Karki",
+    "email": "pooja.karki@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for postgresql audit & scaling. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:09.622Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-1790349188243-mspdi",
+    "name": "Elena Rostova",
+    "email": "elena.rostova@example.com",
+    "message": "Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for full-stack microservices. Let us know if you're available for a technical discussion.",
+    "createdAt": "2026-09-25T15:13:08.243Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-seed-1",
+    "name": "Aarav Sharma",
+    "email": "aarav.sharma@techfin.np",
+    "message": "Hi Manoj, I reviewed your Django REST API and Hospital Management portfolio project. We are looking for a Senior Django Backend Engineer for our fintech team in Kathmandu (hybrid/remote). Would you be open for an introductory call this week?",
+    "createdAt": "2026-09-20T03:01:34.255Z",
+    "read": false,
+    "replied": false
+  },
+  {
+    "id": "msg-seed-2",
+    "name": "Sophia Martinez",
+    "email": "sophia@cloudscale.io",
+    "message": "Hello Manoj! We are migrating a monolithic service to Python 3.12, Django REST Framework, Celery workers, and Redis caching. Are you available for a 3-month contract consulting engagement?",
+    "createdAt": "2026-09-19T10:01:34.255Z",
+    "read": true,
+    "replied": false
+  },
+  {
+    "id": "msg-seed-3",
+    "name": "Bikash Thapa",
+    "email": "bthapa@innovate.com.np",
+    "message": "Namaste Manoj dai! Impressed by your clean architecture and Postgres query optimization case studies. We have an e-learning platform experiencing high concurrency bottlenecks. Let us know your availability for a technical audit.",
+    "createdAt": "2026-09-18T12:01:34.255Z",
+    "read": false,
+    "replied": false
+  }
+]

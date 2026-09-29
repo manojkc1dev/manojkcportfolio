@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidMessage(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 150
+        && data.message is string && data.message.size() >= 10 && data.message.size() <= 2000;
+    }
+
+    // Resume & CV versions: read by authenticated admin only, writes strictly via Cloud Functions
+    match /resume_versions/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // Rate limits are managed solely by Cloud Functions (Admin SDK)
+    match /rateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    // Contact messages: visitors can submit inquiries; authenticated owners can read/manage
+    match /messages/{messageId} {
+      allow create: if isValidId(messageId)
+        && isValidMessage(request.resource.data)
+        && (!('read' in request.resource.data) || request.resource.data.read == false);
+
+      // Authenticated administrator access
+      allow read, delete: if isSignedIn();
+
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'replied', 'status']);
+    }
+
+    // Structured ATS Resumes
+    match /resumes/{id} {
+      allow read: if (request.auth != null && request.auth.uid == resource.data.ownerUid)
+                  || (resource.data.isPublic && resource.data.isActive);
+      allow write: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+    }
+
+    // User profiles: authenticated users can access their own document
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Case Study Exports (Admin Read Only, Cloud Functions write only)
+    match /case_study_exports/{id} {
+      allow read: if request.auth != null
+                  && request.auth.uid == "ADMIN_UID";
+      allow write: if false;
+    }
+
+    // Public Metadata (e.g. sitemap info)
+    match /meta/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
+

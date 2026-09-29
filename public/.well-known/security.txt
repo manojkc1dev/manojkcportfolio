@@ -1,0 +1,5 @@
+Contact: mailto:manojkc1dev@gmail.com
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en, ne
+Canonical: https://manojkc1.com.np/.well-known/security.txt
+Policy: https://manojkc1.com.np/#contact

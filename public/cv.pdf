@@ -1,0 +1,243 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<</Type /Catalog /Pages 2 0 R>>
+endobj
+2 0 obj
+<</Type /Pages /Kids [5 0 R 7 0 R] /Count 2>>
+endobj
+3 0 obj
+<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>
+endobj
+4 0 obj
+<</Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding>>
+endobj
+5 0 obj
+<</Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 6 0 R /Resources <</Font <</F1 3 0 R /F2 4 0 R>>>>>>
+endobj
+6 0 obj
+<</Length 3630>>
+stream
+BT
+/F1 10 Tf
+14.5 TL
+1 0 0 1 50 790 Tm
+ET
+BT
+/F2 18 Tf
+1 0 0 1 50 790 Tm
+(MANOJ KHATRI) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 768 Tm
+(Backend Software Engineer) '
+(manojkc1dev@gmail.com | +977-9800000000 | Kathmandu, Nepal |) '
+(https://linkedin.com/in/manoj-khatri | https://github.com/manoj-khatri |) '
+(https://manojkc1.com.np) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 706 Tm
+ET
+BT
+/F2 11.5 Tf
+1 0 0 1 50 694 Tm
+(PROFESSIONAL SUMMARY) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 680 Tm
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 673 Tm
+(Performance-driven Backend Software Engineer with 3+ years of expertise designing and) '
+(deploying resilient RESTful APIs, distributed microservices, and asynchronous event) '
+(architectures. Specialized in Python, Django REST Framework, PostgreSQL query) '
+(optimization, Celery, and Redis caching. Proven record of reducing API latency by 42% and) '
+(architecting systems serving 100K+ monthly active users with 99.9% uptime.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 599.5 Tm
+ET
+BT
+/F2 11.5 Tf
+1 0 0 1 50 587.5 Tm
+(EXPERIENCE) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 573.5 Tm
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 566.5 Tm
+(Backend Software Engineer | 2023-08 - Present) '
+(LightCode Technologies - Kathmandu, Nepal) '
+(- Architected high-throughput Django REST API processing 2.4M requests monthly with 99.95%) '
+(service uptime and sub-120ms p95 latency.) '
+(- Optimized complex PostgreSQL database queries and indexes, reducing p99 database query) '
+(execution times by 44% across 18 core endpoints.) '
+(- Engineered asynchronous background job pipeline utilizing Celery, RabbitMQ, and Redis to) '
+(process 50,000+ daily notifications and transactional invoices.) '
+(- Implemented automated CI/CD deployment pipelines with Docker and GitHub Actions,) '
+(slashing release deployment cycle time from 45 minutes to 7 minutes.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 425.5 Tm
+(Junior Python Developer | 2022-01 - 2023-07) '
+(FinTech Solutions Nepal - Lalitpur, Nepal) '
+(- Developed secure payment gateway integrations handling over $450,000 in monthly digital) '
+(wallet transactions across eSewa and Khalti APIs.) '
+(- Refactored legacy REST endpoints into modular service layer architecture, improving test) '
+(coverage from 41% to 88% using PyTest.) '
+(- Collaborated with frontend engineering teams to design OpenAPI/Swagger contracts and) '
+(unified error payload standards.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 311.5 Tm
+ET
+BT
+/F2 11.5 Tf
+1 0 0 1 50 299.5 Tm
+(TECHNICAL SKILLS) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 285.5 Tm
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 278.5 Tm
+(Backend & Frameworks: Python, Django, Django REST Framework, FastAPI, Flask, Celery,) '
+(Asynchronous Programming) '
+(Databases & Caching: PostgreSQL, Redis, MySQL, SQLite, Database Indexing, Query) '
+(Optimization, Transaction Isolation) '
+(DevOps & Cloud Tools: Docker, Docker Compose, Git, GitHub Actions, Linux Server) '
+(Administration, Nginx, Gunicorn, RESTful APIs, JWT Auth) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 191.5 Tm
+ET
+BT
+/F2 11.5 Tf
+1 0 0 1 50 179.5 Tm
+(KEY PROJECTS) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 165.5 Tm
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 158.5 Tm
+(Enterprise Hospital Management System \(HMS\) | 2024-01 - 2024-09) '
+(Production Open Source - Kathmandu, Nepal) '
+(- Engineered comprehensive clinical records API managing 12,000+ patient records with) '
+(role-based access control \(RBAC\) and audit logging.) '
+(- Reduced appointment double-booking error rate to zero by enforcing distributed Redis) '
+(locks during concurrent checkout workflows.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 71.5 Tm
+(High-Concurrency Real-Time Analytics Pipeline | 2023-10 - 2024-03) '
+ET
+BT
+/F1 8.5 Tf
+1 0 0 1 270 30 Tm
+(Page 1 of 2) Tj
+ET
+
+endstream
+endobj
+7 0 obj
+<</Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 8 0 R /Resources <</Font <</F1 3 0 R /F2 4 0 R>>>>>>
+endobj
+8 0 obj
+<</Length 1135>>
+stream
+BT
+/F1 10 Tf
+14.5 TL
+1 0 0 1 50 790 Tm
+(Independent Project) '
+(- Engineered event ingestion microservice handling 4,500 events/second using FastAPI,) '
+(Redis Streams, and PostgreSQL partitioned tables.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 743.5 Tm
+ET
+BT
+/F2 11.5 Tf
+1 0 0 1 50 731.5 Tm
+(EDUCATION) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 717.5 Tm
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 710.5 Tm
+(Bachelor of Science in Computer Science & Information Technology \(B.Sc. CSIT\) | 2019-09 -) '
+(2023-09) '
+(Tribhuvan University - Kathmandu, Nepal) '
+(- Core Coursework: Data Structures & Algorithms, Database Management Systems, Distributed) '
+(Systems, Software Engineering, Operating Systems.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 637 Tm
+ET
+BT
+/F2 11.5 Tf
+1 0 0 1 50 625 Tm
+(CERTIFICATIONS) Tj
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 611 Tm
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 604 Tm
+(Python Certified Associate Programmer \(PCAP\) | 2023-05 - Present) '
+(Python Institute) '
+(- Verified advanced proficiency in object-oriented programming, data structures, and) '
+(standard library internals.) '
+ET
+BT
+/F1 9.5 Tf
+1 0 0 1 50 544 Tm
+ET
+BT
+/F1 8.5 Tf
+1 0 0 1 270 30 Tm
+(Page 2 of 2) Tj
+ET
+
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000019 00000 n 
+0000000066 00000 n 
+0000000127 00000 n 
+0000000222 00000 n 
+0000000322 00000 n 
+0000000458 00000 n 
+0000004138 00000 n 
+0000004274 00000 n 
+trailer
+<</Size 9 /Root 1 0 R>>
+startxref
+5459
+%%EOF

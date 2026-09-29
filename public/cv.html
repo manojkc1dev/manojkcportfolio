@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manoj Khatri - Curriculum Vitae (CV)</title>
+  <meta name="description" content="Manoj Khatri - Senior Backend &amp; Systems Architect">
+  <style>
+    /* ATS-Safe Universal Typography & Layout */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      background: #ffffff;
+      color: #000000;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      max-width: 8.5in;
+      margin: 0 auto;
+      padding: 0.75in 0.6in;
+    }
+    header {
+      margin-bottom: 16pt;
+      border-bottom: 1.5pt solid #000000;
+      padding-bottom: 8pt;
+    }
+    h1.candidate-name {
+      font-size: 20pt;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 2pt;
+      color: #000000;
+      text-transform: none;
+    }
+    .candidate-title {
+      font-size: 12pt;
+      font-weight: 600;
+      color: #222222;
+      margin-bottom: 4pt;
+    }
+    .contact-line {
+      font-size: 9.5pt;
+      color: #333333;
+      margin-top: 4pt;
+      word-spacing: 1pt;
+    }
+    .contact-line a {
+      color: #000000;
+      text-decoration: underline;
+    }
+    .summary-text {
+      margin-top: 8pt;
+      font-size: 10pt;
+      line-height: 1.45;
+      color: #111111;
+      text-align: justify;
+    }
+    .resume-section {
+      margin-top: 14pt;
+      margin-bottom: 8pt;
+    }
+    h2.section-title {
+      font-size: 11.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1pt solid #333333;
+      padding-bottom: 2pt;
+      margin-bottom: 6pt;
+      color: #000000;
+    }
+    .entry-item {
+      margin-bottom: 8pt;
+      page-break-inside: avoid;
+    }
+    .entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-weight: 700;
+      font-size: 10.5pt;
+    }
+    .entry-title {
+      font-weight: 700;
+      color: #000000;
+    }
+    .entry-dates {
+      font-weight: 500;
+      font-size: 9.5pt;
+      color: #222222;
+      white-space: nowrap;
+    }
+    .entry-subhead {
+      display: flex;
+      justify-content: space-between;
+      font-style: italic;
+      font-size: 10pt;
+      color: #222222;
+      margin-bottom: 3pt;
+    }
+    .entry-org {
+      font-weight: 600;
+      font-style: normal;
+    }
+    .entry-location {
+      font-size: 9pt;
+      color: #444444;
+    }
+    ul.bullet-list {
+      list-style-type: disc;
+      margin-left: 18pt;
+      margin-top: 3pt;
+    }
+    ul.bullet-list li {
+      margin-bottom: 2.5pt;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #111111;
+    }
+    .skills-line {
+      font-size: 10pt;
+      line-height: 1.4;
+      margin-bottom: 4pt;
+    }
+    .skills-category {
+      font-weight: 700;
+      color: #000000;
+    }
+    @media print {
+      body {
+        padding: 0;
+        max-width: 100%;
+      }
+      a {
+        text-decoration: none;
+        color: #000000;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 class="candidate-name">Manoj Khatri</h1>
+    <div class="candidate-title">Senior Backend &amp; Systems Architect</div>
+    <div class="contact-line"><a href="mailto:manojkc1dev@gmail.com">manojkc1dev@gmail.com</a> &nbsp;|&nbsp; +977-9800000000 &nbsp;|&nbsp; Kathmandu, Nepal &nbsp;|&nbsp; <a href="https://linkedin.com/in/manoj-khatri" target="_blank" rel="noopener">LinkedIn</a> &nbsp;|&nbsp; <a href="https://github.com/manoj-khatri" target="_blank" rel="noopener">GitHub</a> &nbsp;|&nbsp; <a href="https://manojkc1.com.np" target="_blank" rel="noopener">manojkc1.com.np</a></div>
+    <p class="summary-text">Performance-driven Backend Software Engineer with 3+ years of expertise designing and deploying resilient RESTful APIs, distributed microservices, and asynchronous event architectures. Specialized in Python, Django REST Framework, PostgreSQL query optimization, Celery, and Redis caching. Proven record of reducing API latency by 42% and architecting systems serving 100K+ monthly active users with 99.9% uptime.</p>
+  </header>
+  <main>
+    
+    <section class="resume-section">
+      <h2 class="section-title">EXPERIENCE</h2>
+      
+    <div class="entry-item">
+      <div class="entry-header">
+        <span class="entry-title">Backend Software Engineer</span>
+        <span class="entry-dates">2023/08 – Present</span>
+      </div>
+      <div class="entry-subhead">
+              <span class="entry-org">LightCode Technologies</span>
+              <span class="entry-location">Kathmandu, Nepal</span>
+            </div>
+      <ul class="bullet-list"><li>Architected high-throughput Django REST API processing 2.4M requests monthly with 99.95% service uptime and sub-120ms p95 latency.</li>
+<li>Optimized complex PostgreSQL database queries and indexes, reducing p99 database query execution times by 44% across 18 core endpoints.</li>
+<li>Engineered asynchronous background job pipeline utilizing Celery, RabbitMQ, and Redis to process 50,000+ daily notifications and transactional invoices.</li>
+<li>Implemented automated CI/CD deployment pipelines with Docker and GitHub Actions, slashing release deployment cycle time from 45 minutes to 7 minutes.</li></ul>
+    </div>
+
+    <div class="entry-item">
+      <div class="entry-header">
+        <span class="entry-title">Junior Python Developer</span>
+        <span class="entry-dates">2022/01 – 2023/07</span>
+      </div>
+      <div class="entry-subhead">
+              <span class="entry-org">FinTech Solutions Nepal</span>
+              <span class="entry-location">Lalitpur, Nepal</span>
+            </div>
+      <ul class="bullet-list"><li>Developed secure payment gateway integrations handling over $450,000 in monthly digital wallet transactions across eSewa and Khalti APIs.</li>
+<li>Refactored legacy REST endpoints into modular service layer architecture, improving test coverage from 41% to 88% using PyTest.</li>
+<li>Collaborated with frontend engineering teams to design OpenAPI/Swagger contracts and unified error payload standards.</li></ul>
+    </div>
+    </section>
+
+    <section class="resume-section">
+      <h2 class="section-title">TECHNICAL SKILLS</h2>
+      
+    <div class="skills-line">
+      <span class="skills-category">Backend &amp; Frameworks:</span> Python, Django, Django REST Framework, FastAPI, Flask, Celery, Asynchronous Programming
+    </div>
+
+    <div class="skills-line">
+      <span class="skills-category">Databases &amp; Caching:</span> PostgreSQL, Redis, MySQL, SQLite, Database Indexing, Query Optimization, Transaction Isolation
+    </div>
+
+    <div class="skills-line">
+      <span class="skills-category">DevOps &amp; Cloud Tools:</span> Docker, Docker Compose, Git, GitHub Actions, Linux Server Administration, Nginx, Gunicorn, RESTful APIs, JWT Auth
+    </div>
+    </section>
+
+    <section class="resume-section">
+      <h2 class="section-title">KEY PROJECTS</h2>
+      
+    <div class="entry-item">
+      <div class="entry-header">
+        <span class="entry-title">Enterprise Hospital Management System (HMS)</span>
+        <span class="entry-dates">2024/01 – 2024/09</span>
+      </div>
+      <div class="entry-subhead">
+              <span class="entry-org">Production Open Source</span>
+              <span class="entry-location">Kathmandu, Nepal</span>
+            </div>
+      <ul class="bullet-list"><li>Engineered comprehensive clinical records API managing 12,000+ patient records with role-based access control (RBAC) and audit logging.</li>
+<li>Reduced appointment double-booking error rate to zero by enforcing distributed Redis locks during concurrent checkout workflows.</li></ul>
+    </div>
+
+    <div class="entry-item">
+      <div class="entry-header">
+        <span class="entry-title">High-Concurrency Real-Time Analytics Pipeline</span>
+        <span class="entry-dates">2023/10 – 2024/03</span>
+      </div>
+      <div class="entry-subhead">
+              <span class="entry-org">Independent Project</span>
+              
+            </div>
+      <ul class="bullet-list"><li>Engineered event ingestion microservice handling 4,500 events/second using FastAPI, Redis Streams, and PostgreSQL partitioned tables.</li></ul>
+    </div>
+    </section>
+
+    <section class="resume-section">
+      <h2 class="section-title">EDUCATION</h2>
+      
+    <div class="entry-item">
+      <div class="entry-header">
+        <span class="entry-title">Bachelor of Science in Computer Science &amp; Information Technology (B.Sc. CSIT)</span>
+        <span class="entry-dates">2019/09 – 2023/09</span>
+      </div>
+      <div class="entry-subhead">
+              <span class="entry-org">Tribhuvan University</span>
+              <span class="entry-location">Kathmandu, Nepal</span>
+            </div>
+      <ul class="bullet-list"><li>Core Coursework: Data Structures &amp; Algorithms, Database Management Systems, Distributed Systems, Software Engineering, Operating Systems.</li></ul>
+    </div>
+    </section>
+
+    <section class="resume-section">
+      <h2 class="section-title">CERTIFICATIONS</h2>
+      
+    <div class="entry-item">
+      <div class="entry-header">
+        <span class="entry-title">Python Certified Associate Programmer (PCAP)</span>
+        <span class="entry-dates">2023/05 – Present</span>
+      </div>
+      <div class="entry-subhead">
+              <span class="entry-org">Python Institute</span>
+              
+            </div>
+      <ul class="bullet-list"><li>Verified advanced proficiency in object-oriented programming, data structures, and standard library internals.</li></ul>
+    </div>
+    </section>
+  </main>
+</body>
+</html>
