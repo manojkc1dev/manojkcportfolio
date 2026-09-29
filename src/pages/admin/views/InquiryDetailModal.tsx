@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Calendar,
   Send,
+  Trash2,
 } from 'lucide-react';
 import type { AdminInquiry } from '../types';
 
@@ -18,6 +19,7 @@ interface InquiryDetailModalProps {
   onClose: () => void;
   onUpdateStatus: (id: string, status: AdminInquiry['status']) => void;
   onToggleReplied: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const InquiryDetailModal: React.FC<InquiryDetailModalProps> = ({
@@ -25,6 +27,7 @@ export const InquiryDetailModal: React.FC<InquiryDetailModalProps> = ({
   onClose,
   onUpdateStatus,
   onToggleReplied,
+  onDelete,
 }) => {
   return (
     <div className="fixed inset-0 z-50 bg-neutral-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -144,7 +147,45 @@ export const InquiryDetailModal: React.FC<InquiryDetailModalProps> = ({
 
           {/* Scope and Budget Strip */}
           <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 space-y-2">
-            <div className="text-[10px] text-neutral-400 uppercase font-bold">Project Scope</div>
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] text-neutral-400 uppercase font-bold">Project Scope</div>
+              {(() => {
+                const text = `${inquiry.projectId || ''} ${inquiry.projectTitle || ''} ${inquiry.scopeTitle || ''} ${inquiry.message || ''}`.toLowerCase();
+                let matchedSlug = '';
+                let matchedName = 'General Engineering';
+                if (text.includes('agritech') || text.includes('agriculture') || text.includes('khalti') || text.includes('esewa')) {
+                  matchedSlug = 'agritech';
+                  matchedName = 'Agritech Marketplace';
+                } else if (text.includes('calcpro') || text.includes('calculator')) {
+                  matchedSlug = 'calcpro';
+                  matchedName = 'CalcPro';
+                } else if (text.includes('shabdhabhandar') || text.includes('dictionary') || text.includes('nepali')) {
+                  matchedSlug = 'shabdhabhandar';
+                  matchedName = 'Shabdhabhandar';
+                } else if (text.includes('acadflow') || text.includes('student') || text.includes('academic') || text.includes('sajha')) {
+                  matchedSlug = 'acadflow';
+                  matchedName = 'AcadFlow';
+                }
+
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      Tag: {matchedName}
+                    </span>
+                    {matchedSlug && (
+                      <a
+                        href={`/projects/${matchedSlug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        View Case Study ↗
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
             <div className="text-sm font-bold text-neutral-900 dark:text-white">
               {inquiry.scopeTitle}
             </div>
@@ -175,16 +216,32 @@ export const InquiryDetailModal: React.FC<InquiryDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70 flex items-center justify-between">
-          <a
-            href={`mailto:${inquiry.email}?subject=Re: Portfolio Inquiry - ${inquiry.scopeTitle} (Manoj Khatri)`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Send Email Reply</span>
-          </a>
+        <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <a
+              href={`mailto:${inquiry.email}?subject=Re: Portfolio Inquiry - ${inquiry.scopeTitle} (Manoj Khatri)`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send Email Reply</span>
+            </a>
+
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(inquiry.id);
+                  onClose();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Lead</span>
+              </button>
+            )}
+          </div>
 
           <button
             type="button"

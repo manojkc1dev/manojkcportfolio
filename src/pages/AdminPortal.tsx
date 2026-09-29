@@ -52,6 +52,7 @@ import { ProjectsView } from './admin/views/ProjectsView';
 import { SkillsView } from './admin/views/SkillsView';
 import { ExperienceView } from './admin/views/ExperienceView';
 import { AboutView } from './admin/views/AboutView';
+import { ResumeView } from './admin/views/ResumeView';
 import { SocialsView } from './admin/views/SocialsView';
 import { InquiriesView } from './admin/views/InquiriesView';
 import { SettingsView } from './admin/views/SettingsView';
@@ -69,7 +70,59 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
   const { theme } = useTheme();
 
   // Navigation tab state
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    try {
+      const path = window.location.pathname.toLowerCase();
+      const search = new URLSearchParams(window.location.search);
+      const tabParam = search.get('tab') || search.get('view');
+      if (
+        path.includes('/resume') ||
+        path.includes('/cv') ||
+        tabParam === 'resume' ||
+        tabParam === 'cv' ||
+        tabParam === 'editor' ||
+        tabParam === 'ats' ||
+        tabParam === 'export' ||
+        tabParam === 'library'
+      ) {
+        return 'resume';
+      }
+      if (tabParam && ['dashboard', 'projects', 'skills', 'experience', 'about', 'inquiries', 'socials', 'settings', 'security'].includes(tabParam)) {
+        return tabParam as AdminTab;
+      }
+    } catch {
+      // Fallback
+    }
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const path = window.location.pathname.toLowerCase();
+        const search = new URLSearchParams(window.location.search);
+        const tabParam = search.get('tab') || search.get('view');
+        if (
+          path.includes('/resume') ||
+          path.includes('/cv') ||
+          tabParam === 'resume' ||
+          tabParam === 'cv' ||
+          tabParam === 'editor' ||
+          tabParam === 'ats' ||
+          tabParam === 'export' ||
+          tabParam === 'library'
+        ) {
+          setActiveTab('resume');
+        } else if (tabParam && ['dashboard', 'projects', 'skills', 'experience', 'about', 'inquiries', 'socials', 'settings', 'security'].includes(tabParam)) {
+          setActiveTab(tabParam as AdminTab);
+        }
+      } catch {
+        // Fallback
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Master demo session override: allows direct preview & testing even if Firebase Auth is not yet configured
@@ -248,19 +301,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
       const saved = localStorage.getItem('admin_cms_inquiries');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(
+            (item) => !item.name?.includes('Prashant Joshi') && !item.email?.includes('prashant.j')
+          );
+        }
       }
     } catch (e) {
       console.warn('Inquiries storage load error:', e);
     }
-    return initialInquiries;
+    return initialInquiries.filter(
+      (item) => !item.name?.includes('Prashant Joshi') && !item.email?.includes('prashant.j')
+    );
   });
 
   const updateInquiries = (newInquiries: AdminInquiry[]) => {
-    setInquiries(newInquiries);
+    const cleanInquiries = newInquiries.filter(
+      (item) => !item.name?.includes('Prashant Joshi') && !item.email?.includes('prashant.j')
+    );
+    setInquiries(cleanInquiries);
     try {
-      localStorage.setItem('admin_cms_inquiries', JSON.stringify(newInquiries));
-      localStorage.setItem('portfolio_inquiries', JSON.stringify(newInquiries));
+      localStorage.setItem('admin_cms_inquiries', JSON.stringify(cleanInquiries));
+      localStorage.setItem('portfolio_inquiries', JSON.stringify(cleanInquiries));
     } catch (e) {
       console.warn('Inquiries storage save error:', e);
     }
@@ -289,108 +351,192 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     }
   };
 
-  // Sync server API inquiries on load
-  const syncServerInquiries = async () => {
+  // Sync server API inquiries, localStorage, and Firestore
+  const syncServerInquiries = async (showToastFeedback: boolean = false): Promise<void> => {
     try {
-      const res = await fetch('/api/messages');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.messages && Array.isArray(data.messages)) {
-          const mergedMap = new Map<string, AdminInquiry>();
-          // Existing
-          inquiries.forEach((inq) => mergedMap.set(inq.id, inq));
-          // Server messages mapped to AdminInquiry
-          data.messages.forEach((msg: any) => {
-            const existing = mergedMap.get(msg.id);
-            mergedMap.set(msg.id, {
-              id: msg.id,
-              name: msg.name || existing?.name || 'Anonymous Client',
-              company: msg.company || existing?.company || '',
-              email: msg.email || existing?.email || '',
-              phone: msg.phone || existing?.phone || '',
-              hasWhatsApp: msg.hasWhatsApp ?? existing?.hasWhatsApp ?? true,
-              scopeTitle: msg.scopeTitle || existing?.scopeTitle || 'Custom Software Project',
-              budgetRange: msg.budgetRange || existing?.budgetRange || 'NPR 100,000–200,000 (~US$750–1,500)',
-              timeline: msg.timeline || existing?.timeline || '2–3 Months',
-              message: msg.message || existing?.message || '',
-              submittedAt: msg.createdAt
-                ? typeof msg.createdAt === 'string'
-                  ? msg.createdAt
-                  : new Date((msg.createdAt.seconds || 0) * 1000).toLocaleString()
-                : existing?.submittedAt || 'Recent',
-              status: msg.status || existing?.status || 'New',
-              read: msg.read ?? existing?.read ?? false,
-              replied: msg.replied ?? existing?.replied ?? false,
-            });
+      const map = new Map<string, AdminInquiry>();
+
+      // 1. Fetch server messages from API
+      try {
+        const res = await fetch('/api/messages', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages
+              .filter(
+                (msg: any) =>
+                  !msg.name?.includes('Prashant Joshi') && !msg.email?.includes('prashant.j')
+              )
+              .forEach((msg: any) => {
+                map.set(msg.id, {
+                  id: msg.id,
+                  name: msg.name || 'Client',
+                  company: msg.company || '',
+                  email: msg.email || '',
+                  phone: msg.phone || '',
+                  hasWhatsApp: msg.hasWhatsApp ?? true,
+                  scopeTitle: msg.scopeTitle || 'Website Contact Inquiry',
+                  budgetRange: msg.budgetRange || 'Standard Project',
+                  timeline: msg.timeline || '2–3 Months',
+                  message: msg.message || '',
+                  submittedAt: msg.createdAt
+                    ? typeof msg.createdAt === 'string'
+                      ? new Date(msg.createdAt).toLocaleString()
+                      : new Date((msg.createdAt.seconds || 0) * 1000).toLocaleString()
+                    : 'Recent',
+                  status: msg.status || 'New',
+                  read: msg.read ?? false,
+                  replied: msg.replied ?? false,
+                });
+              });
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API messages fetch note:', apiErr);
+      }
+
+      // 2. Fetch from LocalStorage portfolio_inquiries backup
+      try {
+        const localSaved = localStorage.getItem('portfolio_inquiries');
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          if (Array.isArray(parsed)) {
+            parsed
+              .filter(
+                (msg: any) =>
+                  !msg.name?.includes('Prashant Joshi') && !msg.email?.includes('prashant.j')
+              )
+              .forEach((msg: any) => {
+                if (!map.has(msg.id)) {
+                  map.set(msg.id, {
+                    id: msg.id,
+                    name: msg.name || 'Client',
+                    company: msg.company || '',
+                    email: msg.email || '',
+                    phone: msg.phone || '',
+                    hasWhatsApp: msg.hasWhatsApp ?? true,
+                    scopeTitle: msg.scopeTitle || 'Website Contact Inquiry',
+                    budgetRange: msg.budgetRange || 'Standard Project',
+                    timeline: msg.timeline || '2–3 Months',
+                    message: msg.message || '',
+                    submittedAt: msg.submittedAt || (msg.createdAt ? new Date(msg.createdAt).toLocaleString() : 'Recent'),
+                    status: msg.status || 'New',
+                    read: msg.read ?? false,
+                    replied: msg.replied ?? false,
+                  });
+                }
+              });
+          }
+        }
+      } catch (lsErr) {
+        console.warn('LocalStorage inquiries load note:', lsErr);
+      }
+
+      // 3. Fetch from Firestore if configured
+      if (isFirebaseConfigured && db) {
+        try {
+          const q = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
+          const snap = await getDocs(q);
+          snap.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.name?.includes('Prashant Joshi') || data.email?.includes('prashant.j')) return;
+            if (!map.has(docSnap.id)) {
+              map.set(docSnap.id, {
+                id: docSnap.id,
+                name: data.name || 'Client',
+                company: data.company || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                hasWhatsApp: data.hasWhatsApp ?? true,
+                scopeTitle: data.scopeTitle || 'Website Contact Inquiry',
+                budgetRange: data.budgetRange || 'Standard Project',
+                timeline: data.timeline || '2–3 Months',
+                message: data.message || '',
+                submittedAt: data.submittedAt || (data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000).toLocaleString() : 'Recent'),
+                status: data.status || 'New',
+                read: data.read ?? false,
+                replied: data.replied ?? false,
+              });
+            }
           });
-          const mergedList = Array.from(mergedMap.values());
-          updateInquiries(mergedList);
+        } catch (fsErr) {
+          console.warn('Firestore inquiries load note:', fsErr);
         }
       }
+
+      // 4. Merge with current state (so manually modified statuses are preserved)
+      inquiries
+        .filter(
+          (inq) => !inq.name?.includes('Prashant Joshi') && !inq.email?.includes('prashant.j')
+        )
+        .forEach((inq) => {
+          if (map.has(inq.id)) {
+            const serverItem = map.get(inq.id)!;
+            // Retain locally updated status/read/replied if updated
+            map.set(inq.id, {
+              ...serverItem,
+              status: inq.status || serverItem.status,
+              read: inq.read ?? serverItem.read,
+              replied: inq.replied ?? serverItem.replied,
+            });
+          } else {
+            // Keep local inquiry
+            map.set(inq.id, inq);
+          }
+        });
+
+      const mergedList = Array.from(map.values());
+      updateInquiries(mergedList);
+
+      if (showToastFeedback) {
+        showToast(`Inbox refreshed: ${mergedList.length} lead${mergedList.length === 1 ? '' : 's'} synchronized.`);
+      }
     } catch (err) {
-      console.warn('Server messages fetch notice:', err);
+      console.warn('Server messages fetch error:', err);
+      if (showToastFeedback) {
+        showToast('Inquiries refreshed from local storage cache.');
+      }
     }
   };
 
   useEffect(() => {
-    syncServerInquiries();
+    syncServerInquiries(false);
+
+    const handleInquiriesUpdated = () => {
+      syncServerInquiries(false);
+    };
+
+    window.addEventListener('portfolio_inquiries_updated', handleInquiriesUpdated);
+    return () => {
+      window.removeEventListener('portfolio_inquiries_updated', handleInquiriesUpdated);
+    };
   }, []);
 
-  // Quick Action Handlers
-  const handleAddTestInquiry = async () => {
+  // Delete inquiry action: deletes from local state, storage, and server API
+  const handleDeleteInquiry = async (id: string) => {
+    // 1. Remove from local state & storage immediately
+    const updated = inquiries.filter((i) => i.id !== id);
+    updateInquiries(updated);
+
+    // 2. Call server endpoint to permanently delete from .data/messages.json
     try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
+      await fetch(`/api/messages?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'test' }),
+        body: JSON.stringify({ id }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.message) {
-          const newInq: AdminInquiry = {
-            id: data.message.id,
-            name: data.message.name,
-            company: data.message.company || 'Kathmandu Enterprise Hub',
-            email: data.message.email,
-            phone: data.message.phone || '+977 9851099887',
-            hasWhatsApp: true,
-            scopeTitle: data.message.scopeTitle || 'Enterprise ERP & Inventory Platform',
-            budgetRange: data.message.budgetRange || 'NPR 150,000–300,000 (~US$1,100–2,200)',
-            timeline: data.message.timeline || '2 Months',
-            message: data.message.message,
-            submittedAt: 'Just now',
-            status: 'New',
-            read: false,
-            replied: false,
-          };
-          updateInquiries([newInq, ...inquiries.filter((i) => i.id !== newInq.id)]);
-          showToast('New simulated lead inquiry received in inbox!');
-          return;
-        }
-      }
     } catch (err) {
-      console.warn('Test inquiry fallback to local:', err);
+      console.warn('Server delete message notice:', err);
     }
 
-    // Local fallback
-    const localTest: AdminInquiry = {
-      id: `inq-${Date.now()}`,
-      name: 'Rohan Shrestha',
-      company: 'Himalayan Retail Group',
-      email: 'rohan.shrestha@example.com',
-      phone: '+977 9851234567',
-      hasWhatsApp: true,
-      scopeTitle: 'Multi-Branch ERP & POS System',
-      budgetRange: 'NPR 200,000–300,000 (~US$1,500–2,250)',
-      timeline: '2 Months',
-      message: 'Looking for a unified inventory, billing, and accounting suite connecting 3 retail outlets in Kathmandu with offline sync support.',
-      submittedAt: 'Just now',
-      status: 'New',
-      read: false,
-      replied: false,
-    };
-    updateInquiries([localTest, ...inquiries]);
-    showToast('New simulated lead inquiry received!');
+    // 3. Delete from Firestore if configured
+    try {
+      if (isFirebaseConfigured && db) {
+        await deleteDoc(doc(db, 'inquiries', id));
+      }
+    } catch (err) {
+      // ignore
+    }
   };
 
   const handleImportAllData = (imported: any) => {
@@ -631,6 +777,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
         onBackToHome={onBackToHome}
         onSignOut={handleSignOut}
         userEmail={user?.email || 'manojkc1dev@gmail.com'}
+        userAvatar={profileData.photo || '/images/manoj.jpg'}
       />
 
       {/* Main Body Layout: Sidebar + Active Content View */}
@@ -643,6 +790,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
           onCloseMobile={() => setSidebarOpen(false)}
           unreadInquiriesCount={inquiries.filter((i) => !i.read).length}
           userEmail={user?.email || 'manojkc1dev@gmail.com'}
+          userAvatar={profileData.photo || '/images/manoj.jpg'}
           onSignOut={handleSignOut}
           onBackToHome={onBackToHome}
         />
@@ -697,6 +845,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
               profile={profileData}
               onUpdateProfile={setProfileData}
               onShowToast={showToast}
+              onGoToResumeTab={() => setActiveTab('resume')}
+            />
+          )}
+
+          {activeTab === 'resume' && (
+            <ResumeView
+              onShowToast={showToast}
+              profile={profileData}
+              onUpdateProfile={(up) => {
+                setProfileData(up);
+                try {
+                  localStorage.setItem('portfolio_profile', JSON.stringify(up));
+                } catch (e) {
+                  console.warn('Profile save error:', e);
+                }
+              }}
             />
           )}
 
@@ -704,9 +868,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
             <InquiriesView
               inquiries={inquiries}
               onUpdateInquiries={updateInquiries}
+              onDeleteInquiry={handleDeleteInquiry}
               onShowToast={showToast}
-              onRefresh={syncServerInquiries}
-              onAddTestInquiry={handleAddTestInquiry}
+              onRefresh={() => syncServerInquiries(true)}
             />
           )}
 

@@ -5,9 +5,6 @@ import {
   Sun,
   ExternalLink,
   Search,
-  LogOut,
-  Shield,
-  User,
   Sparkles,
   Command,
 } from 'lucide-react';
@@ -20,6 +17,7 @@ interface AdminHeaderProps {
   onToggleSidebar: () => void;
   onBackToHome: () => void;
   userEmail?: string | null;
+  userAvatar?: string;
   onSignOut?: () => void;
 }
 
@@ -29,6 +27,7 @@ const TAB_TITLES: Record<AdminTab, { group: string; label: string }> = {
   skills: { group: 'Portfolio Content', label: 'Skills & Tech Stack' },
   experience: { group: 'Portfolio Content', label: 'Experience & Education Timeline' },
   about: { group: 'Portfolio Content', label: 'About Me & Bio' },
+  resume: { group: 'Portfolio Content', label: 'Resume & CV Manager' },
   inquiries: { group: 'Communication', label: 'Contact Inquiries' },
   socials: { group: 'Communication', label: 'Social Profiles & Direct Contact' },
   settings: { group: 'System', label: 'Settings & Backups' },
@@ -51,14 +50,16 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   onToggleSidebar,
   onBackToHome,
   userEmail,
+  userAvatar,
   onSignOut,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [brandImgError, setBrandImgError] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const avatarUrl = userAvatar || '/images/manoj.jpg';
 
   const activeBreadcrumb = TAB_TITLES[currentTab] || { group: 'Admin', label: 'Dashboard' };
 
@@ -76,9 +77,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   // Close menus on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setSearchOpen(false);
       }
@@ -101,9 +99,20 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-              MK
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 shadow-xs">
+              {!brandImgError ? (
+                <img
+                  src={avatarUrl}
+                  alt="Manoj Khatri profile picture"
+                  className="w-full h-full object-cover"
+                  onError={() => setBrandImgError(true)}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                  MK
+                </div>
+              )}
             </div>
             <span className="font-semibold text-neutral-900 dark:text-white text-sm hidden sm:inline">
               Manoj Khatri
@@ -210,71 +219,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             <span>Live Site</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
-
-          {/* User Avatar Circle */}
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
-              title={userEmail || 'manojkc1dev@gmail.com'}
-            >
-              M
-            </button>
-
-            {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xl py-1.5 z-50">
-                <div className="px-3.5 py-2 border-b border-neutral-100 dark:border-neutral-800">
-                  <div className="text-xs font-semibold text-neutral-900 dark:text-white">
-                    Manoj Khatri (Admin)
-                  </div>
-                  <div className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
-                    {userEmail || 'manojkc1dev@gmail.com'}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectTab('security');
-                    setUserMenuOpen(false);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Shield className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Security & Credentials</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectTab('settings');
-                    setUserMenuOpen(false);
-                  }}
-                  className="w-full px-3.5 py-2 text-left text-xs text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <User className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Website Settings</span>
-                </button>
-
-                <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
-
-                {onSignOut && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      onSignOut();
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </header>

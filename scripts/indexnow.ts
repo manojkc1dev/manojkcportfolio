@@ -11,6 +11,12 @@ async function submitIndexNow() {
     `https://${host}/projects`,
     `https://${host}/skills`,
     `https://${host}/experience`,
+    `https://${host}/uses`,
+    `https://${host}/writing`,
+    `https://${host}/projects/agritech`,
+    `https://${host}/projects/calcpro`,
+    `https://${host}/projects/shabdhabhandar`,
+    `https://${host}/projects/acadflow`,
   ];
 
   const payload = {

@@ -5,6 +5,7 @@ import {
   Cpu,
   Briefcase,
   User,
+  FileText,
   Inbox,
   Share2,
   Settings,
@@ -20,6 +21,7 @@ interface AdminSidebarProps {
   onCloseMobile: () => void;
   unreadInquiriesCount?: number;
   userEmail?: string | null;
+  userAvatar?: string;
   onSignOut?: () => void;
   onBackToHome: () => void;
 }
@@ -31,9 +33,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onCloseMobile,
   unreadInquiriesCount = 0,
   userEmail = 'manojkc1dev@gmail.com',
+  userAvatar,
   onSignOut,
   onBackToHome,
 }) => {
+  const [imgError, setImgError] = React.useState(false);
+  const avatarUrl = userAvatar || '/images/manoj.jpg';
+
   const handleNavClick = (tab: AdminTab) => {
     onSelectTab(tab);
     if (window.innerWidth < 1024) {
@@ -136,6 +142,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   <span>About Me &amp; Bio</span>
                 </div>
               </button>
+
+              {/* Resume & Curriculum Vitae */}
+              <button
+                type="button"
+                onClick={() => handleNavClick('resume')}
+                className={navItemClass(currentTab === 'resume')}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4" />
+                  <span>Resume &amp; CV</span>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -209,8 +227,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                M
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0">
+                {!imgError ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Manoj Khatri profile picture"
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                    M
+                  </div>
+                )}
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 truncate">

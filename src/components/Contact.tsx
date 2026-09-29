@@ -23,6 +23,7 @@ import {
 import { isFirebaseConfigured, db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { track } from '../lib/analytics';
+import { projects } from '../data/projects';
 
 interface DirectContactItem {
   id: string;
@@ -122,6 +123,38 @@ export const Contact: React.FC = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [honeypot, setHoneypot] = useState(''); // Anti-spam honeypot field
+  const [projectSlug, setProjectSlug] = useState<string | null>(null);
+
+  // Read ?project= query param from URL on mount
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        let param = urlParams.get('project');
+        if (!param && window.location.hash.includes('project=')) {
+          const hashQuery = window.location.hash.split('?')[1];
+          if (hashQuery) {
+            param = new URLSearchParams(hashQuery).get('project');
+          }
+        }
+        if (param) {
+          const cleanSlug = param.trim();
+          setProjectSlug(cleanSlug);
+          const found = projects.find((p) => p.id === cleanSlug);
+          const title = found ? found.title.split('|')[0].trim() : cleanSlug;
+          setMessage((prev) => {
+            if (!prev.trim()) {
+              return `Hi Manoj, I'd like to discuss the ${title} project. `;
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (_) {}
+  }, []);
+
+  const taggedProject = projectSlug ? projects.find((p) => p.id === projectSlug) : null;
+  const taggedProjectTitle = taggedProject ? taggedProject.title.split('|')[0].trim() : projectSlug;
 
   // Form States & Errors
   const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({});
@@ -182,25 +215,6 @@ export const Contact: React.FC = () => {
     setStatus('loading');
     setErrorMessage('');
 
-    // If Firebase / production backend is not configured, show friendly notice instead of POSTing
-    if (!isFirebaseConfigured) {
-      setTimeout(() => {
-        setStatus('success');
-        setToastMessage("Thanks! Running in UI-only mode (Firebase not configured). Message preview captured.");
-        setName('');
-        setEmail('');
-        setMessage('');
-        setHoneypot('');
-        setErrors({});
-        track('contact_submit', { mode: 'unconfigured_preview' });
-        setTimeout(() => {
-          setToastMessage(null);
-          setStatus('idle');
-        }, 7000);
-      }, 500);
-      return;
-    }
-
     try {
       let delivered = false;
 
@@ -215,6 +229,9 @@ export const Contact: React.FC = () => {
             name: name.trim(),
             email: email.trim(),
             message: message.trim(),
+            projectId: projectSlug || undefined,
+            projectTitle: taggedProjectTitle || undefined,
+            sourcePage: typeof window !== 'undefined' ? window.location.href : undefined,
             _hp: honeypot,
             hp_field: honeypot,
           }),
@@ -232,35 +249,60 @@ export const Contact: React.FC = () => {
         }
       }
 
-      // 2. Client-side LocalStorage persistence mirror
+      // 2. Client-side LocalStorage persistence mirror for instant Admin Portal sync
       try {
-        const localList = JSON.parse(localStorage.getItem('portfolio_inquiries') || '[]');
-        localList.unshift({
+        const newInq = {
           id: `inquiry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           name: name.trim(),
           email: email.trim(),
+          company: '',
+          phone: '',
+          hasWhatsApp: true,
+          scopeTitle: taggedProjectTitle ? `Inquiry regarding ${taggedProjectTitle}` : 'Website Contact Inquiry',
+          budgetRange: 'Standard Project',
+          timeline: 'Flexible',
           message: message.trim(),
+          projectId: projectSlug || undefined,
+          projectTitle: taggedProjectTitle || undefined,
+          sourcePage: typeof window !== 'undefined' ? window.location.href : undefined,
           createdAt: new Date().toISOString(),
+          submittedAt: new Date().toLocaleString(),
+          status: 'New' as const,
           read: false,
           replied: false,
-        });
+        };
+
+        const localList = JSON.parse(localStorage.getItem('portfolio_inquiries') || '[]');
+        localList.unshift(newInq);
         localStorage.setItem('portfolio_inquiries', JSON.stringify(localList.slice(0, 100)));
+
+        const cmsList = JSON.parse(localStorage.getItem('admin_cms_inquiries') || '[]');
+        cmsList.unshift(newInq);
+        localStorage.setItem('admin_cms_inquiries', JSON.stringify(cmsList.slice(0, 100)));
+
+        window.dispatchEvent(new Event('portfolio_inquiries_updated'));
         delivered = true;
       } catch (lsErr) {
         console.warn('LocalStorage backup error:', lsErr);
       }
 
       // 3. Direct Firestore write if available
-      if (db) {
+      if (db && isFirebaseConfigured) {
         try {
-          await addDoc(collection(db, 'messages'), {
+          const firestorePayload = {
             name: name.trim(),
             email: email.trim(),
             message: message.trim(),
+            projectId: projectSlug || null,
+            projectTitle: taggedProjectTitle || null,
+            sourcePage: typeof window !== 'undefined' ? window.location.href : null,
             createdAt: serverTimestamp(),
             read: false,
             replied: false,
-          });
+            source: 'portfolio_contact',
+          };
+          await addDoc(collection(db, 'inquiries'), firestorePayload);
+          await addDoc(collection(db, 'messages'), firestorePayload).catch(() => {});
           delivered = true;
         } catch (fsErr) {
           console.warn('Firestore write notice (fallback active):', fsErr);
@@ -473,6 +515,17 @@ export const Contact: React.FC = () => {
                   Fill in the details below to start a conversation about your project or role.
                 </p>
               </div>
+
+              {/* Regarding Project Badge */}
+              {taggedProjectTitle && (
+                <div
+                  id="contact-project-badge"
+                  className="mb-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80 text-xs font-semibold text-indigo-700 dark:text-indigo-300"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                  <span>Regarding: {taggedProjectTitle}</span>
+                </div>
+              )}
 
               {/* Friendly notice when Firebase is not configured */}
               {!isFirebaseConfigured && (

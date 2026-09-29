@@ -22,7 +22,7 @@ export function validateContactInput(payload: unknown): ValidationResult {
     };
   }
 
-  const { name, email, message } = payload as Record<string, unknown>;
+  const { name, email, message, projectId, projectTitle, sourcePage } = payload as Record<string, unknown>;
 
   // 1. Validate name
   if (typeof name !== 'string') {
@@ -58,12 +58,30 @@ export function validateContactInput(payload: unknown): ValidationResult {
     return { valid: false, error: 'Message must be between 10 and 2000 characters.' };
   }
 
+  const validProjectSlug =
+    typeof projectId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(projectId.trim())
+      ? projectId.trim()
+      : undefined;
+
+  const sanitizedTitle =
+    typeof projectTitle === 'string'
+      ? projectTitle.replace(HTML_TAG_REGEX, '').trim().slice(0, 120)
+      : undefined;
+
+  const sanitizedSource =
+    typeof sourcePage === 'string'
+      ? sourcePage.replace(HTML_TAG_REGEX, '').trim().slice(0, 200)
+      : undefined;
+
   return {
     valid: true,
     data: {
       name: trimmedName,
       email: trimmedEmail,
       message: sanitizedMessage,
+      projectId: validProjectSlug,
+      projectTitle: sanitizedTitle,
+      sourcePage: sanitizedSource,
     },
   };
 }

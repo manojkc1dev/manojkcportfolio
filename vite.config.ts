@@ -12,6 +12,9 @@ interface StoredMessage {
   name: string;
   email: string;
   message: string;
+  projectId?: string;
+  projectTitle?: string;
+  sourcePage?: string;
   createdAt: string;
   read: boolean;
   replied: boolean;
@@ -65,7 +68,7 @@ function getStoredMessages(): StoredMessage[] {
     }
     const content = fs.readFileSync(messagesFile, 'utf-8');
     const parsed = JSON.parse(content || '[]');
-    if (!Array.isArray(parsed) || parsed.length === 0) {
+    if (!Array.isArray(parsed)) {
       const initial = getDefaultSeedMessages();
       fs.writeFileSync(messagesFile, JSON.stringify(initial, null, 2), 'utf-8');
       return initial;
@@ -73,7 +76,7 @@ function getStoredMessages(): StoredMessage[] {
     return parsed;
   } catch (err) {
     console.error('Error accessing messages file:', err);
-    return getDefaultSeedMessages();
+    return [];
   }
 }
 
@@ -128,6 +131,9 @@ const contactApiPlugin = (): Plugin => ({
               name,
               email,
               message,
+              projectId: typeof data.projectId === 'string' ? data.projectId.trim() : undefined,
+              projectTitle: typeof data.projectTitle === 'string' ? data.projectTitle.trim() : undefined,
+              sourcePage: typeof data.sourcePage === 'string' ? data.sourcePage.trim() : undefined,
               createdAt: new Date().toISOString(),
               read: false,
               replied: false,
@@ -187,13 +193,13 @@ const contactApiPlugin = (): Plugin => ({
               return;
             }
 
-            // Add single test message
-            if (data.action === 'test' || data.name) {
+            // Add custom message if provided
+            if (data.name && data.email) {
               const testMsg: StoredMessage = {
                 id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-                name: data.name || 'Prashant Joshi (Fintech Lead)',
-                email: data.email || 'prashant.j@himalayantech.np',
-                message: data.message || 'Hi Manoj, we need an experienced Django engineer to optimize our Celery async processing and PostgreSQL index tuning. Loved your portfolio and project structure!',
+                name: data.name,
+                email: data.email,
+                message: data.message || 'New contact inquiry.',
                 createdAt: new Date().toISOString(),
                 read: false,
                 replied: false,
@@ -207,7 +213,7 @@ const contactApiPlugin = (): Plugin => ({
             }
 
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Unknown action' }));
+            res.end(JSON.stringify({ error: 'Missing name or email' }));
           } catch {
             res.statusCode = 400;
             res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
@@ -247,19 +253,33 @@ const contactApiPlugin = (): Plugin => ({
       }
 
       if (req.method === 'DELETE') {
+        const url = new URL(req.url || '', 'http://localhost');
+        const queryId = url.searchParams.get('id');
+
         let body = '';
         req.on('data', (chunk) => {
           body += chunk;
         });
         req.on('end', () => {
           try {
-            const data = JSON.parse(body || '{}');
+            let targetId = queryId;
+            if (!targetId && body) {
+              const data = JSON.parse(body);
+              targetId = data.id;
+            }
+
+            if (!targetId) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Missing id to delete' }));
+              return;
+            }
+
             let list = getStoredMessages();
-            list = list.filter((m) => m.id !== data.id);
+            list = list.filter((m) => m.id !== targetId);
             saveStoredMessages(list);
 
             res.statusCode = 200;
-            res.end(JSON.stringify({ success: true, messages: list }));
+            res.end(JSON.stringify({ success: true, deletedId: targetId, messages: list }));
           } catch {
             res.statusCode = 400;
             res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
@@ -269,6 +289,125 @@ const contactApiPlugin = (): Plugin => ({
       }
 
       res.statusCode = 405;
+      res.end();
+    });
+
+    // 3. Upload and manage local resume file (/api/upload-resume)
+    const resumeMetaFile = path.join(dataDir, 'resume-meta.json');
+    const resumeBinaryFile = path.join(dataDir, 'resume-file.bin');
+
+    server.middlewares.use('/api/upload-resume', (req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'no-store');
+
+      if (req.method === 'GET') {
+        try {
+          if (fs.existsSync(resumeMetaFile)) {
+            const meta = JSON.parse(fs.readFileSync(resumeMetaFile, 'utf-8') || '{}');
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, hasFile: true, meta }));
+            return;
+          }
+        } catch (e) {
+          console.error('Error reading resume meta:', e);
+        }
+        res.statusCode = 200;
+        res.end(JSON.stringify({ success: true, hasFile: false }));
+        return;
+      }
+
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk;
+        });
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            const { fileName, mimeType, fileData, size, isActive } = data;
+
+            if (!fileName || !fileData) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Missing fileName or fileData' }));
+              return;
+            }
+
+            if (!fs.existsSync(dataDir)) {
+              fs.mkdirSync(dataDir, { recursive: true });
+            }
+
+            // Extract base64 part if formatted as data URL
+            let base64Content = fileData;
+            if (fileData.includes(';base64,')) {
+              base64Content = fileData.split(';base64,')[1];
+            }
+
+            const buffer = Buffer.from(base64Content, 'base64');
+            fs.writeFileSync(resumeBinaryFile, buffer);
+
+            const meta = {
+              fileName: fileName.trim(),
+              mimeType: mimeType || 'application/pdf',
+              size: size || buffer.length,
+              uploadedAt: new Date().toISOString(),
+              isActive: isActive ?? true,
+              url: '/api/active-resume',
+            };
+
+            fs.writeFileSync(resumeMetaFile, JSON.stringify(meta, null, 2), 'utf-8');
+
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, meta }));
+          } catch (err) {
+            console.error('Error uploading resume:', err);
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Failed to process resume upload' }));
+          }
+        });
+        return;
+      }
+
+      if (req.method === 'DELETE') {
+        try {
+          if (fs.existsSync(resumeMetaFile)) fs.unlinkSync(resumeMetaFile);
+          if (fs.existsSync(resumeBinaryFile)) fs.unlinkSync(resumeBinaryFile);
+          res.statusCode = 200;
+          res.end(JSON.stringify({ success: true, message: 'Uploaded resume removed' }));
+        } catch (err) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: 'Failed to remove resume' }));
+        }
+        return;
+      }
+
+      res.statusCode = 405;
+      res.end();
+    });
+
+    // 4. Download active uploaded resume (/api/active-resume)
+    server.middlewares.use('/api/active-resume', (req, res) => {
+      try {
+        if (fs.existsSync(resumeMetaFile) && fs.existsSync(resumeBinaryFile)) {
+          const meta = JSON.parse(fs.readFileSync(resumeMetaFile, 'utf-8') || '{}');
+          const fileBuffer = fs.readFileSync(resumeBinaryFile);
+
+          res.setHeader('Content-Type', meta.mimeType || 'application/octet-stream');
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${encodeURIComponent(meta.fileName || 'Manoj_KC_Resume.pdf')}"`
+          );
+          res.setHeader('Content-Length', fileBuffer.length);
+          res.statusCode = 200;
+          res.end(fileBuffer);
+          return;
+        }
+      } catch (err) {
+        console.error('Error serving active resume:', err);
+      }
+
+      // If no custom upload, redirect to /resume.pdf
+      res.statusCode = 302;
+      res.setHeader('Location', '/resume.pdf');
       res.end();
     });
   },

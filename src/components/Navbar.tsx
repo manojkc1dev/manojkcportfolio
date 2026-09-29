@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, ArrowUpRight, Mail } from 'lucide-react';
+import { Menu, X, ArrowUpRight, Mail, ChevronDown } from 'lucide-react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
@@ -13,13 +13,18 @@ interface NavLinkItem {
   pageRoute: string;
 }
 
-const navLinks: NavLinkItem[] = [
+const primaryNavLinks: NavLinkItem[] = [
   { name: 'About', href: '#about', pageRoute: '/' },
   { name: 'Projects', href: '#projects', pageRoute: '/projects' },
   { name: 'Skills', href: '#skills', pageRoute: '/skills' },
   { name: 'Experience', href: '#experience', pageRoute: '/experience' },
+];
+
+const moreNavLinks: NavLinkItem[] = [
   { name: 'Contact', href: '#contact', pageRoute: '/' },
 ];
+
+const allNavLinks: NavLinkItem[] = [...primaryNavLinks, ...moreNavLinks];
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -31,6 +36,27 @@ export const Navbar: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close More dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        moreDropdownRef.current &&
+        !moreDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close More dropdown on route changes
+  useEffect(() => {
+    setIsMoreOpen(false);
+  }, [location.pathname]);
 
   // Scroll listener for sticky header styling after 20px
   useEffect(() => {
@@ -103,29 +129,39 @@ export const Navbar: React.FC = () => {
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, link: NavLinkItem) => {
     e.preventDefault();
     setMobileMenuOpen(false);
+    setIsMoreOpen(false);
 
-    if (location.pathname === '/') {
-      const targetId = link.href.replace('#', '');
-      const element = document.getElementById(targetId);
-      if (element) {
-        const topOffset = 76;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - topOffset;
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth',
-        });
-        setActiveSection(targetId);
+    if (link.pageRoute && link.pageRoute !== '/') {
+      navigate(link.pageRoute);
+      return;
+    }
+
+    if (link.href.startsWith('#')) {
+      if (location.pathname === '/') {
+        const targetId = link.href.replace('#', '');
+        const element = document.getElementById(targetId);
+        if (element) {
+          const topOffset = 76;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - topOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth',
+          });
+          setActiveSection(targetId);
+        }
+      } else {
+        navigate(`/${link.href}`);
       }
     } else {
-      // On full pages, navigate to homepage with hash or to the page route
-      navigate(`/${link.href}`);
+      navigate(link.href);
     }
   };
 
   const handleWordmarkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     setMobileMenuOpen(false);
+    setIsMoreOpen(false);
     if (location.pathname === '/') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setActiveSection('');
@@ -135,14 +171,18 @@ export const Navbar: React.FC = () => {
   };
 
   const isLinkActive = (link: NavLinkItem) => {
-    if (location.pathname === '/projects' && link.name === 'Projects') return true;
-    if (location.pathname === '/skills' && link.name === 'Skills') return true;
-    if (location.pathname === '/experience' && link.name === 'Experience') return true;
+    if (link.pageRoute === '/projects' && (location.pathname === '/projects' || location.pathname.startsWith('/projects/'))) return true;
+    if (link.pageRoute === '/skills' && location.pathname === '/skills') return true;
+    if (link.pageRoute === '/experience' && location.pathname === '/experience') return true;
+    if (link.pageRoute === '/uses' && location.pathname === '/uses') return true;
+    if (link.pageRoute === '/writing' && (location.pathname === '/writing' || location.pathname.startsWith('/writing/'))) return true;
     if (location.pathname === '/') {
       return activeSection === link.href.replace('#', '');
     }
     return false;
   };
+
+  const isMoreActive = moreNavLinks.some((l) => isLinkActive(l));
 
   return (
     <header
@@ -173,9 +213,9 @@ export const Navbar: React.FC = () => {
           <span>Manoj Khatri</span>
         </a>
 
-        {/* Center (desktop): nav links */}
+        {/* Center (desktop): nav links + More dropdown */}
         <div className="hidden md:flex items-center gap-1 bg-neutral-100/80 dark:bg-neutral-900/80 p-1.5 rounded-full border border-neutral-200/60 dark:border-neutral-800/60 backdrop-blur-xs">
-          {navLinks.map((link) => {
+          {primaryNavLinks.map((link) => {
             const active = isLinkActive(link);
             return (
               <a
@@ -201,6 +241,52 @@ export const Navbar: React.FC = () => {
               </a>
             );
           })}
+
+          {/* More ▾ Dropdown (Contact) */}
+          <div className="relative" ref={moreDropdownRef}>
+            <button
+              type="button"
+              id="nav-link-more"
+              onClick={() => setIsMoreOpen(!isMoreOpen)}
+              className={`group relative flex items-center gap-1 px-4 py-1.5 text-sm font-medium rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer ${
+                isMoreActive
+                  ? 'bg-white dark:bg-neutral-800 text-indigo-600 dark:text-indigo-400 shadow-xs font-semibold'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
+            >
+              <span>More</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  isMoreOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {isMoreOpen && (
+              <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xl p-1.5 z-50 flex flex-col gap-1">
+                {moreNavLinks.map((link) => {
+                  const active = isLinkActive(link);
+                  return (
+                    <a
+                      key={link.name}
+                      href={link.href}
+                      onClick={(e) => handleNavClick(e, link)}
+                      className={`px-3.5 py-2 text-xs font-medium rounded-xl transition-colors flex items-center justify-between ${
+                        active
+                          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                          : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-indigo-600 dark:hover:text-indigo-400'
+                      }`}
+                    >
+                      <span>{link.name}</span>
+                      {active && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: theme toggle + Hire Me button */}
@@ -258,7 +344,7 @@ export const Navbar: React.FC = () => {
                   Navigation
                 </div>
 
-                {navLinks.map((link) => {
+                {primaryNavLinks.map((link) => {
                   const active = isLinkActive(link);
                   return (
                     <a
@@ -278,6 +364,33 @@ export const Navbar: React.FC = () => {
                     </a>
                   );
                 })}
+
+                {/* More ▾ group on mobile */}
+                <div className="pt-2">
+                  <div className="text-xs font-mono font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 px-3 pb-1">
+                    More
+                  </div>
+                  {moreNavLinks.map((link) => {
+                    const active = isLinkActive(link);
+                    return (
+                      <a
+                        key={link.name}
+                        href={link.href}
+                        onClick={(e) => handleNavClick(e, link)}
+                        className={`px-4 py-3 text-base font-medium rounded-xl transition-colors flex items-center justify-between ${
+                          active
+                            ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold'
+                            : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        }`}
+                      >
+                        <span>{link.name}</span>
+                        {active && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
 
                 <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800">
                   <div className="text-xs font-mono font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 px-3 pb-2">

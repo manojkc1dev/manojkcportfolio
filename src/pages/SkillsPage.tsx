@@ -7,6 +7,7 @@ import { FilterBar } from '../components/ui/FilterBar';
 import { Chip } from '../components/ui/Chip';
 import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AuthorBio } from '../components/ui/AuthorBio';
 import { Seo } from '../components/Seo';
 import type { SkillGroup, SkillItem } from '../types';
 import { Sparkles, Layers, ChevronDown } from 'lucide-react';
@@ -193,25 +194,39 @@ export const SkillsPage: React.FC = () => {
   // JSON-LD structured data
   const jsonLd = useMemo(() => ({
     '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: 'Technical Skills of Manoj K.C.',
-    description: 'Core languages, backend frameworks, relational databases, security protocols, and devops tooling.',
-    numberOfItems: displayedSkillsCount,
-    itemListElement: filteredGroups.flatMap((g) =>
-      g.skills.map((s, idx) => ({
-        '@type': 'Thing',
-        position: idx + 1,
-        name: s.name,
-        description: `${s.name} (${normalizeSkillLevel(s)} proficiency) - ${g.title}`,
-      }))
-    ),
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': 'https://manojkc1.com.np/skills#webpage',
+        url: 'https://manojkc1.com.np/skills',
+        name: 'Skills | Python, Django, DRF, PostgreSQL, Docker | Manoj K.C.',
+        description:
+          'Comprehensive inventory of technical skills, backend architectures, databases, and tooling mastered by Manoj K.C., Python/Django Engineer in Kathmandu, Nepal.',
+        isPartOf: { '@id': 'https://manojkc1.com.np/#website' },
+        author: { '@id': 'https://manojkc1.com.np/#person' },
+      },
+      {
+        '@type': 'ItemList',
+        name: 'Technical Skills - Python, Django, DRF, PostgreSQL',
+        description: 'Core languages, backend frameworks, relational databases, security protocols, and devops tooling.',
+        numberOfItems: displayedSkillsCount,
+        itemListElement: filteredGroups.flatMap((g) =>
+          g.skills.map((s, idx) => ({
+            '@type': 'Thing',
+            position: idx + 1,
+            name: s.name,
+            description: `${s.name} (${normalizeSkillLevel(s)} proficiency) - ${g.title}`,
+          }))
+        ),
+      },
+    ],
   }), [filteredGroups, displayedSkillsCount]);
 
   return (
     <div className="min-h-screen pb-24">
       <Seo
-        title="Skills | Manoj K.C. — Python, Django, DRF, PostgreSQL"
-        description="Comprehensive inventory of technical skills, backend architectures, databases, and tooling mastered by Manoj K.C."
+        title="Skills | Python, Django, DRF, PostgreSQL, Docker | Manoj K.C."
+        description="Comprehensive inventory of technical skills, backend architectures, databases, and tooling mastered by Manoj K.C., Python/Django Engineer in Kathmandu, Nepal."
         canonical="https://manojkc1.com.np/skills"
         jsonLd={jsonLd}
       />
@@ -224,7 +239,7 @@ export const SkillsPage: React.FC = () => {
       {/* Header */}
       <PageHeader
         eyebrow="Competencies"
-        title="Skills & Tooling"
+        title="Technical Skills - Python, Django, DRF, PostgreSQL"
         subtitle="Everything I work with, grouped by category and calibrated for enterprise reliability."
         meta={`${allGroups.length} categories · ${totalSkillCount} skills cataloged`}
       />
@@ -438,6 +453,9 @@ export const SkillsPage: React.FC = () => {
             })}
           </div>
         )}
+
+        {/* E-E-A-T Author Authority and Freshness */}
+        <AuthorBio lastUpdated="September 2026" />
       </main>
     </div>
   );

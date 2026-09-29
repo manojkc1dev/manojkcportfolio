@@ -71,6 +71,34 @@ export const Hero: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const [spotlightPos, setSpotlightPos] = useState({ x: -1000, y: -1000 });
   const [canSpotlight, setCanSpotlight] = useState(false);
+  const [resumeUrl, setResumeUrl] = useState<string>('/resume.pdf');
+  const [resumeFileName, setResumeFileName] = useState<string>('Manoj_KC_Backend_Engineer_Resume.pdf');
+
+  useEffect(() => {
+    const updateResume = () => {
+      try {
+        const savedData = localStorage.getItem('portfolio_resume_data');
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (parsed.resumeUrl) setResumeUrl(parsed.resumeUrl);
+          if (parsed.fileName) setResumeFileName(parsed.fileName);
+        }
+        const savedUpload = localStorage.getItem('portfolio_uploaded_resume');
+        if (savedUpload) {
+          const uploadParsed = JSON.parse(savedUpload);
+          if (uploadParsed.isActive && (uploadParsed.dataUrl || uploadParsed.url)) {
+            setResumeUrl(uploadParsed.dataUrl || uploadParsed.url || '/api/active-resume');
+            setResumeFileName(uploadParsed.fileName || 'Manoj_KC_Resume.pdf');
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    updateResume();
+    window.addEventListener('portfolio_data_updated', updateResume);
+    return () => window.removeEventListener('portfolio_data_updated', updateResume);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -239,6 +267,7 @@ export const Hero: React.FC = () => {
               </motion.span>
             ))}
           </span>
+          <span className="sr-only">Khatri</span>
           <span className="sr-only"> - </span>
           <span className="block mt-3 text-xl md:text-2xl font-medium text-slate-500 dark:text-slate-400 tracking-normal font-sans">
             Backend Software Engineer
@@ -289,13 +318,13 @@ export const Hero: React.FC = () => {
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </a>
 
-          {/* Secondary CTA: "Download Resume" -> /resume.pdf (new tab) */}
+          {/* Secondary CTA: "Download Resume" -> dynamic active resume */}
           <a
             id="hero-cta-download-resume"
-            href="/resume.pdf"
+            href={resumeUrl}
             target="_blank"
             rel="noopener noreferrer"
-            download="Manoj_KC_Backend_Engineer_Resume.pdf"
+            download={resumeFileName}
             onClick={() => track('resume_download')}
             className="inline-flex items-center gap-2 px-5 py-3.5 rounded-xl font-semibold text-sm text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200/80 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-700/80 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 shadow-xs cursor-pointer"
           >

@@ -7,6 +7,39 @@ export interface ProjectLinks {
   live?: string;
   github?: string;
   caseStudy?: string;
+  apiDocs?: string;
+  postman?: string;
+  video?: string;
+}
+
+export interface Metric {
+  label: string;
+  value: string;
+  icon?: 'speed' | 'users' | 'db' | 'payment' | 'uptime';
+}
+
+export interface Challenge {
+  title: string;
+  problem: string;
+  approach: string;
+  outcome: string;
+}
+
+export type ProofBadge =
+  | 'live-demo'
+  | 'public-repo'
+  | 'readme'
+  | 'tests'
+  | 'ci-passing'
+  | 'deployed'
+  | 'api-docs'
+  | 'docker'
+  | 'postman-collection';
+
+export interface TechChoice {
+  layer: string;
+  choice: string;
+  why: string;
 }
 
 export interface Project {
@@ -23,9 +56,27 @@ export interface Project {
     live?: string;
     github?: string;
     caseStudy?: string;
+    apiDocs?: string;
+    postman?: string;
+    video?: string;
   };
   featured: boolean;
   image: string;
+
+  // Additive Case Study Fields (all optional)
+  role?: string; // "Solo" | "Team of 2"
+  duration?: string; // "3 months"
+  gallery?: string[]; // screenshot paths
+  metrics?: Metric[];
+  proof?: ProofBadge[];
+  problem?: string;
+  solution?: string;
+  architecture?: string; // mermaid string
+  whatIBuilt?: string[];
+  techStackTable?: TechChoice[];
+  challenges?: Challenge[];
+  lessonsLearned?: string[];
+  relatedProjects?: string[];
 }
 
 export interface SocialLink {
@@ -51,6 +102,7 @@ export interface Profile {
   photo: string;
   location: string;
   email: string;
+  phone?: string;
   availability: string;
   resumeUrl: string;
   stats: ProfileStat[];

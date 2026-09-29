@@ -17,26 +17,119 @@ import { InquiryDetailModal } from './InquiryDetailModal';
 interface InquiriesViewProps {
   inquiries: AdminInquiry[];
   onUpdateInquiries: (inquiries: AdminInquiry[]) => void;
+  onDeleteInquiry?: (id: string) => Promise<void> | void;
   onShowToast: (message: string) => void;
   onRefresh?: () => void;
-  onAddTestInquiry?: () => void;
 }
 
 export const InquiriesView: React.FC<InquiriesViewProps> = ({
   inquiries,
   onUpdateInquiries,
+  onDeleteInquiry,
   onShowToast,
   onRefresh,
-  onAddTestInquiry,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'New' | 'In Progress' | 'Closed' | 'Won'>('all');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
   const [selectedInquiry, setSelectedInquiry] = useState<AdminInquiry | null>(null);
+  const [inquiryToDelete, setInquiryToDelete] = useState<AdminInquiry | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const getInquiryProject = (i: AdminInquiry): { id: string; name: string; color: string } => {
+    if (i.projectId === 'agritech' || i.projectTitle?.toLowerCase().includes('agritech')) {
+      return { id: 'agritech', name: 'Agritech Marketplace', color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' };
+    }
+    if (i.projectId === 'calcpro' || i.projectTitle?.toLowerCase().includes('calcpro')) {
+      return { id: 'calcpro', name: 'CalcPro', color: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' };
+    }
+    if (i.projectId === 'shabdhabhandar' || i.projectTitle?.toLowerCase().includes('shabdhabhandar')) {
+      return { id: 'shabdhabhandar', name: 'Shabdhabhandar', color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' };
+    }
+    if (i.projectId === 'acadflow' || i.projectTitle?.toLowerCase().includes('acadflow')) {
+      return { id: 'acadflow', name: 'AcadFlow', color: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800' };
+    }
+
+    const text = `${i.scopeTitle || ''} ${i.message || ''}`.toLowerCase();
+    if (text.includes('agritech') || text.includes('agriculture') || text.includes('khalti') || text.includes('esewa')) {
+      return { id: 'agritech', name: 'Agritech Marketplace', color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' };
+    }
+    if (text.includes('calcpro') || text.includes('calculator')) {
+      return { id: 'calcpro', name: 'CalcPro', color: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' };
+    }
+    if (text.includes('shabdhabhandar') || text.includes('dictionary') || text.includes('nepali')) {
+      return { id: 'shabdhabhandar', name: 'Shabdhabhandar', color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' };
+    }
+    if (text.includes('acadflow') || text.includes('student') || text.includes('academic') || text.includes('sajha')) {
+      return { id: 'acadflow', name: 'AcadFlow', color: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800' };
+    }
+    return { id: 'general', name: 'General Inquiries', color: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700' };
+  };
 
   const totalLeads = inquiries.length;
   const newLeads = inquiries.filter((i) => i.status === 'New' || !i.read).length;
   const inProgressLeads = inquiries.filter((i) => i.status === 'In Progress').length;
   const wonLeads = inquiries.filter((i) => i.status === 'Won').length;
+
+  const handleRefreshClick = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (err) {
+      console.warn('Refresh error:', err);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
+  // Quick Test Inquiry Generator for immediate verification
+  const handleCreateTestLead = async () => {
+    const sampleNames = ['Devendra Shrestha', 'Pooja Karki', 'Rohan Bhattarai', 'Elena Rostova'];
+    const sampleCompanies = ['Himalayan Cloud Labs', 'FinTech Nepal Ltd', 'Vertex AI Solutions', 'Kathmandu Digital'];
+    const sampleScopes = ['Django REST Architecture', 'PostgreSQL Audit & Scaling', 'Payment Gateway Integration', 'Full-Stack Microservices'];
+    const sampleBudgets = ['NPR 150,000–250,000', 'NPR 200,000–400,000', 'US$1,500–3,000', 'US$2,500–5,000'];
+
+    const idx = Math.floor(Math.random() * sampleNames.length);
+    const newTestLead: AdminInquiry = {
+      id: `inquiry-test-${Date.now()}`,
+      name: sampleNames[idx],
+      company: sampleCompanies[idx],
+      email: `${sampleNames[idx].toLowerCase().replace(' ', '.')}@example.com`,
+      phone: '+977 98510' + Math.floor(10000 + Math.random() * 90000),
+      hasWhatsApp: true,
+      scopeTitle: sampleScopes[idx],
+      budgetRange: sampleBudgets[idx],
+      timeline: '2–3 Months',
+      message: `Hello Manoj! We reviewed your portfolio and were impressed with your Python/Django backend work. We have an immediate project opening for ${sampleScopes[idx].toLowerCase()}. Let us know if you're available for a technical discussion.`,
+      submittedAt: new Date().toLocaleString(),
+      status: 'New',
+      read: false,
+      replied: false,
+    };
+
+    const updated = [newTestLead, ...inquiries];
+    onUpdateInquiries(updated);
+
+    // Save to server API as well
+    try {
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTestLead.name,
+          email: newTestLead.email,
+          message: newTestLead.message,
+        }),
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    onShowToast(`New test inquiry from "${newTestLead.name}" added to inbox.`);
+  };
 
   const filteredInquiries = inquiries.filter((i) => {
     const matchesSearch =
@@ -49,8 +142,9 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
       i.message.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || i.status === statusFilter;
+    const matchesProject = projectFilter === 'all' || getInquiryProject(i).id === projectFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesProject;
   });
 
   const handleUpdateStatus = (id: string, newStatus: AdminInquiry['status']) => {
@@ -75,15 +169,26 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
     onShowToast('Inquiry reply state updated.');
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to permanently delete this lead inquiry?')) {
-      const updated = inquiries.filter((i) => i.id !== id);
-      onUpdateInquiries(updated);
-      if (selectedInquiry?.id === id) {
-        setSelectedInquiry(null);
-      }
-      onShowToast('Inquiry deleted successfully.');
+  const handleExecuteDelete = async () => {
+    if (!inquiryToDelete) return;
+    const target = inquiryToDelete;
+    const updated = inquiries.filter((i) => i.id !== target.id);
+    onUpdateInquiries(updated);
+
+    if (selectedInquiry?.id === target.id) {
+      setSelectedInquiry(null);
     }
+    setInquiryToDelete(null);
+
+    if (onDeleteInquiry) {
+      try {
+        await onDeleteInquiry(target.id);
+      } catch (err) {
+        console.warn('Delete inquiry error:', err);
+      }
+    }
+
+    onShowToast(`Inquiry from "${target.name}" deleted successfully.`);
   };
 
   return (
@@ -100,25 +205,27 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          {onAddTestInquiry && (
-            <button
-              type="button"
-              onClick={onAddTestInquiry}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Simulate Lead</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleCreateTestLead}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all cursor-pointer"
+            title="Inject a verified test client inquiry to test inbox processing"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add Test Inquiry</span>
+            <span className="sm:hidden">Test</span>
+          </button>
 
           {onRefresh && (
             <button
               type="button"
-              onClick={onRefresh}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all cursor-pointer"
+              disabled={isRefreshing}
+              onClick={handleRefreshClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-60 transition-all cursor-pointer"
+              title="Synchronize latest inquiries from backend and local cache"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-500' : ''}`} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           )}
         </div>
@@ -177,12 +284,25 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-neutral-400 shrink-0" />
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="w-full sm:w-36 px-2.5 py-2 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            title="Filter inquiries by tagged project"
+          >
+            <option value="all">All Projects</option>
+            <option value="agritech">Agritech</option>
+            <option value="calcpro">CalcPro</option>
+            <option value="shabdhabhandar">Shabdhabhandar</option>
+            <option value="acadflow">AcadFlow</option>
+            <option value="general">General</option>
+          </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="w-full sm:w-44 px-3 py-2 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            className="w-full sm:w-40 px-3 py-2 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
           >
             <option value="all">All Inquiries ({totalLeads})</option>
             <option value="New">New ({inquiries.filter((i) => i.status === 'New').length})</option>
@@ -264,6 +384,16 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
                         {inq.budgetRange}
                         {inq.timeline ? ` · ${inq.timeline}` : ''}
                       </div>
+                      {(() => {
+                        const inqProj = getInquiryProject(inq);
+                        return (
+                          <div className="mt-1">
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${inqProj.color}`}>
+                              {inqProj.name}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td className="px-4 py-3.5 text-neutral-500 whitespace-nowrap text-[11px]">
@@ -313,7 +443,7 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(inq.id)}
+                          onClick={() => setInquiryToDelete(inq)}
                           className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                           title="Delete inquiry"
                         >
@@ -336,7 +466,52 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
           onClose={() => setSelectedInquiry(null)}
           onUpdateStatus={handleUpdateStatus}
           onToggleReplied={handleToggleReplied}
+          onDelete={(id) => {
+            const target = inquiries.find((i) => i.id === id);
+            if (target) setInquiryToDelete(target);
+          }}
         />
+      )}
+
+      {/* Delete Confirmation In-App Modal */}
+      {inquiryToDelete && (
+        <div className="fixed inset-0 z-50 bg-neutral-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
+                Delete Client Inquiry?
+              </h3>
+            </div>
+
+            <p className="text-xs text-neutral-600 dark:text-neutral-300">
+              Are you sure you want to permanently delete the inquiry from{' '}
+              <strong className="text-neutral-900 dark:text-white font-semibold">
+                "{inquiryToDelete.name}"
+              </strong>{' '}
+              ({inquiryToDelete.email})? This action cannot be undone.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-neutral-100 dark:border-neutral-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setInquiryToDelete(null)}
+                className="px-3.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 font-medium cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDelete}
+                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold cursor-pointer"
+              >
+                Yes, Permanently Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

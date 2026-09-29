@@ -4,6 +4,7 @@ export type AdminTab =
   | 'skills'
   | 'experience'
   | 'about'
+  | 'resume'
   | 'inquiries'
   | 'socials'
   | 'settings'
@@ -18,6 +19,64 @@ export type AdminTab =
   | 'logo-management'
   | 'company-identity'
   | 'social-media';
+
+export type ResumeTemplateStyle = 'executive' | 'modern-tech' | 'minimalist' | 'compact';
+export type ResumeFontFamily = 'sans' | 'serif' | 'mono';
+export type ResumeAccentColor = 'slate' | 'navy' | 'indigo' | 'emerald' | 'burgundy';
+export type ResumeSpacingDensity = 'compact' | 'standard' | 'relaxed';
+export type ResumePaperFormat = 'a4' | 'letter';
+export type ResumePageLayout = 'single-page' | 'two-page' | 'continuous';
+
+export interface ResumeCustomization {
+  templateStyle?: ResumeTemplateStyle;
+  fontFamily?: ResumeFontFamily;
+  accentColor?: ResumeAccentColor;
+  spacingDensity?: ResumeSpacingDensity;
+  paperFormat?: ResumePaperFormat;
+  pageLayout?: ResumePageLayout;
+  sheetViewMode?: 'stacked' | 'spread' | 'page-1' | 'page-2';
+  showMarginGuides?: boolean;
+  page1SectionIds?: string[];
+  page2SectionIds?: string[];
+  fontSize?: 'small' | 'medium' | 'large';
+  showBorders?: boolean;
+  uppercaseHeadings?: boolean;
+  headerAlignment?: 'center' | 'left';
+  hiddenSectionIds?: string[];
+  targetJobDescription?: string;
+}
+
+export interface ResumeItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  location?: string;
+  period?: string;
+  description?: string;
+  bullets?: string[];
+  link?: string;
+  badge?: string;
+  hidden?: boolean;
+}
+
+export interface ResumeSection {
+  id: string;
+  title: string;
+  category: 'experience' | 'education' | 'certifications' | 'skills' | 'projects' | 'custom';
+  description?: string;
+  items: ResumeItem[];
+  hidden?: boolean;
+}
+
+export interface ResumeData {
+  resumeUrl: string;
+  fileName: string;
+  versionTag: string;
+  targetHeadline: string;
+  summaryText: string;
+  sections: ResumeSection[];
+  customization?: ResumeCustomization;
+}
 
 export interface AdminProject {
   id: string;
@@ -91,6 +150,9 @@ export interface AdminInquiry {
   status: 'New' | 'In Progress' | 'Closed' | 'Won';
   read: boolean;
   replied: boolean;
+  projectId?: string;
+  projectTitle?: string;
+  projectTag?: string;
 }
 
 export interface HomepageContentState {

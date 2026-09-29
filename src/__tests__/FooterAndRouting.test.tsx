@@ -13,8 +13,10 @@ describe('Enterprise Footer UI/UX', () => {
     const domainElements = screen.getAllByText(/manojkc1\.com\.np/i);
     expect(domainElements.length).toBeGreaterThan(0);
 
-    // Systems operational telemetry
-    expect(screen.getByText(/All APIs Operational/i)).toBeInTheDocument();
+    // Systems availability & location telemetry
+    expect(screen.getByText(/Available for remote work/i)).toBeInTheDocument();
+    expect(screen.getByText(/Location Nepal/i)).toBeInTheDocument();
+    expect(screen.queryByText(/All APIs Operational/i)).toBeNull();
 
     // Technical stack details
     expect(screen.getByText(/Python 3\.12 & Django 5\.x/i)).toBeInTheDocument();

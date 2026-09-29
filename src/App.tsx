@@ -30,6 +30,21 @@ const NotFound = React.lazy(() =>
 const AdminPortal = React.lazy(() =>
   import('./pages/AdminPortal').then((m) => ({ default: m.AdminPortal }))
 );
+const ResumePublicPage = React.lazy(() =>
+  import('./pages/ResumePublicPage').then((m) => ({ default: m.ResumePublicPage }))
+);
+const ProjectCaseStudyPage = React.lazy(() =>
+  import('./pages/ProjectCaseStudyPage').then((m) => ({ default: m.ProjectCaseStudyPage }))
+);
+const UsesPage = React.lazy(() =>
+  import('./pages/UsesPage').then((m) => ({ default: m.UsesPage }))
+);
+const WritingPage = React.lazy(() =>
+  import('./pages/WritingPage').then((m) => ({ default: m.WritingPage }))
+);
+const WritingPostPage = React.lazy(() =>
+  import('./pages/WritingPostPage').then((m) => ({ default: m.WritingPostPage }))
+);
 
 const SectionSkeleton: React.FC = () => (
   <div className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-hidden="true">
@@ -48,10 +63,20 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
 
+  // Normalize path: lowercase, strip trailing slash
+  const normalizedPath = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  // Secret Admin Portal Aliases and dedicated administrative paths
+  const adminAliases = [
+    '/mk-zadmin-cc',
+    '/mkc-zadmin-cc',
+    '/lc-zadmin-cc',
+    '/admin',
+    '/admin/resume',
+  ];
   const isAdminRoute =
-    location.pathname === '/admin' ||
-    location.pathname === '/mkc-zadmin-cc' ||
-    location.pathname === '/lc-zadmin-cc';
+    adminAliases.includes(normalizedPath) ||
+    normalizedPath.startsWith('/admin') ||
+    normalizedPath.startsWith('/mk-zadmin-cc');
 
   // Analytics on mount and path change
   useEffect(() => {
@@ -62,14 +87,22 @@ const AppContent: React.FC = () => {
     track('page_view', { path: location.pathname });
   }, [location.pathname]);
 
+  // Global Admin Access Shortcut: Ctrl+Shift+A or Cmd+Shift+A
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        navigate('/mk-zadmin-cc');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+
   if (isAdminRoute) {
     return (
       <Suspense fallback={<SectionSkeleton />}>
-        <Routes>
-          <Route path="/admin" element={<AdminPortal onBackToHome={() => navigate('/')} />} />
-          <Route path="/mkc-zadmin-cc" element={<AdminPortal onBackToHome={() => navigate('/')} />} />
-          <Route path="/lc-zadmin-cc" element={<AdminPortal onBackToHome={() => navigate('/')} />} />
-        </Routes>
+        <AdminPortal onBackToHome={() => navigate('/')} />
       </Suspense>
     );
   }
@@ -105,8 +138,14 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:slug" element={<ProjectCaseStudyPage />} />
           <Route path="/skills" element={<SkillsPage />} />
           <Route path="/experience" element={<ExperiencePage />} />
+          <Route path="/uses" element={<UsesPage />} />
+          <Route path="/writing" element={<WritingPage />} />
+          <Route path="/writing/:slug" element={<WritingPostPage />} />
+          <Route path="/resume" element={<ResumePublicPage type="resume" />} />
+          <Route path="/cv" element={<ResumePublicPage type="cv" />} />
           <Route path="*" element={<NotFound onBackToHome={() => navigate('/')} />} />
         </Routes>
       </Suspense>

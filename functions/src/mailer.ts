@@ -31,7 +31,9 @@ export async function sendContactEmail(data: SanitizedContactData): Promise<void
 
   const recipientEmail = 'manojkc1@gmail.com';
   const senderEmail = 'portfolio@manojkc1.com.np';
-  const subject = `New portfolio message from ${data.name}`;
+  const subject = data.projectId
+    ? `[Portfolio] New message about ${data.projectTitle || data.projectId}`
+    : `New portfolio message from ${data.name}`;
 
   const submissionDate = new Date().toUTCString();
 

@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ExternalLink, Github, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Github, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Project } from '../types';
 import { track } from '../lib/analytics';
+import { ProofBadges } from './projects/ProofBadges';
 
 interface ProjectCardProps {
   project: Project;
@@ -15,6 +17,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onOpenDetails,
   index = 0,
 }) => {
+  const hasCaseStudy = Boolean(
+    project.problem ||
+    project.solution ||
+    (project.proof && project.proof.length > 0) ||
+    project.architecture
+  );
+
   return (
     <motion.article
       id={`project-card-${project.id}`}
@@ -42,6 +51,23 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.02]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-neutral-950/20 to-transparent" />
+
+        {/* Optional status pill (top-right) */}
+        {project.status && (
+          <div className="absolute top-3 right-3 z-10">
+            <span
+              className={`px-2.5 py-0.5 text-[10px] font-mono font-semibold rounded-full uppercase tracking-wider backdrop-blur-md shadow-xs ${
+                project.status === 'live'
+                  ? 'bg-emerald-500/90 text-white'
+                  : project.status === 'ongoing'
+                  ? 'bg-amber-500/90 text-white'
+                  : 'bg-neutral-700/90 text-neutral-200'
+              }`}
+            >
+              {project.status}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Card Body */}
@@ -61,6 +87,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           <p className="mt-2.5 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
             {project.description}
           </p>
+
+          {/* Optional Metrics Row (top 3 only) */}
+          {project.metrics && project.metrics.length > 0 && (
+            <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 gap-2 py-2 px-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/60 dark:border-neutral-800/60">
+              {project.metrics.slice(0, 3).map((metric, mIdx) => (
+                <div key={mIdx} className="flex flex-col min-w-0">
+                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono uppercase tracking-wider truncate">
+                    {metric.label}
+                  </span>
+                  <span className="text-xs font-bold text-neutral-900 dark:text-white truncate">
+                    {metric.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Highlights List */}
           {project.highlights && project.highlights.length > 0 && (
@@ -83,10 +125,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
         </div>
 
-        {/* Bottom Section: Tech chips wrap + action links */}
+        {/* Bottom Section: Tech chips wrap + ProofBadges + action links */}
         <div className="mt-5 pt-4 border-t border-neutral-100 dark:border-neutral-800">
           {/* Tech Chips Wrap at Bottom */}
-          <div className="flex flex-wrap gap-1.5 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {project.tech.map((t) => (
               <span
                 key={t}
@@ -97,19 +139,37 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             ))}
           </div>
 
+          {/* Proof Badges below tech chips */}
+          {project.proof && project.proof.length > 0 && (
+            <div className="mb-4">
+              <ProofBadges proof={project.proof} size="sm" />
+            </div>
+          )}
+
           {/* Action Links with keyboard accessibility & rel="noopener noreferrer" */}
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800/50">
-            {onOpenDetails ? (
-              <button
-                type="button"
-                onClick={() => onOpenDetails(project)}
-                className="text-xs font-semibold text-neutral-500 hover:text-indigo-600 dark:text-neutral-400 dark:hover:text-indigo-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded px-1"
-              >
-                Details
-              </button>
-            ) : (
-              <div />
-            )}
+            <div className="flex items-center gap-2">
+              {hasCaseStudy && (
+                <Link
+                  to={`/projects/${project.id}`}
+                  onClick={() => track('project_case_study_click', { projectId: project.id })}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded px-1"
+                >
+                  <span>Read Case Study</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              )}
+
+              {onOpenDetails && (
+                <button
+                  type="button"
+                  onClick={() => onOpenDetails(project)}
+                  className="text-xs font-semibold text-neutral-500 hover:text-indigo-600 dark:text-neutral-400 dark:hover:text-indigo-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded px-1"
+                >
+                  Quick View
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2 ml-auto">
               {project.links.github && (

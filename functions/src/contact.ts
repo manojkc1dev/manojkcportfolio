@@ -74,7 +74,7 @@ export const contact = onRequest(
 
       // 5. Persist inquiry to Firestore messages collection for portfolio admin portal
       try {
-        await admin.firestore().collection('messages').add({
+        const msgDoc: Record<string, unknown> = {
           name: validation.data.name,
           email: validation.data.email,
           message: validation.data.message,
@@ -82,7 +82,19 @@ export const contact = onRequest(
           replied: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           source: 'portfolio_contact',
-        });
+        };
+
+        if (validation.data.projectId) {
+          msgDoc.projectId = validation.data.projectId;
+        }
+        if (validation.data.projectTitle) {
+          msgDoc.projectTitle = validation.data.projectTitle;
+        }
+        if (validation.data.sourcePage) {
+          msgDoc.sourcePage = validation.data.sourcePage;
+        }
+
+        await admin.firestore().collection('messages').add(msgDoc);
         logger.info('Saved contact inquiry to Firestore messages collection');
       } catch (dbErr) {
         logger.warn('Could not save contact message to Firestore', { error: dbErr });

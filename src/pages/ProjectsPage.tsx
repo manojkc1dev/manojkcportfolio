@@ -10,6 +10,7 @@ import { Chip } from '../components/ui/Chip';
 import { SearchInput } from '../components/ui/SearchInput';
 import { LoadMoreButton } from '../components/ui/LoadMoreButton';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AuthorBio } from '../components/ui/AuthorBio';
 import { Seo } from '../components/Seo';
 import type { Project } from '../types';
 import { track } from '../lib/analytics';
@@ -204,29 +205,53 @@ export const ProjectsPage: React.FC = () => {
     }
   }, [visibleProjects.length, prevCount]);
 
-  // JSON-LD structured data for SEO
+  // JSON-LD structured data for SEO (Phase 3.2 & 3.3)
   const jsonLd = useMemo(() => ({
     '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: 'Projects by Manoj K.C.',
-    description: 'Production web applications, REST APIs, and backend architectures built by Manoj K.C.',
-    numberOfItems: filteredProjects.length,
-    itemListElement: filteredProjects.map((p, idx) => ({
-      '@type': 'SoftwareApplication',
-      position: idx + 1,
-      name: p.title,
-      description: p.description,
-      applicationCategory: p.category || 'BusinessApplication',
-      operatingSystem: 'Web, Linux',
-      url: p.links.live || p.links.github,
-    })),
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': 'https://manojkc1.com.np/projects#webpage',
+        url: 'https://manojkc1.com.np/projects',
+        name: 'Projects | Manoj K.C. - Django REST APIs, PostgreSQL',
+        description:
+          'Explore production backend systems, REST APIs, and fullstack applications built with Python, Django, DRF, and PostgreSQL by Manoj K.C.',
+        isPartOf: { '@id': 'https://manojkc1.com.np/#website' },
+        author: { '@id': 'https://manojkc1.com.np/#person' },
+      },
+      {
+        '@type': 'ItemList',
+        name: 'Backend Projects by Manoj K.C.',
+        description: 'Production web applications, REST APIs, and backend architectures built by Manoj K.C.',
+        numberOfItems: filteredProjects.length,
+        itemListElement: filteredProjects.map((p, idx) => ({
+          '@type': 'SoftwareApplication',
+          position: idx + 1,
+          name: p.title,
+          description: p.description,
+          applicationCategory: p.category || 'BusinessApplication',
+          operatingSystem: 'Web, Linux',
+          url: p.links.live || p.links.github || `https://manojkc1.com.np/projects#${p.id}`,
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+          author: {
+            '@type': 'Person',
+            '@id': 'https://manojkc1.com.np/#person',
+            name: 'Manoj K.C.',
+          },
+        })),
+      },
+    ],
   }), [filteredProjects]);
 
   return (
     <div className="min-h-screen pb-24">
       <Seo
-        title="Projects | Manoj K.C. — Backend Software Engineer"
-        description="Explore production backend systems, REST APIs, and fullstack applications built with Python, Django, DRF, and PostgreSQL."
+        title="Projects | Manoj K.C. - Django REST APIs, PostgreSQL"
+        description="Explore production backend systems, REST APIs, and fullstack applications built with Python, Django, DRF, and PostgreSQL by Manoj K.C."
         canonical="https://manojkc1.com.np/projects"
         jsonLd={jsonLd}
       />
@@ -247,7 +272,7 @@ export const ProjectsPage: React.FC = () => {
       {/* Header */}
       <PageHeader
         eyebrow="Portfolio"
-        title="All Projects"
+        title="Backend Projects by Manoj K.C."
         subtitle={`${allProjects.length} backend systems, REST APIs, and fullstack applications shipped or in active development.`}
         meta="Updated September 2026 · Python / Django / DRF / PostgreSQL"
       />
@@ -389,6 +414,9 @@ export const ProjectsPage: React.FC = () => {
             You've seen all {filteredProjects.length} projects.
           </div>
         )}
+
+        {/* E-E-A-T Author Authority and Freshness */}
+        <AuthorBio lastUpdated="September 2026" />
       </main>
 
       {/* Deep-Dive Details Modal */}

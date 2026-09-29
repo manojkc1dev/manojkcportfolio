@@ -6,14 +6,23 @@ import {
   Sparkles,
   Bot,
   User,
-  ArrowRight,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  ArrowRight,
   ExternalLink,
   Phone,
   Mail,
   ShieldCheck,
-  CheckCircle2,
+  Zap,
+  Layers,
+  CreditCard,
+  Briefcase,
+  Database,
+  Lock,
 } from 'lucide-react';
+import { soundFx } from '../lib/soundFx';
+import { useTheme } from '../context/ThemeContext';
 
 interface ChatMessage {
   id: string;
@@ -29,6 +38,7 @@ interface ChatMessage {
 
 interface KnowledgeTopic {
   id: string;
+  category: 'tech' | 'database' | 'payments' | 'hiring' | 'projects' | 'security';
   keywords: string[];
   patterns: RegExp[];
   answer: string;
@@ -43,170 +53,136 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
   // 1. GREETINGS & INTRO
   {
     id: 'greeting',
-    keywords: ['hi', 'hello', 'hey', 'namaste', 'morning', 'afternoon', 'evening', 'sup', 'yo'],
+    category: 'tech',
+    keywords: ['hi', 'hello', 'hey', 'namaste', 'morning', 'afternoon', 'evening', 'sup', 'yo', 'start'],
     patterns: [/\b(hi|hello|hey|namaste|greetings)\b/i],
     answer:
-      "Namaste! 🙏 I'm Manoj's Assistant. I can answer questions about his software engineering services, tech stack, past projects, pricing, or how to get in touch. How can I help you today?",
+      "Namaste! 🙏 I'm Manoj's Technical Portfolio Assistant.\n\nI can provide deep technical insights into Manoj's backend architectures, PostgreSQL performance benchmarks, payment integrations, or availability for freelance and full-time engineering.\n\nSelect a topic below or type any technical question:",
     suggestedActions: [
-      { label: '🛠️ What services do you offer?', actionType: 'query', target: 'What services do you offer?' },
-      { label: '💻 What is your tech stack?', actionType: 'query', target: 'What is your tech stack?' },
-      { label: '💰 How much does a project cost?', actionType: 'query', target: 'What are your rates and pricing?' },
-    ],
-  },
-  {
-    id: 'who_is_manoj',
-    keywords: ['who', 'manoj', 'about', 'background', 'bio', 'engineer', 'developer', 'profile'],
-    patterns: [/who\s+is\s+manoj/i, /tell\s+me\s+about\s+(him|manoj|yourself)/i, /background/i],
-    answer:
-      "Manoj K.C. is a dedicated Backend Software Engineer based in Kathmandu, Nepal. He specializes in Python, Django REST Framework, PostgreSQL, and modern React/TypeScript. He has built enterprise ERP platforms, high-throughput payment webhook engines, and scalable SaaS backends.",
-    suggestedActions: [
-      { label: '📂 View Portfolio Projects', actionType: 'link', target: '#projects' },
-      { label: '📞 Contact Details', actionType: 'query', target: 'How can I contact Manoj?' },
+      { label: '🛠️ Backend Specialization', actionType: 'query', target: 'What backend technologies does Manoj specialize in?' },
+      { label: '⚡ PostgreSQL Optimization', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '💳 Payment Gateways & Idempotency', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '💼 Rates & Remote Availability', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
     ],
   },
 
-  // 2. TECH STACK & SKILLS
+  // 2. TECH STACK & BACKEND SPECIALIZATION (FAQ 1)
   {
     id: 'tech_stack',
-    keywords: ['tech', 'stack', 'technology', 'technologies', 'skills', 'languages', 'python', 'django', 'react', 'postgres', 'database', 'tools'],
-    patterns: [/tech\s*stack/i, /technolog(y|ies)/i, /what\s+tools/i, /skills/i, /programming\s+language/i],
+    category: 'tech',
+    keywords: ['tech', 'stack', 'technology', 'skills', 'languages', 'python', 'django', 'drf', 'fastapi', 'rest', 'api', 'tools'],
+    patterns: [/what\s+(backend\s+)?technolog(y|ies)/i, /tech\s*stack/i, /skills/i, /what\s+tools/i],
     answer:
-      "Manoj's core technical expertise includes:\n\n• Backend: Python, Django, Django REST Framework (DRF), FastAPI, Node.js\n• Databases & Cache: PostgreSQL, MySQL, Redis, Celery background queues\n• Frontend: React, TypeScript, Next.js, Tailwind CSS\n• Integrations: Khalti, eSewa, Stripe, ConnectIPS\n• DevOps & Cloud: Docker, Linux server hardening, Nginx, Git, CI/CD",
+      "Manoj's core backend engineering stack:\n\n• Core Languages: Python 3.12, TypeScript, SQL\n• Frameworks: Django 5.x, Django REST Framework (DRF), FastAPI\n• Databases: PostgreSQL (advanced relational schema design, indexing), MySQL\n• Asynchronous & Caching: Redis (in-memory caching, distributed locks), Celery (task queues, scheduled cron workers)\n• Authentication & Security: JWT, OAuth2, granular RBAC, CORS/CSRF hardening\n• DevOps & Infrastructure: Docker, Docker Compose, Linux system administration, Nginx reverse proxy, GitHub Actions CI/CD",
     suggestedActions: [
-      { label: '🛠️ View Detailed Skills', actionType: 'link', target: '#skills' },
-      { label: '📂 See Projects Using Django', actionType: 'query', target: 'Tell me about projects built with Django' },
+      { label: '🛠️ View Detailed Skills Matrix', actionType: 'link', target: '#skills' },
+      { label: '⚡ PostgreSQL Query Tuning', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '📂 View Production Projects', actionType: 'link', target: '#projects' },
     ],
   },
 
-  // 3. SERVICES & OFFERINGS
+  // 3. DATABASE OPTIMIZATION & POSTGRESQL TUNING (FAQ 4)
   {
-    id: 'services',
-    keywords: ['service', 'services', 'offer', 'offerings', 'build', 'what can you do', 'solutions', 'erp', 'api', 'web development'],
-    patterns: [/what\s+(services|can\s+you\s+do|do\s+you\s+offer)/i, /services/i, /solutions/i],
+    id: 'database_optimization',
+    category: 'database',
+    keywords: ['database', 'postgres', 'postgresql', 'optimize', 'optimization', 'performance', 'query', 'slow', 'n+1', 'indexes', 'explain', 'analyze'],
+    patterns: [/optimize\s+(database|postgres|query|performance)/i, /n\+1/i, /indexing/i, /slow\s+queries/i],
     answer:
-      "Key engineering services provided:\n\n1. Enterprise ERP & Business Management Systems (multi-branch stock sync, VAT compliance, ledgers)\n2. Custom Web Application Development (fast, responsive React & Next.js apps)\n3. High-Throughput RESTful APIs & Microservices\n4. Payment Gateway Integrations (Khalti, eSewa, ConnectIPS, Stripe)\n5. Database Design & Query Optimization (PostgreSQL tuning)\n6. Cloud DevOps & Production Docker deployments",
+      "Manoj systematically resolves database bottlenecks through a 4-pillar methodology:\n\n1. Execution Plan Profiling: Auditing queries with PostgreSQL `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` to identify sequential table scans and memory spills.\n2. Eliminating N+1 ORM Traps: Enforcing `select_related` for ForeignKeys/OneToOne and `prefetch_related` with `Prefetch()` objects for ManyToMany/reverse relationships.\n3. Strategic B-Tree & Partial Indexing: Creating composite indexes tailored to high-cardinality filters (`WHERE tenant_id = ? AND status = ?`) and partial indexes for active records.\n4. Redis Query Caching: Storing serialized querysets for hot, high-read endpoints with transaction-safe cache invalidation signals.\n\nVerified Outcome: ~30% latency reduction across high-traffic inventory and transaction endpoints.",
     suggestedActions: [
-      { label: '💰 Inquire About Pricing', actionType: 'query', target: 'What are your rates and pricing?' },
-      { label: '📩 Start a Project', actionType: 'link', target: '#contact' },
+      { label: '📂 Inspect Retail ERP Architecture', actionType: 'link', target: '#projects' },
+      { label: '💳 Payment Webhook Pipelines', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '💬 Book Architecture Audit', actionType: 'link', target: '#contact' },
     ],
   },
 
-  // 4. ERP & BUSINESS MANAGEMENT SYSTEMS
-  {
-    id: 'erp_systems',
-    keywords: ['erp', 'inventory', 'warehouse', 'pos', 'billing', 'vat', 'accounting', 'ledger', 'stock'],
-    patterns: [/erp/i, /inventory/i, /accounting/i, /billing/i, /pos/i],
-    answer:
-      "Yes! Manoj has deep hands-on experience engineering custom Enterprise ERP solutions. His implementations feature multi-warehouse inventory tracking, real-time stock sync, double-entry ledgers, automated VAT invoicing, and role-based staff permissions. He built the Himalayan Retail Group ERP platform handling 50,000+ daily SKU movements.",
-    suggestedActions: [
-      { label: '📂 View ERP Case Study', actionType: 'link', target: '#projects' },
-      { label: '💬 Discuss Custom ERP', actionType: 'link', target: 'https://wa.me/9779842203976' },
-    ],
-  },
-
-  // 5. PROJECTS & PORTFOLIO
-  {
-    id: 'projects',
-    keywords: ['project', 'projects', 'portfolio', 'work', 'case study', 'built', 'examples', 'showcase'],
-    patterns: [/what\s+projects/i, /portfolio/i, /past\s+work/i, /case\s+stud(y|ies)/i],
-    answer:
-      "Featured production systems engineered by Manoj:\n\n• Enterprise ERP & Inventory Platform (Retail supply chain with offline sync)\n• FinTech Payment Settlement Engine (Automated escrow & dual webhook verification)\n• Omnichannel E-Commerce Platform (Headless storefront with high conversion)\n• Hospitality Resort Booking Portal (Direct commission-free booking engine)\n• Smart City Waste Management Dispatch (GIS spatial fleet optimization)\n• Telemedicine & EHR Suite (Encrypted clinical records & WebRTC)",
-    suggestedActions: [
-      { label: '📂 Explore Projects Section', actionType: 'link', target: '#projects' },
-      { label: '🔗 Visit GitHub Profile', actionType: 'link', target: 'https://github.com/manojkc1dev/' },
-    ],
-  },
-
-  // 6. PRICING, RATES & BUDGET
-  {
-    id: 'pricing',
-    keywords: ['price', 'pricing', 'cost', 'rate', 'rates', 'budget', 'quote', 'quotation', 'how much', 'fee', 'charge', 'expensive', 'npr', 'usd', 'dollars'],
-    patterns: [/how\s+much/i, /cost/i, /pric(e|ing)/i, /budget/i, /rates?/i, /quote/i],
-    answer:
-      "Pricing is transparent and based on project scope and technical complexity:\n\n• Rapid Prototype / MVP: NPR 50,000 – 100,000 (~US$380 – $750) [1-2 weeks]\n• Full Custom Web App: NPR 100,000 – 200,000 (~US$750 – $1,500) [3-4 weeks]\n• Multi-Module Enterprise ERP: NPR 200,000 – 400,000+ (~US$1,500 – $3,000+) [2-3 months]\n\nEvery project includes clean source code ownership, production deployment, and post-launch support.",
-    suggestedActions: [
-      { label: '📋 Request a Custom Quote', actionType: 'link', target: '#contact' },
-      { label: '💬 Chat on WhatsApp', actionType: 'link', target: 'https://wa.me/9779842203976' },
-    ],
-  },
-
-  // 7. TIMELINE & TURNAROUND
-  {
-    id: 'timeline',
-    keywords: ['timeline', 'time', 'how long', 'duration', 'weeks', 'months', 'deadline', 'fast', 'delivery'],
-    patterns: [/how\s+long/i, /timeline/i, /duration/i, /when\s+can\s+you\s+deliver/i],
-    answer:
-      "Typical delivery timelines:\n\n• Small tools / API modules: 1 to 2 weeks\n• MVP & standard web applications: 3 to 4 weeks\n• Comprehensive enterprise platforms / ERP: 2 to 3 months\n\nAll builds follow structured agile sprints with regular staging reviews and updates.",
-    suggestedActions: [
-      { label: '📅 Discuss Your Timeline', actionType: 'link', target: '#contact' },
-    ],
-  },
-
-  // 8. CONTACT & GETTING IN TOUCH
-  {
-    id: 'contact',
-    keywords: ['contact', 'reach', 'email', 'phone', 'whatsapp', 'call', 'talk', 'hire', 'get in touch', 'message', 'address', 'location', 'where'],
-    patterns: [/how\s+to\s+contact/i, /reach\s+(him|you)/i, /phone/i, /email/i, /whatsapp/i, /location/i, /where\s+are\s+you/i],
-    answer:
-      "You can connect directly with Manoj via any of these channels:\n\n• WhatsApp / Phone: +977 9842203976\n• Official Email: manojkc1dev@gmail.com\n• Location: Kathmandu, Nepal (Serving clients locally & internationally)\n• Working Hours: Sunday – Friday, 9:00 AM – 6:00 PM NPT (UTC+5:45)",
-    suggestedActions: [
-      { label: '💬 Direct WhatsApp Chat', actionType: 'link', target: 'https://wa.me/9779842203976' },
-      { label: '✉️ Send Email', actionType: 'link', target: 'mailto:manojkc1dev@gmail.com' },
-      { label: '📝 Fill Contact Form', actionType: 'link', target: '#contact' },
-    ],
-  },
-
-  // 9. HIRING / AVAILABILITY
-  {
-    id: 'hiring',
-    keywords: ['hire', 'available', 'availability', 'freelance', 'fulltime', 'remote', 'job', 'contract', 'junior', 'developer'],
-    patterns: [/are\s+you\s+available/i, /hire\s+you/i, /freelance/i, /job\s+opportunity/i, /remote/i],
-    answer:
-      "Yes! Manoj is currently open to:\n\n1. Freelance & contract software development projects\n2. Junior to mid-level Backend Software Engineer roles (Remote or Kathmandu-based)\n3. Technical consultations and database/code performance audits.\n\nHe responds to inquiries promptly, usually within a few hours.",
-    suggestedActions: [
-      { label: '✉️ Discuss Opportunity', actionType: 'link', target: 'mailto:manojkc1dev@gmail.com' },
-      { label: '🔗 Connect on LinkedIn', actionType: 'link', target: 'https://linkedin.com/in/manojkc1dev/' },
-    ],
-  },
-
-  // 10. PAYMENT INTEGRATIONS (KHALTI, ESEWA, STRIPE)
+  // 4. PAYMENT INTEGRATIONS & FINTECH IDEMPOTENCY (FAQ 3)
   {
     id: 'payments',
-    keywords: ['khalti', 'esewa', 'connectips', 'stripe', 'payment', 'gateway', 'checkout', 'webhook'],
-    patterns: [/payment\s+gateway/i, /khalti/i, /esewa/i, /connectips/i, /stripe/i],
+    category: 'payments',
+    keywords: ['payment', 'gateway', 'khalti', 'esewa', 'connectips', 'stripe', 'checkout', 'webhook', 'idempotency', 'fintech'],
+    patterns: [/what\s+payment\s+gateways/i, /payment\s+gateway/i, /khalti/i, /esewa/i, /stripe/i, /webhook/i],
     answer:
-      "Manoj has extensive experience with payment architectures. He integrates Khalti, eSewa, ConnectIPS, and Stripe with idempotent webhook handling, duplicate payment prevention, HMAC signature validation, and real-time transaction reconciliation.",
+      "Manoj has engineered production payment integrations with local and international gateways:\n\n• Khalti API v2: Server-to-server token verification with automated transaction state confirmation.\n• eSewa EPAY v2: HMAC-SHA256 request signature verification and automated status reconciliation.\n• Stripe: PaymentIntents API, asynchronous webhook event subscriptions, and customer portal sync.\n\nEnterprise Reliability Protections:\n✓ Unique Idempotency Keys: Enforced at database constraint level to prevent double-charging on network retries.\n✓ Signature Verification: Cryptographic verification of all incoming webhook payloads before processing.\n✓ Dead-Letter Queue (DLQ): Failed webhook events are persisted for automated exponential-backoff replay.\n✓ Two-Phase Ledger Reconciliation: Audit trails matching gateway settlement records against internal order states.",
     suggestedActions: [
-      { label: '📂 View Payment Engine Project', actionType: 'link', target: '#projects' },
-      { label: '💬 Inquire About Integration', actionType: 'link', target: '#contact' },
+      { label: '📂 View FinTech Settlement Case Study', actionType: 'link', target: '#projects' },
+      { label: '💬 Inquire About Custom Payment Engine', actionType: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '💼 Rates & Timelines', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
     ],
   },
 
-  // 11. SECURITY & CODE QUALITY
+  // 5. RATES, TIMELINES & FREELANCE AVAILABILITY (FAQ 2)
+  {
+    id: 'rates_hiring',
+    category: 'hiring',
+    keywords: ['rate', 'rates', 'pricing', 'price', 'cost', 'hire', 'hiring', 'available', 'availability', 'freelance', 'remote', 'budget', 'quote'],
+    patterns: [/rate/i, /price/i, /pricing/i, /how\s+much/i, /is\s+manoj\s+available/i, /freelance/i, /remote/i, /hire/i],
+    answer:
+      "Manoj is actively available for remote freelance contracts, dedicated backend engineering, and technical consulting:\n\n• Availability: Immediate (Remote worldwide or on-site in Kathmandu)\n• Collaboration Hours: Sunday – Friday, 9:00 AM – 6:00 PM NPT (UTC+5:45), with regular overlap for North American & European time zones.\n\nTransparent Pricing Guidelines:\n• Small Modules / REST API Integrations: NPR 50,000 – 100,000 (~US$380 – $750) [1-2 weeks]\n• Full-Stack / Custom Web Applications: NPR 100,000 – 200,000 (~US$750 – $1,500) [3-4 weeks]\n• Multi-Module Enterprise ERP / FinTech Platforms: NPR 200,000 – 400,000+ (~US$1,500 – $3,000+) [2-3 months]\n\nEvery project includes clean source code, Docker configs, documentation, and post-launch maintenance.",
+    suggestedActions: [
+      { label: '💬 Direct WhatsApp Message', actionType: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '✉️ Send Email Inquiry', actionType: 'link', target: 'mailto:manojkc1dev@gmail.com' },
+      { label: '📝 Fill Project Request Form', actionType: 'link', target: '#contact' },
+    ],
+  },
+
+  // 6. ENTERPRISE ERP & MULTI-BRANCH INVENTORY CASE STUDY
+  {
+    id: 'erp_case_study',
+    category: 'projects',
+    keywords: ['erp', 'inventory', 'warehouse', 'pos', 'case study', 'himalayan', 'retail', 'billing', 'vat'],
+    patterns: [/erp/i, /inventory/i, /pos/i, /case\s+study/i, /retail/i],
+    answer:
+      "Manoj engineered the core backend for the Himalayan Retail Group Enterprise ERP:\n\n• Challenge: Synchronizing high-volume stock movements across 5 distribution warehouses and 12 retail POS branches.\n• Solution: Designed a distributed Django/PostgreSQL architecture with Celery workers for offline-first queue synchronization, double-entry financial ledgers, and automated VAT invoicing compliant with Inland Revenue Department regulations.\n• Scale: Handles 50,000+ SKU movements daily with zero stock drift and sub-80ms transaction confirmation.",
+    suggestedActions: [
+      { label: '📂 Explore Full Project Details', actionType: 'link', target: '#projects' },
+      { label: '⚡ Review PostgreSQL Tuning Used', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '💬 Discuss a Custom ERP', actionType: 'link', target: 'https://wa.me/9779842203976' },
+    ],
+  },
+
+  // 7. SECURITY, AUTHENTICATION & RBAC
   {
     id: 'security',
-    keywords: ['security', 'quality', 'owasp', 'jwt', 'rbac', 'safe', 'testing', 'audit'],
-    patterns: [/security/i, /data\s+safety/i, /code\s+quality/i, /rbac/i, /jwt/i],
+    category: 'security',
+    keywords: ['security', 'auth', 'authentication', 'jwt', 'rbac', 'permissions', 'owasp', 'safe', 'protect'],
+    patterns: [/security/i, /authentication/i, /jwt/i, /rbac/i, /how\s+do\s+you\s+secure/i],
     answer:
-      "Security and clean architecture are top priorities. Manoj implements JWT & session-based authentication, granular Role-Based Access Control (RBAC), database connection pooling, sanitized inputs against SQL injections & XSS, and encrypted environment configurations.",
+      "Manoj enforces rigorous enterprise security across all API deployments:\n\n• Authentication: Stateless JWT with short-lived access tokens, encrypted refresh tokens stored in HttpOnly SameSite cookies, and token blacklisting on logout.\n• Authorization: Granular Role-Based Access Control (RBAC) via custom Django REST permissions, decoupling user roles from domain business logic.\n• Data Protection: Parameterized ORM queries preventing SQL injection, strict input sanitization, automated rate-limiting via Redis, and secure secret management via environment variables.\n• Transport: Mandatory HTTPS, HSTS, secure CORS origin whitelisting, and strict Content Security Policies (CSP).",
     suggestedActions: [
-      { label: '🛠️ Review Tech Philosophy', actionType: 'link', target: '#about' },
+      { label: '🛠️ View Engineering Philosophy', actionType: 'link', target: '#about' },
+      { label: '💳 Payment Gateway Security', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '📩 Inquire for Security Audit', actionType: 'link', target: '#contact' },
+    ],
+  },
+
+  // 8. DIRECT CONTACT & COMMUNICATION
+  {
+    id: 'contact_direct',
+    category: 'hiring',
+    keywords: ['contact', 'reach', 'email', 'phone', 'whatsapp', 'call', 'talk', 'address', 'location'],
+    patterns: [/how\s+to\s+contact/i, /phone/i, /email/i, /whatsapp/i, /reach/i, /location/i],
+    answer:
+      "Direct channels to connect with Manoj K.C.:\n\n• Phone / WhatsApp: +977 9842203976 (Direct response within 2 hours)\n• Email: manojkc1dev@gmail.com\n• LinkedIn: linkedin.com/in/manojkc1dev\n• GitHub: github.com/manojkc1dev\n• Location: Kathmandu, Nepal (Available for international contracts)",
+    suggestedActions: [
+      { label: '💬 Open WhatsApp Chat', actionType: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '✉️ Email Manoj', actionType: 'link', target: 'mailto:manojkc1dev@gmail.com' },
+      { label: '📝 Submit Contact Form', actionType: 'link', target: '#contact' },
     ],
   },
 ];
 
-// Fallback response when query is unrecognized
 const FALLBACK_RESPONSE: {
   answer: string;
   suggestedActions: NonNullable<KnowledgeTopic['suggestedActions']>;
 } = {
   answer:
-    "I'm here to help with information about Manoj's backend engineering work, services, pricing, tech stack, or hiring availability. Would you like to check one of these popular topics, or connect with him directly?",
+    "I'm here to provide verified technical facts about Manoj's backend engineering, database architectures, payment pipelines, or contract rates. Please choose a topic below or reach out directly:",
   suggestedActions: [
-    { label: '🛠️ Services Offered', actionType: 'query', target: 'What services do you offer?' },
-    { label: '💻 Tech Stack', actionType: 'query', target: 'What is your tech stack?' },
-    { label: '💰 Pricing & Rates', actionType: 'query', target: 'What are your rates and pricing?' },
-    { label: '💬 Chat on WhatsApp', actionType: 'link', target: 'https://wa.me/9779842203976' },
+    { label: '⚡ Backend & Tech Stack', actionType: 'query', target: 'What backend technologies does Manoj specialize in?' },
+    { label: '🚀 Database Optimization', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+    { label: '💳 Payment Gateways', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
+    { label: '💼 Rates & Availability', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
   ],
 };
 
@@ -219,14 +195,12 @@ function matchQuery(userQuery: string): { answer: string; suggestedActions?: Kno
   for (const topic of KNOWLEDGE_BASE) {
     let score = 0;
 
-    // Pattern regex matching (high weight)
     for (const pat of topic.patterns) {
       if (pat.test(clean)) {
         score += 8;
       }
     }
 
-    // Keyword matching
     for (const kw of topic.keywords) {
       if (clean.includes(kw)) {
         score += 3;
@@ -253,18 +227,19 @@ export const QABot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [hasUnread, setHasUnread] = useState(true);
+  const [isSoundMuted, setIsSoundMuted] = useState(false);
+  const { theme } = useTheme();
 
   const initialBotMessage: ChatMessage = {
     id: 'msg-welcome',
     sender: 'bot',
-    text: "Hi there! 👋 I'm Manoj's Assistant. How can I help you today? You can ask about services, tech stack, past projects, pricing, or how to get in touch.",
+    text: "Namaste! I'm Manoj's Technical Portfolio Assistant. You can ask deep technical questions about his backend architecture, database tuning, payment integrations, or select a topic below:",
     timestamp: 'Just now',
     suggestedActions: [
-      { label: '🛠️ What services do you offer?', actionType: 'query', target: 'What services do you offer?' },
-      { label: '💻 What is your tech stack?', actionType: 'query', target: 'What is your tech stack?' },
-      { label: '💰 Pricing & Budget', actionType: 'query', target: 'What are your rates and pricing?' },
-      { label: '📞 Contact Details', actionType: 'query', target: 'How can I contact Manoj?' },
+      { label: '🛠️ Backend Specialization', actionType: 'query', target: 'What backend technologies does Manoj specialize in?' },
+      { label: '⚡ PostgreSQL Tuning', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '💳 Payment Gateways & Idempotency', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '💼 Rates & Remote Availability', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
     ],
   };
 
@@ -279,7 +254,6 @@ export const QABot: React.FC = () => {
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
-      setHasUnread(false);
       setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [isOpen, messages, isTyping]);
@@ -287,6 +261,8 @@ export const QABot: React.FC = () => {
   const handleSendMessage = (textToSend?: string) => {
     const query = (textToSend || inputValue).trim();
     if (!query) return;
+
+    if (!isSoundMuted) soundFx.playSend();
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -299,7 +275,6 @@ export const QABot: React.FC = () => {
     if (!textToSend) setInputValue('');
     setIsTyping(true);
 
-    // Realistic typing effect (350ms)
     setTimeout(() => {
       const match = matchQuery(query);
       const botReply: ChatMessage = {
@@ -311,14 +286,18 @@ export const QABot: React.FC = () => {
       };
       setMessages((prev) => [...prev, botReply]);
       setIsTyping(false);
+
+      if (!isSoundMuted) soundFx.playReceive();
     }, 350);
   };
 
   const handleClearChat = () => {
+    if (!isSoundMuted) soundFx.playTap();
     setMessages([initialBotMessage]);
   };
 
   const handleActionClick = (action: { label: string; actionType: 'link' | 'query'; target: string }) => {
+    if (!isSoundMuted) soundFx.playTap();
     if (action.actionType === 'query') {
       handleSendMessage(action.target);
     } else if (action.actionType === 'link') {
@@ -334,25 +313,37 @@ export const QABot: React.FC = () => {
     }
   };
 
+  const toggleSound = () => {
+    const nextMuted = !isSoundMuted;
+    setIsSoundMuted(nextMuted);
+    soundFx.enabled = !nextMuted;
+    if (!nextMuted) soundFx.playTap();
+  };
+
   return (
     <>
-      {/* Floating Trigger Button: Positioned on the right, beside the ScrollToTop button */}
+      {/* Floating Trigger Button: Docked vertically at bottom-right */}
       <div className="fixed bottom-6 right-6 z-40">
         <motion.button
           type="button"
           id="qa-bot-trigger-button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            const nextState = !isOpen;
+            setIsOpen(nextState);
+            window.dispatchEvent(new CustomEvent('portfolio:chat-toggle', { detail: { open: nextState } }));
+            if (!isSoundMuted) soundFx.playTap();
+          }}
           aria-label={isOpen ? "Close Manoj's Assistant" : "Open Manoj's Assistant"}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-          className="relative w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full p-1 bg-gradient-to-tr from-emerald-500 via-indigo-600 to-purple-600 shadow-2xl shadow-indigo-600/40 hover:shadow-emerald-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 cursor-pointer transition-all flex items-center justify-center group"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative w-12 h-12 sm:w-[52px] sm:h-[52px] rounded-full p-[2px] bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 shadow-xl shadow-indigo-950/20 dark:shadow-indigo-950/50 hover:shadow-indigo-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 cursor-pointer transition-all flex items-center justify-center group"
         >
           {isOpen ? (
-            <div className="w-full h-full rounded-full bg-neutral-900 text-white flex items-center justify-center">
-              <X className="w-7 h-7 text-white" />
+            <div className="w-full h-full rounded-full bg-white dark:bg-neutral-900 text-neutral-800 dark:text-white flex items-center justify-center border border-neutral-200 dark:border-neutral-700/80 shadow-inner">
+              <X className="w-5 h-5 text-neutral-800 dark:text-white" />
             </div>
           ) : (
-            <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-emerald-400/90 bg-neutral-900 flex items-center justify-center">
+            <div className="relative w-full h-full rounded-full overflow-hidden border border-neutral-200 dark:border-neutral-700/80 bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
               <img
                 src="/images/ai_chatbot.png"
                 alt="Manoj's Assistant"
@@ -363,16 +354,23 @@ export const QABot: React.FC = () => {
                     target.src = '/images/ai_chatbot.jpg';
                   }
                 }}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              {/* Subtle pulsing glow overlay */}
-              <div className="absolute inset-0 bg-emerald-500/10 pointer-events-none rounded-full" />
+              {/* Online Pulse Dot */}
+              <span className="absolute top-0 right-0 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white dark:border-neutral-950" />
+              </span>
             </div>
           )}
+          {/* Tooltip */}
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-neutral-900/90 dark:bg-neutral-900/95 border border-neutral-700 dark:border-neutral-800 text-xs font-medium text-white shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap hidden sm:block">
+            {isOpen ? 'Close Assistant' : 'Ask Manoj AI'}
+          </span>
         </motion.button>
       </div>
 
-      {/* Slide-Up Chat Modal Card */}
+      {/* Slide-Up Chat Modal Card: Full Light & Dark Mode System Awareness */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -381,12 +379,12 @@ export const QABot: React.FC = () => {
             exit={{ opacity: 0, y: 24, scale: 0.95 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
             id="qa-bot-chat-window"
-            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] h-[560px] max-h-[calc(100vh-7.5rem)] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden backdrop-blur-xl"
+            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[420px] h-[600px] max-h-[calc(100vh-7.5rem)] bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-neutral-200/90 dark:border-neutral-800 flex flex-col overflow-hidden backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10"
           >
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-neutral-900 via-indigo-950 to-neutral-900 text-white flex items-center justify-between border-b border-white/10 shadow-sm">
+            <div className="px-4 py-3 bg-neutral-50/95 dark:bg-neutral-900/95 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-400 shadow-md shadow-emerald-500/20 shrink-0">
+                <div className="relative w-9 h-9 rounded-full overflow-hidden border border-emerald-500/80 shadow-sm shrink-0">
                   <img
                     src="/images/ai_chatbot.png"
                     alt="Manoj's Assistant"
@@ -399,122 +397,163 @@ export const QABot: React.FC = () => {
                     }}
                     className="w-full h-full object-cover"
                   />
+                  <span className="absolute top-0 right-0 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold tracking-tight text-white">
+                  <h3 className="text-xs font-semibold text-neutral-900 dark:text-white tracking-wide">
                     Manoj's Assistant
                   </h3>
-                  <p className="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Online</span>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    Online · Technical Portfolio Advisor
                   </p>
                 </div>
               </div>
 
+              {/* Minimal Controls Toolbar */}
               <div className="flex items-center gap-1">
+                {/* Sound Toggle */}
+                <button
+                  type="button"
+                  onClick={toggleSound}
+                  title={isSoundMuted ? 'Unmute tactile sound' : 'Mute tactile sound'}
+                  className="p-1.5 rounded-lg text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/70 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                >
+                  {isSoundMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+                </button>
+
+                {/* Reset Chat */}
                 <button
                   type="button"
                   onClick={handleClearChat}
                   title="Reset conversation"
-                  className="p-1.5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/70 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </button>
+
+                {/* Close */}
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
                   title="Close window"
-                  className="p-1.5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/70 dark:hover:bg-neutral-800 transition-colors cursor-pointer ml-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
+            {/* Quick Interactive Inquiry Chips Ribbon (High-Value Technical Prompts) */}
+            <div className="px-3 py-2 bg-neutral-100/70 dark:bg-neutral-900/60 border-b border-neutral-200/80 dark:border-neutral-800/80 overflow-x-auto flex items-center gap-1.5 no-scrollbar shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSendMessage('What backend technologies does Manoj specialize in?')}
+                className="px-2.5 py-1 rounded-full bg-white dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-white text-[11px] font-medium whitespace-nowrap transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Zap className="w-3 h-3 text-indigo-500" />
+                <span>Tech Stack</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('How does Manoj optimize database performance in Django/PostgreSQL?')}
+                className="px-2.5 py-1 rounded-full bg-white dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-white text-[11px] font-medium whitespace-nowrap transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Database className="w-3 h-3 text-emerald-500" />
+                <span>DB Tuning</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('What payment gateways has Manoj integrated?')}
+                className="px-2.5 py-1 rounded-full bg-white dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-white text-[11px] font-medium whitespace-nowrap transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <CreditCard className="w-3 h-3 text-amber-500" />
+                <span>Payments & Idempotency</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('What are Manoj’s project rates and freelance availability?')}
+                className="px-2.5 py-1 rounded-full bg-white dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-white text-[11px] font-medium whitespace-nowrap transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Briefcase className="w-3 h-3 text-sky-500" />
+                <span>Rates & Availability</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('How does Manoj handle authentication, JWT, and RBAC security?')}
+                className="px-2.5 py-1 rounded-full bg-white dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-white text-[11px] font-medium whitespace-nowrap transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Lock className="w-3 h-3 text-purple-500" />
+                <span>Security & RBAC</span>
+              </button>
+            </div>
+
             {/* Messages Body */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
+            <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3.5 text-xs">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.sender === 'bot' && (
-                    <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-400/80 shrink-0 mt-0.5 shadow-sm">
-                      <img
-                        src="/images/ai_chatbot.png"
-                        alt="Manoj's Assistant"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (!target.src.endsWith('ai_chatbot.jpg')) {
-                            target.src = '/images/ai_chatbot.jpg';
-                          }
-                        }}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400">
+                      <Bot className="w-4 h-4" />
                     </div>
                   )}
 
-                  <div className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} max-w-[82%]`}>
+                  <div className={`max-w-[86%] space-y-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
                     <div
-                      className={`rounded-2xl p-3.5 leading-relaxed whitespace-pre-line ${
+                      className={`p-3.5 rounded-2xl leading-relaxed whitespace-pre-line text-[12.5px] shadow-xs ${
                         msg.sender === 'user'
-                          ? 'bg-indigo-600 text-white rounded-br-none shadow-sm'
-                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-bl-none border border-neutral-200/70 dark:border-neutral-700/60 shadow-xs'
+                          ? 'bg-indigo-600 text-white rounded-tr-none font-medium'
+                          : 'bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200/80 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 rounded-tl-none'
                       }`}
                     >
                       {msg.text}
                     </div>
 
-                    <span className="text-[10px] text-neutral-400 mt-1 px-1 font-mono">
-                      {msg.timestamp}
-                    </span>
-
-                    {/* Suggested Action Chips (if provided by bot) */}
+                    {/* Interactive Action Suggestion Chips */}
                     {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2 max-w-[100%]">
-                        {msg.suggestedActions.map((action, idx) => (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {msg.suggestedActions.map((action, i) => (
                           <button
-                            key={idx}
+                            key={i}
                             type="button"
                             onClick={() => handleActionClick(action)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer text-left"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700/80 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-white transition-colors cursor-pointer shadow-2xs"
                           >
                             <span>{action.label}</span>
-                            {action.actionType === 'link' ? (
-                              <ExternalLink className="w-3 h-3 shrink-0 opacity-75" />
-                            ) : (
-                              <ArrowRight className="w-3 h-3 shrink-0 opacity-75" />
-                            )}
+                            {action.actionType === 'link' && <ArrowRight className="w-3 h-3 opacity-70" />}
                           </button>
                         ))}
                       </div>
                     )}
+
+                    <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block px-1">
+                      {msg.timestamp}
+                    </span>
                   </div>
+
+                  {msg.sender === 'user' && (
+                    <div className="w-7 h-7 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center shrink-0 mt-0.5 text-neutral-700 dark:text-neutral-300">
+                      <User className="w-3.5 h-3.5" />
+                    </div>
+                  )}
                 </div>
               ))}
 
-              {/* Typing indicator */}
+              {/* Bot Typing Indicator */}
               {isTyping && (
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-400/80 shrink-0">
-                    <img
-                      src="/images/ai_chatbot.png"
-                      alt="Manoj's Assistant"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.src.endsWith('ai_chatbot.jpg')) {
-                          target.src = '/images/ai_chatbot.jpg';
-                        }
-                      }}
-                      className="w-full h-full object-cover"
-                    />
+                <div className="flex gap-2.5 justify-start items-center">
+                  <div className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                    <Bot className="w-4 h-4 animate-spin" />
                   </div>
-                  <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800 w-fit text-neutral-500 dark:text-neutral-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.2s]" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.4s]" />
+                  <div className="bg-neutral-100/90 dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 p-2.5 rounded-2xl rounded-tl-none flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-bounce [animation-delay:0.15s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-bounce [animation-delay:0.3s]" />
                   </div>
                 </div>
               )}
@@ -522,27 +561,27 @@ export const QABot: React.FC = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Form */}
+            {/* Input Bar */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="p-3 bg-neutral-50 dark:bg-neutral-900/80 border-t border-neutral-200 dark:border-neutral-800 flex items-center gap-2"
+              className="p-3 bg-neutral-50 dark:bg-neutral-900/95 border-t border-neutral-200 dark:border-neutral-800 flex items-center gap-2"
             >
               <input
                 ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about services, tech, pricing..."
-                className="flex-1 px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Ask about Django, PostgreSQL, payments, rates..."
+                className="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-2xs"
               />
               <button
                 type="submit"
-                disabled={!inputValue.trim() || isTyping}
-                aria-label="Send query"
-                className="p-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 transition-all cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                disabled={!inputValue.trim()}
+                title="Send message"
+                className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white transition-colors cursor-pointer shrink-0 shadow-xs"
               >
                 <Send className="w-4 h-4" />
               </button>

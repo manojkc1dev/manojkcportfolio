@@ -7,6 +7,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { Chip } from '../components/ui/Chip';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AuthorBio } from '../components/ui/AuthorBio';
 import { Seo } from '../components/Seo';
 import type { Experience } from '../types';
 import {
@@ -223,27 +224,41 @@ export const ExperiencePage: React.FC = () => {
   // JSON-LD structured data
   const jsonLd = useMemo(() => ({
     '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: 'Professional Experience & Academic Background of Manoj K.C.',
-    itemListElement: filteredExperiences.map((exp, idx) => ({
-      '@type': 'WorkPosition',
-      position: idx + 1,
-      name: exp.role,
-      worksFor: {
-        '@type': 'Organization',
-        name: exp.company,
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': 'https://manojkc1.com.np/experience#webpage',
+        url: 'https://manojkc1.com.np/experience',
+        name: 'Experience | Backend Engineer Nepal | Manoj K.C.',
+        description:
+          'Chronological engineering experience, backend traineeship at Sajha Infotech, freelance client solutions, and BIT academic capstone by Manoj K.C.',
+        isPartOf: { '@id': 'https://manojkc1.com.np/#website' },
+        author: { '@id': 'https://manojkc1.com.np/#person' },
       },
-      startDate: exp.start,
-      endDate: exp.end === 'present' ? undefined : exp.end,
-      description: exp.description || exp.bullets?.join(' '),
-    })),
+      {
+        '@type': 'ItemList',
+        name: 'Professional Experience - Backend Engineering',
+        itemListElement: filteredExperiences.map((exp, idx) => ({
+          '@type': 'WorkPosition',
+          position: idx + 1,
+          name: exp.role,
+          worksFor: {
+            '@type': 'Organization',
+            name: exp.company,
+          },
+          startDate: exp.start,
+          endDate: exp.end === 'present' ? undefined : exp.end,
+          description: exp.description || exp.bullets?.join(' '),
+        })),
+      },
+    ],
   }), [filteredExperiences]);
 
   return (
     <div className="min-h-screen pb-24 print:bg-white print:text-black">
       <Seo
-        title="Experience | Manoj K.C. — Backend Engineer"
-        description="Chronological engineering experience, backend traineeship at Sajha Infotech, freelance client solutions, and BIT academic capstone."
+        title="Experience | Backend Engineer Nepal | Manoj K.C."
+        description="Chronological engineering experience, backend traineeship at Sajha Infotech, freelance client solutions, and BIT academic capstone by Manoj K.C."
         canonical="https://manojkc1.com.np/experience"
         jsonLd={jsonLd}
       />
@@ -256,7 +271,7 @@ export const ExperiencePage: React.FC = () => {
       {/* Header */}
       <PageHeader
         eyebrow="Timeline"
-        title="Experience & Education"
+        title="Professional Experience - Backend Engineering"
         subtitle="Professional roles, intensive traineeships, freelance contracts, and academic milestones."
         meta={`${allExperiences.length} entries on record since 2020`}
         actions={
@@ -500,6 +515,9 @@ export const ExperiencePage: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* E-E-A-T Author Authority and Freshness */}
+        <AuthorBio lastUpdated="September 2026" className="print:hidden" />
       </main>
     </div>
   );

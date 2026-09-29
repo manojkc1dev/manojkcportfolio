@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowUp,
   Github,
@@ -149,14 +148,12 @@ export const Footer: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span className="font-medium text-emerald-400">All APIs Operational</span>
-              <span className="text-neutral-600">·</span>
-              <span className="text-neutral-400">Available for Work</span>
+              <span className="text-neutral-300">Available for remote work</span>
             </div>
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-800 text-xs font-mono text-neutral-400">
               <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Kathmandu / Remote</span>
+              <span>Location Nepal</span>
             </div>
           </div>
         </div>
@@ -226,28 +223,28 @@ export const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <Link
-                  to="/projects"
+                <a
+                  href="/projects"
                   className="hover:text-white transition-colors"
                 >
                   All Projects (/projects)
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/skills"
+                <a
+                  href="/skills"
                   className="hover:text-white transition-colors"
                 >
                   All Skills (/skills)
-                </Link>
+                </a>
               </li>
               <li>
-                <Link
-                  to="/experience"
+                <a
+                  href="/experience"
                   className="hover:text-white transition-colors"
                 >
                   Experience Timeline (/experience)
-                </Link>
+                </a>
               </li>
               <li>
                 <a
@@ -258,7 +255,7 @@ export const Footer: React.FC = () => {
                   Direct Contact
                 </a>
               </li>
-              <li className="pt-1">
+              <li className="pt-1 flex flex-col gap-1.5">
                 <a
                   href="/resume.pdf"
                   target="_blank"
@@ -266,7 +263,17 @@ export const Footer: React.FC = () => {
                   className="inline-flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
                 >
                   <FileText className="w-3 h-3" />
-                  <span>Official Resume</span>
+                  <span>Official Resume (PDF)</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+                <a
+                  href="/cv.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-neutral-400 hover:text-neutral-200 transition-colors"
+                >
+                  <FileText className="w-3 h-3" />
+                  <span>Curriculum Vitae (CV)</span>
                   <ExternalLink className="w-2.5 h-2.5" />
                 </a>
               </li>
@@ -319,7 +326,7 @@ export const Footer: React.FC = () => {
         {/* ============================================================== */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
           <div className="flex items-center gap-2 text-center md:text-left">
-            <span>&copy; {new Date().getFullYear()} Manoj Khatri</span>
+            <span>&copy; {new Date().getFullYear()} Manoj K.C. (Manoj Khatri)</span>
             <span>·</span>
             <span className="text-neutral-400">All rights reserved.</span>
             <span className="hidden sm:inline text-neutral-600">·</span>
@@ -330,6 +337,16 @@ export const Footer: React.FC = () => {
             <span>Engineered for Reliability</span>
             <span className="text-neutral-600">·</span>
             <span className="text-neutral-300 font-semibold">Python · Django · PostgreSQL</span>
+            <span className="text-neutral-600">·</span>
+            <a
+              href="/mk-zadmin-cc"
+              title="System Console (Ctrl+Shift+A)"
+              aria-label="System Console"
+              className="text-neutral-500 hover:text-indigo-400 transition-colors inline-flex items-center gap-1 font-mono text-[11px] group"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-neutral-500 group-hover:text-indigo-400 transition-colors" />
+              <span>Console</span>
+            </a>
           </div>
         </div>
       </div>

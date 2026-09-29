@@ -35,6 +35,7 @@ export const Seo: React.FC<SeoProps> = ({
       <title>{title}</title>
       <meta name="description" content={description} />
       {canonical && <link rel="canonical" href={canonical} />}
+      <link rel="alternate" hrefLang="en" href={effectiveCanonical} />
 
       {/* OpenGraph / Facebook */}
       <meta property="og:type" content="website" />

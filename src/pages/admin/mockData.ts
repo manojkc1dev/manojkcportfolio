@@ -11,6 +11,9 @@ import type {
   CompanyIdentityState,
   SocialProfile,
   GlobalSettingsState,
+  ResumeData,
+  ResumeSection,
+  ResumeItem,
 } from './types';
 
 export const initialProjects: AdminProject[] = [
@@ -637,3 +640,142 @@ export const initialSiteContent = {
   githubLink: 'https://github.com/manojkc1dev',
   linkedinLink: 'https://linkedin.com/in/manojkc1dev',
 };
+
+export const initialResumeData: ResumeData = {
+  resumeUrl: '/resume.pdf',
+  fileName: 'Manoj_KC_Backend_Engineer_Resume.pdf',
+  versionTag: 'v2026.3 · Updated March 2026',
+  targetHeadline: 'Backend Software Engineer · Python, Django, DRF & PostgreSQL Specialist',
+  summaryText:
+    'Dedicated Python/Django backend engineer with real-world experience designing normalized PostgreSQL schemas, building secure RESTful APIs with Django REST Framework, and optimizing database queries (~30% latency reduction at Sajha Infotech). Skilled in JWT authentication, granular role-based access control, Celery async queues, Redis, and idempotent payment gateway integrations (Khalti & eSewa).',
+  sections: [
+    {
+      id: 'sec-exp',
+      title: 'Work Experience',
+      category: 'experience',
+      description: 'Production backend development and database engineering roles.',
+      items: [
+        {
+          id: 'item-exp-1',
+          title: 'Junior Backend Software Engineer',
+          subtitle: 'Sajha Infotech Pvt. Ltd.',
+          location: 'Kathmandu, Nepal',
+          period: 'Jul 2025 – Present',
+          badge: 'Current Role',
+          description:
+            'Leading core backend module development and database optimization for enterprise software solutions.',
+          bullets: [
+            'Optimized PostgreSQL query execution plans using EXPLAIN ANALYZE, eliminating N+1 bottlenecks and reducing average response times by ~30%.',
+            'Engineered RESTful API endpoints using Django REST Framework for student management and academic evaluation systems handling 5,000+ records.',
+            'Implemented stateless JWT token authentication with rotating refresh tokens and fine-grained role-based permission classes (RBAC).',
+            'Integrated automated background jobs with Celery and Redis for report generation and bulk notification dispatches.',
+          ],
+        },
+        {
+          id: 'item-exp-2',
+          title: 'Freelance Backend & API Developer',
+          subtitle: 'Self-Employed / Independent Contractor',
+          location: 'Remote / Nepal',
+          period: 'Jan 2024 – Jun 2025',
+          description:
+            'Delivered custom web applications, REST APIs, and third-party integrations for small businesses and developer communities.',
+          bullets: [
+            'Architected PayStream: Unified payment gateway microservice with idempotent transaction recording and HMAC signature verification for eSewa EPAY v2 and Khalti v2.',
+            'Developed AgriTech Marketplace backend with automated product catalogs, stock tracking, and merchant administration portals.',
+            'Solo-engineered AcadFlow SMS BIT capstone project with automated server-side PDF report card compilation via ReportLab.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'sec-edu',
+      title: 'Education & Credentials',
+      category: 'education',
+      description: 'Formal academic degree and computer science foundations.',
+      items: [
+        {
+          id: 'item-edu-1',
+          title: 'Bachelor of Information Technology (BIT)',
+          subtitle: 'Mahendra Multiple Campus, Tribhuvan University',
+          location: 'Nepal',
+          period: '2021 – 2025',
+          badge: 'First Division Honors',
+          description:
+            'Graduated with First Division honors focusing on software engineering, database systems, and distributed architecture.',
+          bullets: [
+            'Core Coursework: Relational Database Management Systems, Data Structures & Algorithms, Object-Oriented Programming, Computer Networks, Operating Systems, Web Technologies.',
+            'Final Year Capstone Project: AcadFlow SMS — Full-stack institutional management platform built with Python, Django, PostgreSQL, and ReportLab PDF engine.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'sec-cert',
+      title: 'Certifications & Specialized Training',
+      category: 'certifications',
+      description: 'Verified professional certifications and technical courses.',
+      items: [
+        {
+          id: 'item-cert-1',
+          title: 'Python & Django Backend Architecture',
+          subtitle: 'Sajha Infotech Professional Training',
+          period: '2025',
+          badge: 'Verified',
+          description:
+            'Advanced practical training covering DRF serializers, viewsets, query optimization, Celery, and production deployment with Docker.',
+        },
+        {
+          id: 'item-cert-2',
+          title: 'PostgreSQL Query Profiling & Performance Tuning',
+          subtitle: 'Database Systems Specialization',
+          period: '2025',
+          badge: 'Verified',
+          description:
+            'In-depth mastery of B-Tree indexing, composite indexes, query planner statistics, and connection pool management with PgBouncer.',
+        },
+        {
+          id: 'item-cert-3',
+          title: 'REST API Security & Idempotency Pipelines',
+          subtitle: 'Fintech & Web Security Architecture',
+          period: '2024',
+          badge: 'Verified',
+          description:
+            'Implementing token blacklisting, HMAC-SHA256 signature verification, replay attack prevention, and idempotent retry queues.',
+        },
+      ],
+    },
+    {
+      id: 'sec-skills',
+      title: 'Core Technical Competencies',
+      category: 'skills',
+      description: 'Languages, frameworks, databases, and DevOps tooling.',
+      items: [
+        {
+          id: 'item-skill-1',
+          title: 'Languages & Core Systems',
+          subtitle: 'Python 3.12, SQL (PostgreSQL), TypeScript, JavaScript, HTML5, CSS3',
+          description: 'Strong object-oriented programming, typed codebases, and relational query structuring.',
+        },
+        {
+          id: 'item-skill-2',
+          title: 'Frameworks & Libraries',
+          subtitle: 'Django 5.x, Django REST Framework (DRF), Celery, Redis, FastAPI, Tailwind CSS',
+          description: 'Production web application architecture and asynchronous task processing.',
+        },
+        {
+          id: 'item-skill-3',
+          title: 'Databases & Performance',
+          subtitle: 'PostgreSQL, SQLite, Redis Caching, EXPLAIN ANALYZE, Connection Pooling',
+          description: 'Normalized 3NF relational schemas, composite indexes, and low-latency query tuning.',
+        },
+        {
+          id: 'item-skill-4',
+          title: 'DevOps & Tooling',
+          subtitle: 'Docker, Docker Compose, Git/GitHub, Linux/Bash, Gunicorn, WhiteNoise, Postman',
+          description: 'Reproducible local environments, CI/CD pipelines, and cloud hosting on Render and VPS.',
+        },
+      ],
+    },
+  ],
+};
+

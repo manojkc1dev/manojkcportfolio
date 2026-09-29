@@ -10,9 +10,13 @@ import {
   CheckCircle2,
   Clock,
   FolderGit2,
+  FileDown,
 } from 'lucide-react';
 import type { AdminProject } from '../types';
 import { ProjectEditModal } from './ProjectEditModal';
+import { projects as publicProjects } from '../../../data/projects';
+import { exportCaseStudyAsPdf } from '../../../lib/caseStudyPdf';
+import type { Project } from '../../../types';
 
 interface ProjectsViewProps {
   projects: AdminProject[];
@@ -70,6 +74,42 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     }
     onUpdateProjects(updated);
     setEditingProject(undefined);
+  };
+
+  const handleExportPdf = (proj: AdminProject) => {
+    // Check if public project case study matches
+    const matchedPublic = publicProjects.find(
+      (p) => p.id === proj.id || p.id === proj.slug || p.title.toLowerCase().includes(proj.title.toLowerCase().slice(0, 10))
+    );
+
+    if (matchedPublic) {
+      exportCaseStudyAsPdf(matchedPublic);
+      onShowToast(`Exporting case study PDF for "${matchedPublic.title}"...`);
+    } else {
+      const syntheticProject: Project = {
+        id: proj.slug || proj.id,
+        title: proj.title,
+        tagline: proj.shortDescription,
+        description: proj.fullCaseStudy || proj.shortDescription,
+        problem: 'Client specification and technical requirements mandate high performance, resilience, and data integrity.',
+        solution: proj.fullCaseStudy || proj.shortDescription,
+        status: proj.status === 'Archived' ? 'archived' : proj.status === 'In Production' ? 'live' : 'ongoing',
+        role: 'Solo Backend Engineer',
+        duration: proj.yearDuration || '2 Months',
+        year: 2026,
+        highlights: [proj.shortDescription],
+        featured: proj.featured,
+        image: proj.thumbnail || '/images/agritech.png',
+        tech: proj.technologies,
+        techStackTable: proj.technologies.map((t) => ({ layer: 'Core', choice: t, why: 'Selected for reliability and production-grade stability.' })),
+        links: {
+          live: proj.liveUrl,
+          github: proj.githubUrl,
+        },
+      };
+      exportCaseStudyAsPdf(syntheticProject);
+      onShowToast(`Exporting case study PDF for "${proj.title}"...`);
+    }
   };
 
   return (
@@ -224,6 +264,14 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
 
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleExportPdf(p)}
+                          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                          title="Export Case Study PDF"
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => setEditingProject(p)}

@@ -7,6 +7,7 @@ import {
   Activity,
   Plus,
   Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import type { Profile } from '../../../types';
 
@@ -14,12 +15,14 @@ interface AboutViewProps {
   profile: Profile;
   onUpdateProfile: (profile: Profile) => void;
   onShowToast: (message: string) => void;
+  onGoToResumeTab?: () => void;
 }
 
 export const AboutView: React.FC<AboutViewProps> = ({
   profile,
   onUpdateProfile,
   onShowToast,
+  onGoToResumeTab,
 }) => {
   const [formData, setFormData] = useState<Profile>(profile);
 
@@ -146,10 +149,50 @@ export const AboutView: React.FC<AboutViewProps> = ({
             />
           </div>
 
+          <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center gap-4 p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/80">
+            <div className="w-16 h-16 rounded-xl overflow-hidden border border-neutral-300 dark:border-neutral-600 bg-neutral-200 dark:bg-neutral-700 shrink-0 shadow-xs">
+              <img
+                src={formData.photo || '/images/manoj.jpg'}
+                alt="Profile preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = '/images/manoj.jpg';
+                }}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                Profile Picture URL / Asset Path
+              </label>
+              <input
+                type="text"
+                value={formData.photo || ''}
+                placeholder="/images/manoj.jpg"
+                onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg text-xs bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">
+                Active avatar displayed across the admin dashboard header, navigation sidebar, author badges, and live portfolio.
+              </p>
+            </div>
+          </div>
+
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-              Resume Link (PDF)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                Resume Link (PDF)
+              </label>
+              {onGoToResumeTab && (
+                <button
+                  type="button"
+                  onClick={onGoToResumeTab}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Open Full Resume Manager (Add, Delete &amp; Update Sections)</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-neutral-400" />
               <input
