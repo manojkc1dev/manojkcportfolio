@@ -30,6 +30,7 @@ import {
   Sparkles,
   Wrench,
   ArrowRight,
+  Star,
 } from 'lucide-react';
 import { skillGroups as defaultSkillGroups, currentFocus as defaultFocus } from '../data/skills';
 import { ViewAllLink } from './ui/ViewAllLink';
@@ -127,6 +128,10 @@ const SkillPill: React.FC<SkillPillProps> = ({ skill }) => {
       <span className="font-medium whitespace-nowrap">
         {skill.name}
       </span>
+
+      {skill.highlight && (
+        <Star className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" aria-label="Starred skill" />
+      )}
 
       {/* Subtle indicator dot matching proficiency */}
       <span
@@ -285,7 +290,7 @@ export const Skills: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ duration: 0.45, delay: (groupIdx % 3) * 0.1 }}
-                className="h-full p-6 sm:p-7 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-xs flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
+                className="h-full p-6 sm:p-7 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-xs flex flex-col hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
               >
                 <div>
                   <div className="pb-3 mb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
@@ -325,7 +330,7 @@ export const Skills: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ duration: 0.45, delay: (groupIdx % 3) * 0.1 }}
-                className="h-full p-6 sm:p-7 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-xs flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
+                className="h-full p-6 sm:p-7 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-xs flex flex-col hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
               >
                 <div>
                   <div className="pb-3 mb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">

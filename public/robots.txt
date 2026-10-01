@@ -2,6 +2,10 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
+Disallow: /admin
+Disallow: /mk-admin
+Disallow: /mk-zadmin-cc
+Disallow: /lc-zadmin-cc
 Disallow: /*?*
 
 Sitemap: https://manojkc1.com.np/sitemap.xml

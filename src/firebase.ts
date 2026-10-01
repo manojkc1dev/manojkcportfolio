@@ -9,6 +9,9 @@ import {
   sendPasswordResetEmail,
   signOut,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { useState, useEffect, useCallback } from 'react';
@@ -132,34 +135,55 @@ export function handleFirestoreError(
 // ----------------------------------------------------------------------------
 export function formatAuthError(error: unknown): string {
   if (!error) return 'An unexpected authentication error occurred.';
+  const code = (error as { code?: string })?.code || '';
   const errStr = error instanceof Error ? error.message : String(error);
+  const combined = `${code} ${errStr}`.toLowerCase();
 
-  if (errStr.includes('auth/invalid-credential') || errStr.includes('auth/wrong-password')) {
+  if (combined.includes('requests-from-referer') || combined.includes('unauthorized-domain')) {
+    return 'Domain/Referer restriction: This preview domain is not in the authorized HTTP referrers list in Google Cloud / Firebase Console. Please add this origin to Authorized Domains, or click Instant Demo Access below.';
+  }
+  if (combined.includes('api-key-not-valid') || combined.includes('app-not-authorized')) {
+    return 'Firebase API key or project authorization issue. Please verify your Firebase project credentials, or use Instant Demo Access.';
+  }
+  if (combined.includes('auth/invalid-credential') || combined.includes('auth/wrong-password')) {
     return 'Invalid email or password. Please verify your credentials.';
   }
-  if (errStr.includes('auth/user-not-found')) {
+  if (combined.includes('auth/user-not-found')) {
     return 'No account exists with this email address.';
   }
-  if (errStr.includes('auth/email-already-in-use')) {
+  if (combined.includes('auth/email-already-in-use')) {
     return 'An account with this email address already exists. Try signing in.';
   }
-  if (errStr.includes('auth/weak-password')) {
+  if (combined.includes('auth/weak-password')) {
     return 'Password is too weak. Please use at least 6 characters with mixed letters and numbers.';
   }
-  if (errStr.includes('auth/invalid-email')) {
+  if (combined.includes('auth/invalid-email')) {
     return 'Please provide a valid email address.';
   }
-  if (errStr.includes('auth/operation-not-allowed')) {
+  if (combined.includes('auth/operation-not-allowed')) {
     return 'Email/Password sign-in provider is not enabled in the Firebase Console.';
   }
-  if (errStr.includes('auth/too-many-requests')) {
+  if (combined.includes('auth/too-many-requests')) {
     return 'Access temporarily blocked due to multiple failed attempts. Please reset your password or try again later.';
   }
-  if (errStr.includes('auth/network-request-failed')) {
+  if (combined.includes('auth/requires-recent-login')) {
+    return 'This operation is sensitive and requires recent authentication. Please sign out and sign back in before updating your password.';
+  }
+  if (combined.includes('auth/network-request-failed')) {
     return 'Network connection error. Please check your internet connection and try again.';
   }
-  return errStr.replace(/^Firebase:\s*/, '').replace(/\(auth\/[^)]+\)\.?$/, '').trim() ||
-    'Authentication request failed. Please try again.';
+
+  const cleaned = errStr
+    .replace(/^Firebase:\s*/i, '')
+    .replace(/\(auth\/[^)]+\)\.?$/i, '')
+    .replace(/^Error:\s*/i, '')
+    .trim();
+
+  if (!cleaned || cleaned.toLowerCase() === 'error') {
+    return 'Authentication request failed. Please check your credentials or click Instant Demo Access below.';
+  }
+
+  return cleaned;
 }
 
 // ----------------------------------------------------------------------------
@@ -199,6 +223,103 @@ export async function sendPasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email.trim());
 }
 
+/**
+ * Securely changes the current authenticated Firebase user's password.
+ *
+ * Requirements met:
+ * 1. Verifies Firebase Auth is configured.
+ * 2. Verifies auth.currentUser exists.
+ * 3. Verifies current user has an email/password authentication provider.
+ * 4. Re-authenticates current user with supplied current password.
+ * 5. Updates password using Firebase updatePassword().
+ * 6. Never stores or logs either password.
+ * 7. Never writes passwords to Firestore, localStorage, or sessionStorage.
+ * 8. Returns sanitized, user-friendly error messages on failure.
+ */
+export async function changeCurrentUserPassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  // 1. Verify Firebase Auth is configured
+  if (!isFirebaseConfigured || !auth) {
+    throw new Error('Firebase Authentication is not configured in this environment.');
+  }
+
+  // 2. Verify active authenticated Firebase user exists
+  const currentUser = auth?.currentUser;
+  if (!currentUser) {
+    throw new Error('No active authenticated user session found. Please sign in again.');
+  }
+
+  // 3. Verify user has email & password provider
+  const email = currentUser.email;
+  if (!email) {
+    throw new Error('The authenticated user account does not have an email address associated with it.');
+  }
+
+  const hasPasswordProvider = currentUser.providerData.some(
+    (provider) => provider.providerId === 'password'
+  );
+  if (!hasPasswordProvider && currentUser.providerData.length > 0) {
+    throw new Error('The current user account is not authenticated with an email/password provider.');
+  }
+
+  // Input validation
+  if (!currentPassword || !currentPassword.trim()) {
+    throw new Error('Current passphrase is required.');
+  }
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('New passphrase must be at least 6 characters long.');
+  }
+  if (currentPassword === newPassword) {
+    throw new Error('New passphrase must be different from your current passphrase.');
+  }
+
+  // 4. Re-authenticate with current credentials
+  try {
+    const credential = EmailAuthProvider.credential(email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+  } catch (reauthErr: unknown) {
+    const errStr = reauthErr instanceof Error ? reauthErr.message : String(reauthErr);
+    if (
+      errStr.includes('auth/invalid-credential') ||
+      errStr.includes('auth/wrong-password')
+    ) {
+      throw new Error('Current passphrase is incorrect. Please verify your current passphrase and try again.');
+    }
+    if (errStr.includes('auth/user-not-found')) {
+      throw new Error('Administrative user account was not found in Firebase Authentication.');
+    }
+    if (errStr.includes('auth/too-many-requests')) {
+      throw new Error('Access temporarily blocked due to multiple failed attempts. Please try again later.');
+    }
+    if (errStr.includes('auth/network-request-failed')) {
+      throw new Error('Network connection error. Please check your internet connection.');
+    }
+    throw new Error(formatAuthError(reauthErr));
+  }
+
+  // 5. Update password in Firebase Authentication
+  try {
+    await updatePassword(currentUser, newPassword);
+  } catch (updateErr: unknown) {
+    const errStr = updateErr instanceof Error ? updateErr.message : String(updateErr);
+    if (errStr.includes('auth/weak-password')) {
+      throw new Error('New passphrase is too weak. Please use at least 6 characters with mixed letters and numbers.');
+    }
+    if (errStr.includes('auth/requires-recent-login')) {
+      throw new Error('This operation is sensitive and requires a recent login. Please sign out and sign back in before updating your passphrase.');
+    }
+    if (errStr.includes('auth/too-many-requests')) {
+      throw new Error('Too many requests. Please wait a few minutes before trying again.');
+    }
+    if (errStr.includes('auth/network-request-failed')) {
+      throw new Error('Network connection error. Please check your internet connection.');
+    }
+    throw new Error(formatAuthError(updateErr));
+  }
+}
+
 export async function signOutUser(): Promise<void> {
   if (!auth) return;
   await signOut(auth);
@@ -215,6 +336,7 @@ export interface AuthState {
   signIn: (email: string, pass: string) => Promise<User>;
   signUp: (email: string, pass: string, displayName?: string) => Promise<User>;
   resetPassword: (email: string) => Promise<void>;
+  changePassword: (currentPass: string, newPass: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -282,6 +404,20 @@ export function useAuth(): AuthState {
     }
   }, []);
 
+  const handleChangePassword = useCallback(
+    async (currentPass: string, newPass: string) => {
+      setError(null);
+      try {
+        await changeCurrentUserPassword(currentPass, newPass);
+      } catch (e) {
+        const formatted = e instanceof Error ? e.message : formatAuthError(e);
+        setError(formatted);
+        throw new Error(formatted);
+      }
+    },
+    []
+  );
+
   const handleSignOut = useCallback(async () => {
     setError(null);
     try {
@@ -301,6 +437,7 @@ export function useAuth(): AuthState {
     signIn: handleSignIn,
     signUp: handleSignUp,
     resetPassword: handleResetPassword,
+    changePassword: handleChangePassword,
     signOut: handleSignOut,
   };
 }

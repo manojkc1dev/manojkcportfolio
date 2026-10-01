@@ -17,6 +17,11 @@ import {
   FileDown,
   Globe,
   FileText,
+  Download,
+  Copy,
+  Check,
+  Eye,
+  X,
 } from 'lucide-react';
 import type {
   AdminTab,
@@ -52,6 +57,61 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const publishedProjects = projects.filter((p) => p.visibility === 'Published').length;
   const liveDemosCount = projects.filter((p) => Boolean(p.liveUrl && p.liveUrl.trim().length > 0)).length;
   const unreadInquiries = inquiries.filter((i) => !i.read).length;
+
+  const [sitemapModalOpen, setSitemapModalOpen] = useState(false);
+  const [sitemapXml, setSitemapXml] = useState<string>('');
+  const [copiedSitemap, setCopiedSitemap] = useState(false);
+  const [downloadingSitemap, setDownloadingSitemap] = useState(false);
+
+  const fetchSitemapContent = async (): Promise<string> => {
+    if (sitemapXml) return sitemapXml;
+    try {
+      const res = await fetch('/sitemap.xml');
+      const text = await res.text();
+      setSitemapXml(text);
+      return text;
+    } catch {
+      return '';
+    }
+  };
+
+  const handleDownloadSitemap = async () => {
+    try {
+      setDownloadingSitemap(true);
+      const text = await fetchSitemapContent();
+      if (!text) {
+        window.location.href = '/api/download-sitemap';
+        return;
+      }
+      const blob = new Blob([text], { type: 'application/xml;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'sitemap.xml';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      window.location.href = '/api/download-sitemap';
+    } finally {
+      setDownloadingSitemap(false);
+    }
+  };
+
+  const handleOpenSitemapModal = async () => {
+    await fetchSitemapContent();
+    setSitemapModalOpen(true);
+  };
+
+  const handleCopySitemap = async () => {
+    const text = await fetchSitemapContent();
+    if (text) {
+      navigator.clipboard.writeText(text);
+      setCopiedSitemap(true);
+      setTimeout(() => setCopiedSitemap(false), 2000);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -271,15 +331,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>Export All Case Studies (PDF)</span>
             </button>
 
-            <a
-              href="/sitemap.xml"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Sitemap (8 URLs)</span>
-            </a>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleDownloadSitemap}
+                disabled={downloadingSitemap}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                title="Download verified sitemap.xml file"
+              >
+                <Download className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{downloadingSitemap ? 'Downloading...' : 'Sitemap (13 URLs)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenSitemapModal}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+                title="Preview sitemap.xml contents"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>View XML</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -330,7 +403,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <ul className="text-[11px] text-neutral-600 dark:text-neutral-400 space-y-1 pt-1">
               <li className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                <span>XML sitemap (8 URLs with lastmod)</span>
+                <span>XML sitemap (13 URLs with lastmod)</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
@@ -560,6 +633,84 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Sitemap XML Viewer Modal */}
+      {sitemapModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          onClick={() => setSitemapModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
+              <div className="flex items-center gap-2.5">
+                <Globe className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                    sitemap.xml (13 Indexed URLs)
+                  </h3>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Live production XML sitemap with Google Image schema &amp; lastmod tags.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSitemapModalOpen(false)}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* XML Content */}
+            <div className="flex-1 overflow-auto p-4 bg-neutral-950 font-mono text-xs text-neutral-200 selection:bg-indigo-500 selection:text-white">
+              <pre className="whitespace-pre overflow-x-auto leading-relaxed">
+                {sitemapXml || 'Loading sitemap.xml...'}
+              </pre>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/40">
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                13 URLs · UTF-8 XML · Canonical domain: https://manojkc1.com.np
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopySitemap}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                >
+                  {copiedSitemap ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy XML</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadSitemap}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download .xml</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

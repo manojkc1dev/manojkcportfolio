@@ -75,7 +75,18 @@
           "@type": "Person",
           "@id": "https://manojkc1.com.np/#person",
           "name": "Manoj K.C.",
-          "alternateName": "Manoj Khatri",
+          "alternateName": [
+            "Manoj Khatri",
+            "manojkc1",
+            "manojkhatri",
+            "manojkc",
+            "manoj kc",
+            "manoj khatri",
+            "manojk.c.",
+            "manoj k.c.",
+            "manoj k.c",
+            "manojk.c"
+          ],
           "jobTitle": "Backend Software Engineer",
           "url": "https://manojkc1.com.np/",
           "image": "https://manojkc1.com.np/images/manoj.jpg",
@@ -176,8 +187,11 @@
     </script>
   </head>
   <body class="bg-neutral-950 text-neutral-100 antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-300">
-    <div id="root">
-      <!-- Prerendered Semantic HTML for SEO, Screen Readers, and Non-JS Crawlers -->
+    <!-- React Application Mount Root -->
+    <div id="root"></div>
+
+    <!-- Fallback Semantic HTML for Screen Readers, Search Engine Crawlers & Non-JS Clients -->
+    <noscript>
       <header class="py-4 px-6 border-b border-neutral-800 flex items-center justify-between">
         <a href="/" class="text-lg font-bold text-white tracking-tight">Manoj K.C.</a>
         <nav class="flex items-center gap-4 text-sm text-neutral-400">
@@ -278,7 +292,7 @@
           <a href="https://linkedin.com/in/manojkc1dev" target="_blank" rel="noopener noreferrer" class="hover:text-white">LinkedIn</a>
         </div>
       </footer>
-    </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

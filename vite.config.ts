@@ -410,12 +410,35 @@ const contactApiPlugin = (): Plugin => ({
       res.setHeader('Location', '/resume.pdf');
       res.end();
     });
+
+    // 5. Explicit download sitemap endpoint (/api/download-sitemap)
+    server.middlewares.use('/api/download-sitemap', (req, res) => {
+      try {
+        const sitemapPath = path.resolve(__dirname, 'public/sitemap.xml');
+        if (fs.existsSync(sitemapPath)) {
+          const sitemapContent = fs.readFileSync(sitemapPath);
+          res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+          res.setHeader('Content-Disposition', 'attachment; filename="sitemap.xml"');
+          res.setHeader('Content-Length', sitemapContent.length);
+          res.statusCode = 200;
+          res.end(sitemapContent);
+          return;
+        }
+      } catch (err) {
+        console.error('Error serving sitemap download:', err);
+      }
+      res.statusCode = 404;
+      res.end('Sitemap not found');
+    });
   },
 });
 
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss(), contactApiPlugin()],
+    optimizeDeps: {
+      include: ['docx', 'mammoth', 'pdf-parse', 'mermaid'],
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -429,11 +452,7 @@ export default defineConfig(() => {
     server: {
       host: '0.0.0.0',
       port: 3000,
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify: file watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      hmr: true,
     },
   };
 });

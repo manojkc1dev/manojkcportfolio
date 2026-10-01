@@ -98,6 +98,19 @@ export interface AdminProject {
   languages: string[];
   keyHighlights?: string;
   gallery?: string[];
+  tagline?: string;
+  metrics?: {
+    label: string;
+    value: string;
+    icon?: 'speed' | 'users' | 'db' | 'payment' | 'uptime';
+  }[];
+  proof?: string[];
+  caseStudyUrl?: string;
+  problem?: string;
+  solution?: string;
+  architecture?: string;
+  role?: string;
+  apiDocsUrl?: string;
 }
 
 export interface AdminService {

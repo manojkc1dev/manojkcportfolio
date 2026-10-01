@@ -66,28 +66,54 @@ export const ProjectsPage: React.FC = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((p: any) => ({
-            id: p.id || p.slug,
-            title: p.title,
-            tagline: p.tagline || (p.client ? `${p.client}` : p.shortDescription),
-            description: p.shortDescription || p.description,
-            category: p.category || 'backend',
-            year: p.year || 2026,
-            status: p.status || 'live',
-            highlights: Array.isArray(p.highlights)
-              ? p.highlights
-              : p.keyHighlights
-              ? p.keyHighlights.split(';').map((s: string) => s.trim())
-              : [p.shortDescription],
-            tech: p.technologies || p.tech || [],
-            links: {
-              live: p.liveUrl || p.links?.live,
-              github: p.githubUrl || p.links?.github,
-              caseStudy: p.links?.caseStudy,
-            },
-            featured: Boolean(p.featured),
-            image: p.thumbnail || p.image || '/images/agritech.png',
-          }));
+          return parsed.map((p: any) => {
+            const rawId = p.id || p.slug || '';
+            const defaultMatch = defaultProjects.find(
+              (dp) =>
+                dp.id === rawId ||
+                dp.id === p.slug ||
+                rawId.includes(dp.id) ||
+                (p.title && dp.title.toLowerCase().includes(p.title.toLowerCase().slice(0, 10)))
+            );
+            const canonicalId = defaultMatch ? defaultMatch.id : rawId;
+
+            return {
+              id: canonicalId,
+              title: p.title || defaultMatch?.title || '',
+              tagline: p.tagline || (p.client ? `${p.client}` : defaultMatch?.tagline || p.shortDescription || ''),
+              description: p.shortDescription || p.description || defaultMatch?.description || '',
+              category: p.category || defaultMatch?.category || 'backend',
+              year: p.year || defaultMatch?.year || 2026,
+              status: p.status || defaultMatch?.status || 'live',
+              role: p.role || defaultMatch?.role,
+              duration: p.yearDuration || p.duration || defaultMatch?.duration,
+              highlights: Array.isArray(p.highlights) && p.highlights.length > 0
+                ? p.highlights
+                : p.keyHighlights
+                ? p.keyHighlights.split(';').map((s: string) => s.trim()).filter(Boolean)
+                : defaultMatch?.highlights || [p.shortDescription || ''],
+              tech: p.technologies || p.tech || defaultMatch?.tech || [],
+              links: {
+                live: p.liveUrl || p.links?.live || defaultMatch?.links.live,
+                github: p.githubUrl || p.links?.github || defaultMatch?.links.github,
+                caseStudy: p.caseStudyUrl || p.links?.caseStudy || defaultMatch?.links.caseStudy || `/projects/${canonicalId}`,
+                apiDocs: p.apiDocs || p.links?.apiDocs || defaultMatch?.links.apiDocs,
+                postman: p.postman || p.links?.postman || defaultMatch?.links.postman,
+              },
+              featured: Boolean(p.featured ?? defaultMatch?.featured),
+              image: p.thumbnail !== undefined ? p.thumbnail : (defaultMatch?.image || ''),
+              gallery: p.gallery || defaultMatch?.gallery,
+              metrics: (p.metrics && p.metrics.length > 0) ? p.metrics : defaultMatch?.metrics || [],
+              proof: (p.proof && p.proof.length > 0) ? p.proof : defaultMatch?.proof || [],
+              problem: p.problem || defaultMatch?.problem,
+              solution: p.solution || p.fullCaseStudy || defaultMatch?.solution,
+              architecture: p.architecture || defaultMatch?.architecture,
+              whatIBuilt: p.whatIBuilt || defaultMatch?.whatIBuilt,
+              techStackTable: p.techStackTable || defaultMatch?.techStackTable,
+              challenges: p.challenges || defaultMatch?.challenges,
+              lessonsLearned: p.lessonsLearned || defaultMatch?.lessonsLearned,
+            };
+          });
         }
       }
     } catch (e) {

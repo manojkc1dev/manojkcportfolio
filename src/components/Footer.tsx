@@ -339,7 +339,7 @@ export const Footer: React.FC = () => {
             <span className="text-neutral-300 font-semibold">Python · Django · PostgreSQL</span>
             <span className="text-neutral-600">·</span>
             <a
-              href="/mk-zadmin-cc"
+              href="/admin"
               title="System Console (Ctrl+Shift+A)"
               aria-label="System Console"
               className="text-neutral-500 hover:text-indigo-400 transition-colors inline-flex items-center gap-1 font-mono text-[11px] group"

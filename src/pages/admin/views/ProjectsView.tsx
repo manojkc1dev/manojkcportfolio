@@ -193,12 +193,18 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={p.thumbnail}
-                          alt={p.title}
-                          className="w-12 h-10 rounded-md object-cover border border-neutral-200 dark:border-neutral-700 shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
+                        {p.thumbnail ? (
+                          <img
+                            src={p.thumbnail}
+                            alt={p.title}
+                            className="w-12 h-10 rounded-md object-cover border border-neutral-200 dark:border-neutral-700 shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-12 h-10 rounded-md bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0 text-indigo-400">
+                            <FolderGit2 className="w-5 h-5" />
+                          </div>
+                        )}
                         <div className="min-w-0 max-w-xs sm:max-w-md">
                           <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate">
                             {p.title}
@@ -206,6 +212,18 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                           <div className="text-[11px] text-neutral-400 font-mono truncate">
                             /projects/{p.slug}
                           </div>
+                          {p.metrics && p.metrics.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-1 overflow-hidden">
+                              {p.metrics.slice(0, 2).map((m, mIdx) => (
+                                <span
+                                  key={mIdx}
+                                  className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 truncate"
+                                >
+                                  {m.label}: {m.value}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>

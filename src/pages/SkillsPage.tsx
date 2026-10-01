@@ -10,7 +10,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { AuthorBio } from '../components/ui/AuthorBio';
 import { Seo } from '../components/Seo';
 import type { SkillGroup, SkillItem } from '../types';
-import { Sparkles, Layers, ChevronDown } from 'lucide-react';
+import { Sparkles, Layers, ChevronDown, Star } from 'lucide-react';
 import { track } from '../lib/analytics';
 
 type SkillSortOption = 'group' | 'level' | 'alphabetical';
@@ -408,6 +408,10 @@ export const SkillsPage: React.FC = () => {
                             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${badgeClasses}`}
                           >
                             <span>{skill.name}</span>
+
+                            {skill.highlight && (
+                              <Star className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" aria-label="Starred skill" />
+                            )}
 
                             {/* 1-4 proficiency dots */}
                             <div className="flex items-center gap-0.5" aria-hidden="true">

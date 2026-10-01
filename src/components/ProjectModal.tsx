@@ -1,6 +1,18 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ExternalLink, Github, CheckCircle2, Sparkles } from 'lucide-react';
+import {
+  X,
+  ExternalLink,
+  Github,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Terminal,
+  ShieldCheck,
+  CreditCard,
+  Globe,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Project } from '../types';
 
 interface ProjectModalProps {
@@ -29,6 +41,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, onClose }) 
 
   if (!project) return null;
 
+  const hasCaseStudy = Boolean(
+    project.problem ||
+    project.solution ||
+    (project.proof && project.proof.length > 0) ||
+    project.architecture ||
+    project.links.caseStudy
+  );
+
   return (
     <AnimatePresence>
       <div
@@ -54,13 +74,46 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, onClose }) 
           transition={{ duration: 0.25 }}
           className="relative w-full max-w-3xl bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden z-10 max-h-[90vh] flex flex-col my-auto"
         >
-          {/* Header Image with close button */}
+          {/* Header Image or Terminal Preview with close button */}
           <div className="relative h-60 sm:h-72 w-full overflow-hidden bg-neutral-950 shrink-0">
-            <img
-              src={project.image}
-              alt={project.title}
-              className="w-full h-full object-cover object-center"
-            />
+            {project.image ? (
+              <img
+                src={project.image}
+                alt={project.title}
+                className="w-full h-full object-cover object-center"
+              />
+            ) : (
+              <div className="w-full h-full p-6 flex flex-col justify-between bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 border-b border-neutral-800 text-neutral-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
+                  </div>
+                  <span className="text-xs font-mono uppercase tracking-wider text-neutral-500">
+                    {project.category || 'BACKEND API SERVICE'}
+                  </span>
+                </div>
+                <div className="my-auto py-2">
+                  <div className="flex items-center gap-2 text-indigo-400 mb-1.5">
+                    {project.id === 'auth-sentinel' ? (
+                      <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    ) : project.id === 'paystream-gateway' ? (
+                      <CreditCard className="w-5 h-5 text-amber-400" />
+                    ) : (
+                      <Globe className="w-5 h-5 text-cyan-400" />
+                    )}
+                    <span className="text-sm font-mono font-bold text-white">
+                      {project.id === 'auth-sentinel'
+                        ? 'POST /api/v1/auth/jwt/token/'
+                        : project.id === 'paystream-gateway'
+                        ? 'POST /api/v1/payments/verify/'
+                        : 'RESTful API Microservice'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent" />
 
             {/* Close Button */}
@@ -68,7 +121,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, onClose }) 
               type="button"
               onClick={onClose}
               aria-label="Close project modal"
-              className="absolute top-4 right-4 p-2 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-white transition-colors border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
+              className="absolute top-4 right-4 p-2 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-white transition-colors border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer z-10"
             >
               <X className="w-5 h-5" />
             </button>
@@ -79,6 +132,11 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, onClose }) 
                 {project.featured && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-indigo-600 text-white shadow-xs">
                     <Sparkles className="w-3 h-3" /> Featured Project
+                  </span>
+                )}
+                {project.status && (
+                  <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-emerald-500/90 text-white uppercase tracking-wider">
+                    {project.status}
                   </span>
                 )}
               </div>
@@ -103,20 +161,43 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, onClose }) 
               </p>
             </div>
 
+            {/* Key Metrics Grid */}
+            {project.metrics && project.metrics.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2.5">
+                  Key Metrics &amp; Performance
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200/70 dark:border-neutral-700/60">
+                  {project.metrics.map((m, idx) => (
+                    <div key={idx} className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 dark:text-neutral-400 truncate">
+                        {m.label}
+                      </span>
+                      <span className="text-sm font-bold text-neutral-900 dark:text-white truncate">
+                        {m.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Technical Highlights */}
-            <div>
-              <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-3">
-                Key Engineering Highlights
-              </h4>
-              <ul className="space-y-2.5">
-                {project.highlights.map((highlight, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-sm text-neutral-700 dark:text-neutral-300">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-                    <span>{highlight}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {project.highlights && project.highlights.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-3">
+                  Key Engineering Highlights
+                </h4>
+                <ul className="space-y-2.5">
+                  {project.highlights.map((highlight, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-sm text-neutral-700 dark:text-neutral-300">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Technologies */}
             <div>
@@ -142,15 +223,15 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, onClose }) 
               Press <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-800 rounded text-[11px] font-mono">ESC</kbd> to close
             </div>
             <div className="flex items-center gap-3">
-              {project.links.caseStudy && (
-                <a
-                  href={project.links.caseStudy}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-200/70 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              {hasCaseStudy && (
+                <Link
+                  to={project.links.caseStudy || `/projects/${project.id}`}
+                  onClick={onClose}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   <span>Case Study</span>
-                </a>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               )}
               {project.links.github && (
                 <a
