@@ -1,6 +1,17 @@
-from django.test import TestCase
+import io
+import os
+import tempfile
+
+from django.test import TestCase, override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework.test import APIClient
+
 from apps.resume.models import ResumeDocument, ResumeDataRecord
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Model Tests
+# ──────────────────────────────────────────────────────────────────────────────
 
 class ResumeModelTests(TestCase):
     def test_resume_document_creation(self):
@@ -26,6 +37,10 @@ class ResumeModelTests(TestCase):
         self.assertTrue(record.is_active)
         self.assertIn('Resume State [v2026-ATS] (Active)', str(record))
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Serializer Tests
+# ──────────────────────────────────────────────────────────────────────────────
 
 class ResumeSerializerTests(TestCase):
     def test_resume_data_record_serializer_camel_case_mappings(self):
@@ -70,9 +85,12 @@ class ResumeSerializerTests(TestCase):
         self.assertTrue(doc_data['isActive'])
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Phase 4B API Tests (preserved)
+# ──────────────────────────────────────────────────────────────────────────────
+
 class ResumeAPITests(TestCase):
     def setUp(self):
-        from rest_framework.test import APIClient
         self.client = APIClient()
         self.record = ResumeDataRecord.objects.create(
             version_tag='Production-2026',
@@ -100,3 +118,106 @@ class ResumeAPITests(TestCase):
         self.assertEqual(response.json()['fileName'], 'Manoj_KC_Resume.pdf')
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Phase 4C: Resume Binary Download Tests
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ResumeDownloadTests(TestCase):
+    """Phase 4C: GET /api/v1/resume/download/ binary PDF endpoint."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = '/api/v1/resume/download/'
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_successful_resume_download_returns_200(self):
+        """Active document with a real file returns 200 FileResponse."""
+        pdf_bytes = b'%PDF-1.4 fake-pdf-content-for-testing'
+        uploaded = SimpleUploadedFile(
+            name='Manoj_KC_Resume.pdf',
+            content=pdf_bytes,
+            content_type='application/pdf',
+        )
+        doc = ResumeDocument.objects.create(
+            file_name='Manoj_KC_Resume.pdf',
+            mime_type='application/pdf',
+            file_size=len(pdf_bytes),
+            version_tag='v2.0',
+            is_active=True,
+            file=uploaded,
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_resume_download_content_type_is_pdf(self):
+        """Response Content-Type must be application/pdf."""
+        pdf_bytes = b'%PDF-1.4 fake-pdf-content-for-testing'
+        uploaded = SimpleUploadedFile(
+            name='Manoj_KC_Resume.pdf',
+            content=pdf_bytes,
+            content_type='application/pdf',
+        )
+        ResumeDocument.objects.create(
+            file_name='Manoj_KC_Resume.pdf',
+            mime_type='application/pdf',
+            file_size=len(pdf_bytes),
+            version_tag='v2.0',
+            is_active=True,
+            file=uploaded,
+        )
+        response = self.client.get(self.url)
+        self.assertIn('application/pdf', response.get('Content-Type', ''))
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_resume_download_content_disposition_uses_stored_filename(self):
+        """Content-Disposition attachment filename must match the stored file_name field."""
+        pdf_bytes = b'%PDF-1.4 fake-pdf-content-for-testing'
+        uploaded = SimpleUploadedFile(
+            name='Manoj_KC_Resume.pdf',
+            content=pdf_bytes,
+            content_type='application/pdf',
+        )
+        ResumeDocument.objects.create(
+            file_name='Manoj_KC_Backend_Engineer_Resume.pdf',
+            mime_type='application/pdf',
+            file_size=len(pdf_bytes),
+            version_tag='v2.0',
+            is_active=True,
+            file=uploaded,
+        )
+        response = self.client.get(self.url)
+        content_disposition = response.get('Content-Disposition', '')
+        self.assertIn('attachment', content_disposition)
+        self.assertIn('Manoj_KC_Backend_Engineer_Resume.pdf', content_disposition)
+
+    def test_no_active_resume_document_returns_404(self):
+        """When no active ResumeDocument exists, endpoint returns 404."""
+        ResumeDocument.objects.all().delete()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_inactive_resume_document_returns_404(self):
+        """When only inactive documents exist, endpoint returns 404."""
+        ResumeDocument.objects.create(
+            file_name='Old_Resume.pdf',
+            mime_type='application/pdf',
+            file_size=1024,
+            version_tag='v1.0',
+            is_active=False,
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_active_document_without_file_returns_404(self):
+        """Active document with no file attached returns 404."""
+        ResumeDocument.objects.create(
+            file_name='Manoj_KC_Resume.pdf',
+            mime_type='application/pdf',
+            file_size=0,
+            version_tag='v2.0',
+            is_active=True,
+            # file field left blank
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 404)
