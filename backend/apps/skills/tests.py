@@ -59,3 +59,34 @@ class SkillSerializerTests(TestCase):
         self.assertEqual(data['skills'][0]['iconName'], 'Database')
         self.assertTrue(data['skills'][0]['highlight'])
 
+
+class SkillAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.cat = SkillCategory.objects.create(
+            id='backend',
+            title='Backend & APIs',
+            order=1
+        )
+        SkillItem.objects.create(
+            category=self.cat,
+            name='Python',
+            icon_name='Code',
+            highlight=True,
+            proficiency='Advanced',
+            level='advanced',
+            years=3.0,
+            order=1
+        )
+
+    def test_public_skills_list_endpoint(self):
+        response = self.client.get('/api/v1/skills/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'backend')
+        self.assertEqual(len(data[0]['skills']), 1)
+        self.assertEqual(data[0]['skills'][0]['name'], 'Python')
+
+

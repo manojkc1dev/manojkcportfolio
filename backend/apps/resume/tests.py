@@ -69,3 +69,34 @@ class ResumeSerializerTests(TestCase):
         self.assertEqual(doc_data['versionTag'], 'v2.1')
         self.assertTrue(doc_data['isActive'])
 
+
+class ResumeAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.record = ResumeDataRecord.objects.create(
+            version_tag='Production-2026',
+            target_headline='Backend Software Engineer',
+            summary_text='Experienced Django developer',
+            is_active=True
+        )
+        self.doc = ResumeDocument.objects.create(
+            file_name='Manoj_KC_Resume.pdf',
+            mime_type='application/pdf',
+            file_size=102400,
+            version_tag='v2.0',
+            is_active=True
+        )
+
+    def test_public_active_resume_data_endpoint(self):
+        response = self.client.get('/api/v1/resume/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['versionTag'], 'Production-2026')
+        self.assertEqual(response.json()['targetHeadline'], 'Backend Software Engineer')
+
+    def test_public_resume_metadata_endpoint(self):
+        response = self.client.get('/api/v1/resume/metadata/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['fileName'], 'Manoj_KC_Resume.pdf')
+
+

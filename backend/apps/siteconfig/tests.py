@@ -123,3 +123,41 @@ class SiteConfigSerializerTests(TestCase):
         self.assertEqual(data['items'][0]['name'], 'Linux Workstation')
         self.assertEqual(data['items'][0]['why'], 'Native Docker execution')
 
+
+class SiteConfigAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.profile = SiteProfile.objects.create(
+            id='main',
+            name='Manoj Khatri',
+            title='Backend Software Engineer',
+            email='manojkc1dev@gmail.com'
+        )
+        self.cat = UseCategory.objects.create(title='Hardware', order=1)
+        UseItem.objects.create(category=self.cat, name='Linux Workstation', why='Native dev', order=1)
+        self.curr = CurrentItem.objects.create(
+            id='ats-resume',
+            title='ATS Resume Builder',
+            description='Resume tool',
+            status='active',
+            progress=70
+        )
+
+    def test_public_profile_endpoint(self):
+        response = self.client.get('/api/v1/profile/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['name'], 'Manoj Khatri')
+
+    def test_public_uses_endpoint(self):
+        response = self.client.get('/api/v1/uses/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+
+    def test_public_currently_building_endpoint(self):
+        response = self.client.get('/api/v1/currently-building/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]['id'], 'ats-resume')
+
+

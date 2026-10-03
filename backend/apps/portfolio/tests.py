@@ -138,3 +138,63 @@ class PortfolioSerializerTests(TestCase):
         self.assertEqual(data['techStackTable'][0]['layer'], 'Cache')
         self.assertEqual(data['techStackTable'][0]['choice'], 'Redis 7')
 
+
+class ProjectAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.pub_project = Project.objects.create(
+            id='agritech',
+            slug='agritech',
+            title='AgriTech Marketplace Platform',
+            tagline='B2B auction system',
+            description='Django backend',
+            category='backend',
+            year=2025,
+            status='live',
+            visibility='Published',
+            featured=True
+        )
+        self.draft_project = Project.objects.create(
+            id='secret-proto',
+            slug='secret-proto',
+            title='Secret Prototype',
+            description='Unreleased project',
+            category='tools',
+            visibility='Draft',
+            featured=False
+        )
+
+    def test_public_project_list_returns_published_only(self):
+        response = self.client.get('/api/v1/projects/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'agritech')
+        self.assertEqual(data[0]['title'], 'AgriTech Marketplace Platform')
+
+    def test_public_project_filter_by_category_and_featured(self):
+        response = self.client.get('/api/v1/projects/?category=backend&featured=true')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'agritech')
+
+        empty_resp = self.client.get('/api/v1/projects/?category=tools')
+        self.assertEqual(empty_resp.status_code, 200)
+        self.assertEqual(len(empty_resp.json()), 0)
+
+    def test_public_project_detail_by_slug_and_404_for_draft_or_missing(self):
+        response = self.client.get('/api/v1/projects/agritech/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['id'], 'agritech')
+
+        # Draft project should not be accessible
+        draft_resp = self.client.get('/api/v1/projects/secret-proto/')
+        self.assertEqual(draft_resp.status_code, 404)
+
+        # Missing project should return 404
+        missing_resp = self.client.get('/api/v1/projects/nonexistent-project/')
+        self.assertEqual(missing_resp.status_code, 404)
+
+

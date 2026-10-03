@@ -63,3 +63,13 @@ class InquirySerializerTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn('message', serializer.errors)
 
+
+class InquiryAccessTests(TestCase):
+    def test_inquiries_list_not_exposed_publicly(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        response = client.get('/api/v1/inquiries/')
+        # Should return 404 since no public inquiries list route exists in Phase 4B
+        self.assertEqual(response.status_code, 404)
+
+

@@ -41,3 +41,39 @@ class ServiceSerializerTests(TestCase):
         self.assertEqual(data['coverImage'], '/images/api.png')
         self.assertEqual(data['features'], ['Microservices', 'PostgreSQL'])
 
+
+class ServiceAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.pub_svc = Service.objects.create(
+            id='api-arch',
+            title='REST API Architecture',
+            slug='api-arch',
+            short_summary='Enterprise REST design',
+            visibility='Published'
+        )
+        self.draft_svc = Service.objects.create(
+            id='draft-svc',
+            title='Draft Service',
+            slug='draft-svc',
+            short_summary='Draft',
+            visibility='Draft'
+        )
+
+    def test_public_service_list_returns_published(self):
+        response = self.client.get('/api/v1/services/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'api-arch')
+
+    def test_public_service_detail_and_404_for_draft(self):
+        response = self.client.get('/api/v1/services/api-arch/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['id'], 'api-arch')
+
+        draft_resp = self.client.get('/api/v1/services/draft-svc/')
+        self.assertEqual(draft_resp.status_code, 404)
+
+

@@ -52,3 +52,41 @@ class BlogSerializerTests(TestCase):
         self.assertEqual(detail_data['content'], '## Detailed article body\n\n```python\n# code here\n```')
         self.assertEqual(detail_data['readingTime'], 7)
 
+
+class BlogAPITests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        self.pub_article = Article.objects.create(
+            id='pg-indexing',
+            title='Mastering PostgreSQL Indexing',
+            slug='pg-indexing',
+            excerpt='Indexing article',
+            content='## Detailed article markdown',
+            visibility='Published'
+        )
+        self.draft_article = Article.objects.create(
+            id='draft-article',
+            title='Draft Article',
+            slug='draft-article',
+            excerpt='Draft excerpt',
+            content='Draft content',
+            visibility='Draft'
+        )
+
+    def test_public_articles_list_returns_published_only(self):
+        response = self.client.get('/api/v1/articles/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]['id'], 'pg-indexing')
+
+    def test_public_article_detail_and_404_for_draft(self):
+        response = self.client.get('/api/v1/articles/pg-indexing/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['id'], 'pg-indexing')
+        self.assertEqual(response.json()['content'], '## Detailed article markdown')
+
+        draft_resp = self.client.get('/api/v1/articles/draft-article/')
+        self.assertEqual(draft_resp.status_code, 404)
+
+
