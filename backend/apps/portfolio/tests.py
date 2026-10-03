@@ -63,3 +63,78 @@ class PortfolioModelTests(TestCase):
         )
         self.assertEqual(self.project.tech_choices_items.count(), 1)
         self.assertIn('Database - PostgreSQL 16', str(tc))
+
+
+class PortfolioSerializerTests(TestCase):
+    def setUp(self):
+        self.project = Project.objects.create(
+            id='agritech',
+            slug='agritech',
+            title='AgriTech Marketplace Platform',
+            tagline='Scalable B2B produce auction API',
+            description='Django backend with payment gateways',
+            category='backend',
+            year=2025,
+            status='live',
+            featured=True,
+            image='/images/agritech.png',
+            highlights=['Sub-100ms latency', '10K orders processed'],
+            tech=['Django', 'PostgreSQL', 'Redis'],
+            what_i_built=['Auction bidding engine', 'Escrow reconciliation'],
+            lessons_learned=['Optimistic concurrency control'],
+            related_projects=['hospital-management'],
+            live_url='https://agritech.example.com',
+            github_url='https://github.com/manojkc1dev/agritech',
+            case_study_url='/projects/agritech',
+            api_docs_url='https://api.agritech.example.com/docs'
+        )
+        ProjectMetric.objects.create(
+            project=self.project,
+            label='Latency',
+            value='45ms',
+            icon='speed',
+            order=1
+        )
+        ProjectChallenge.objects.create(
+            project=self.project,
+            title='High-concurrency bidding',
+            problem='Auction bids collision',
+            approach='Redis distributed locks',
+            outcome='Zero race conditions',
+            order=1
+        )
+        TechChoice.objects.create(
+            project=self.project,
+            layer='Cache',
+            choice='Redis 7',
+            why='Sub-millisecond latency',
+            order=1
+        )
+
+    def test_project_detail_serializer_camel_case_mappings_and_nested_data(self):
+        from apps.portfolio.serializers import ProjectDetailSerializer
+        serializer = ProjectDetailSerializer(self.project)
+        data = serializer.data
+
+        self.assertEqual(data['id'], 'agritech')
+        self.assertEqual(data['title'], 'AgriTech Marketplace Platform')
+        self.assertEqual(data['whatIBuilt'], ['Auction bidding engine', 'Escrow reconciliation'])
+        self.assertEqual(data['lessonsLearned'], ['Optimistic concurrency control'])
+        self.assertEqual(data['relatedProjects'], ['hospital-management'])
+        self.assertEqual(data['liveUrl'], 'https://agritech.example.com')
+        self.assertEqual(data['githubUrl'], 'https://github.com/manojkc1dev/agritech')
+        self.assertEqual(data['caseStudyUrl'], '/projects/agritech')
+        self.assertEqual(data['apiDocsUrl'], 'https://api.agritech.example.com/docs')
+
+        # Verify nested structures
+        self.assertEqual(len(data['metrics']), 1)
+        self.assertEqual(data['metrics'][0]['label'], 'Latency')
+        self.assertEqual(data['metrics'][0]['value'], '45ms')
+
+        self.assertEqual(len(data['challenges']), 1)
+        self.assertEqual(data['challenges'][0]['title'], 'High-concurrency bidding')
+
+        self.assertEqual(len(data['techStackTable']), 1)
+        self.assertEqual(data['techStackTable'][0]['layer'], 'Cache')
+        self.assertEqual(data['techStackTable'][0]['choice'], 'Redis 7')
+

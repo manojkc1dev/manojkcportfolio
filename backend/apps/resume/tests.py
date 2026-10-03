@@ -25,3 +25,47 @@ class ResumeModelTests(TestCase):
         )
         self.assertTrue(record.is_active)
         self.assertIn('Resume State [v2026-ATS] (Active)', str(record))
+
+
+class ResumeSerializerTests(TestCase):
+    def test_resume_data_record_serializer_camel_case_mappings(self):
+        from apps.resume.serializers import ResumeDataRecordSerializer, ResumeDocumentMetadataSerializer
+        record = ResumeDataRecord.objects.create(
+            version_tag='Production-2026',
+            target_headline='Backend Software Engineer',
+            summary_text='Experienced developer with Django & PostgreSQL focus.',
+            resume_url='/resume.pdf',
+            file_name='Manoj_KC_Resume.pdf',
+            customization={'templateStyle': 'ats-classic', 'fontFamily': 'Inter'},
+            sections_data=[{'id': 'sec-exp', 'type': 'experience', 'title': 'Experience', 'entries': []}],
+            is_active=True
+        )
+
+        serializer = ResumeDataRecordSerializer(record)
+        data = serializer.data
+
+        self.assertEqual(data['versionTag'], 'Production-2026')
+        self.assertEqual(data['targetHeadline'], 'Backend Software Engineer')
+        self.assertEqual(data['summaryText'], 'Experienced developer with Django & PostgreSQL focus.')
+        self.assertEqual(data['resumeUrl'], '/resume.pdf')
+        self.assertEqual(data['fileName'], 'Manoj_KC_Resume.pdf')
+        self.assertEqual(data['customization']['templateStyle'], 'ats-classic')
+        self.assertEqual(len(data['sectionsData']), 1)
+        self.assertTrue(data['isActive'])
+
+        doc = ResumeDocument.objects.create(
+            file_name='Manoj_KC_CV.pdf',
+            mime_type='application/pdf',
+            file_size=204800,
+            version_tag='v2.1',
+            is_active=True
+        )
+        doc_serializer = ResumeDocumentMetadataSerializer(doc)
+        doc_data = doc_serializer.data
+
+        self.assertEqual(doc_data['fileName'], 'Manoj_KC_CV.pdf')
+        self.assertEqual(doc_data['mimeType'], 'application/pdf')
+        self.assertEqual(doc_data['fileSize'], 204800)
+        self.assertEqual(doc_data['versionTag'], 'v2.1')
+        self.assertTrue(doc_data['isActive'])
+

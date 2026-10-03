@@ -28,3 +28,34 @@ class SkillsModelTests(TestCase):
         self.assertEqual(self.category.skills.count(), 1)
         self.assertEqual(self.category.skills.first().name, 'Python')
         self.assertIn('Python (Backend & APIs)', str(skill))
+
+
+class SkillSerializerTests(TestCase):
+    def test_skill_category_nested_serialization(self):
+        from apps.skills.serializers import SkillCategorySerializer
+        category = SkillCategory.objects.create(
+            id='databases',
+            title='Databases & Caching',
+            description='PostgreSQL and Redis',
+            order=2
+        )
+        SkillItem.objects.create(
+            category=category,
+            name='PostgreSQL 16',
+            icon_name='Database',
+            highlight=True,
+            proficiency='Advanced',
+            level='expert',
+            years=3.0,
+            order=1
+        )
+        serializer = SkillCategorySerializer(category)
+        data = serializer.data
+
+        self.assertEqual(data['id'], 'databases')
+        self.assertEqual(data['title'], 'Databases & Caching')
+        self.assertEqual(len(data['skills']), 1)
+        self.assertEqual(data['skills'][0]['name'], 'PostgreSQL 16')
+        self.assertEqual(data['skills'][0]['iconName'], 'Database')
+        self.assertTrue(data['skills'][0]['highlight'])
+

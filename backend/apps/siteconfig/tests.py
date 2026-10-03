@@ -57,3 +57,69 @@ class SiteConfigModelTests(TestCase):
         call_command('seed_initial_data')
         self.assertTrue(Project.objects.filter(id='agritech').exists())
         self.assertTrue(SiteProfile.objects.filter(id='main').exists())
+
+
+class SiteConfigSerializerTests(TestCase):
+    def test_site_profile_serializer_nested_stats_and_socials(self):
+        from apps.siteconfig.serializers import SiteProfileSerializer
+        profile = SiteProfile.objects.create(
+            id='main',
+            name='Manoj Khatri',
+            title='Backend Software Engineer',
+            tagline='Backend systems engineered for scale',
+            email='manojkc1dev@gmail.com',
+            resume_url='/resume.pdf'
+        )
+        ProfileStat.objects.create(
+            profile=profile,
+            stat_id='projects',
+            label='Production Projects',
+            value='3+',
+            icon_name='Code2',
+            order=1
+        )
+        SocialLink.objects.create(
+            profile=profile,
+            name='GitHub',
+            url='https://github.com/manojkc1dev',
+            icon='Github',
+            handle='@manojkc1dev',
+            order=1
+        )
+
+        serializer = SiteProfileSerializer(profile)
+        data = serializer.data
+
+        self.assertEqual(data['id'], 'main')
+        self.assertEqual(data['name'], 'Manoj Khatri')
+        self.assertEqual(data['resumeUrl'], '/resume.pdf')
+        self.assertEqual(len(data['stats']), 1)
+        self.assertEqual(data['stats'][0]['id'], 'projects')
+        self.assertEqual(data['stats'][0]['label'], 'Production Projects')
+        self.assertEqual(data['stats'][0]['iconName'], 'Code2')
+        self.assertEqual(len(data['socials']), 1)
+        self.assertEqual(data['socials'][0]['name'], 'GitHub')
+        self.assertEqual(data['socials'][0]['handle'], '@manojkc1dev')
+
+    def test_use_category_serializer_nested_items(self):
+        from apps.siteconfig.serializers import UseCategorySerializer
+        cat = UseCategory.objects.create(
+            title='Hardware',
+            description='Development machines',
+            order=1
+        )
+        UseItem.objects.create(
+            category=cat,
+            name='Linux Workstation',
+            why='Native Docker execution',
+            tag='Ubuntu',
+            order=1
+        )
+        serializer = UseCategorySerializer(cat)
+        data = serializer.data
+
+        self.assertEqual(data['title'], 'Hardware')
+        self.assertEqual(len(data['items']), 1)
+        self.assertEqual(data['items'][0]['name'], 'Linux Workstation')
+        self.assertEqual(data['items'][0]['why'], 'Native Docker execution')
+
