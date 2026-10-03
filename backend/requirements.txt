@@ -1,6 +1,7 @@
 # Django & DRF Core
 Django>=5.1.0,<5.2.0
 djangorestframework>=3.15.2
+djangorestframework-simplejwt>=5.3.1
 django-cors-headers>=4.4.0
 
 # Database & Environment

@@ -1,0 +1,1 @@
+"""Skills & Technical Proficiencies Application."""

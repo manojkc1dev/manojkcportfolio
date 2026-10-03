@@ -9,6 +9,12 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # API v1 versioned endpoints
+
+    # Versioned API Endpoints
     path('api/v1/', include('apps.core_api.urls', namespace='v1_core')),
+    path('api/v1/auth/', include('apps.authentication.urls', namespace='v1_auth')),
+
+    # Compatibility Aliases for Frontend Client
+    path('api/auth/', include('apps.authentication.urls')),
+    path('api/token/', include('apps.authentication.urls')),
 ]

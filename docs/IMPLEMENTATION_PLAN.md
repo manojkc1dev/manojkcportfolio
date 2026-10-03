@@ -360,3 +360,81 @@ graph TD
 - **Phase 9 — Production Deployment & Release** (Deploy API, configure DNS, perform final sanity check)
 
 ---
+### Detailed Phase Breakdown
+
+#### Phase 1 – Django Foundation & Environment Setup
+- **Task 1.1**: Initialize Git repository and create `backend/` directory.
+- **Task 1.2**: Set up Python 3.12 virtual environment (`python -m venv .venv`).
+- **Task 1.3**: Add `requirements.txt` with Django, djangorestframework, django-cors-headers, psycopg2-binary, python-dotenv, redis, celery, djangorestframework-simplejwt.
+- **Task 1.4**: Scaffold Django project `core` and core app `core_api`.
+- **Task 1.5**: Create settings modules: `base.py`, `development.py`, `production.py` with environment variable loading via `django-environ`.
+- **Task 1.6**: Configure PostgreSQL connection using `DATABASE_URL`.
+- **Task 1.7**: Configure CORS (`CORS_ALLOWED_ORIGINS`) and CSRF.
+- **Task 1.8**: Add health‑check endpoint `/api/v1/health/` returning `{"status":"ok"}`.
+- **Task 1.9**: Set up API versioning (`DEFAULT_VERSION = 'v1'`, `DEFAULT_VERSIONING_CLASS = 'rest_framework.versioning.NamespaceVersioning'`).
+- **Task 1.10**: Add `manage.py runserver` scripts for dev and production (Gunicorn).
+- **Deliverable**: Working Django project that starts with `python manage.py runserver` and responds to health check.
+
+#### Phase 2 – Core Database Models & Migrations
+- **Task 2.1**: Implement `portfolio`, `skills`, `experience`, `inquiries`, `blog`, `services`, `resume`, `siteconfig` apps with model definitions matching the front‑end TypeScript types.
+- **Task 2.2**: Write model field constraints, indexes, and `__str__` methods.
+- **Task 2.3**: Generate initial migrations and apply them against local PostgreSQL.
+- **Task 2.4**: Add admin registrations for each model (read‑only for now).
+- **Task 2.5**: Create fixture JSON files for seed data (optional).
+- **Deliverable**: All tables created, migrations pass, and admin site accessible.
+
+#### Phase 3 – Authentication & Security Subsystem
+- **Task 3.1**: Create custom User model extending `AbstractUser`.
+- **Task 3.2**: Install `djangorestframework-simplejwt` and configure token lifetimes.
+- **Task 3.3**: Implement token obtain, refresh, and password‑change endpoints under `/api/v1/auth/`.
+- **Task 3.4**: Add JWT blacklist using Redis and DRF `TokenBlacklist` app.
+- **Task 3.5**: Write permission classes (`IsAdminUser`, `IsOwnerOrReadOnly`) and integrate with viewsets.
+- **Task 3.6**: Add audit logging middleware for login attempts.
+- **Deliverable**: Secure JWT auth flow with tests covering token issuance, refresh, revocation.
+
+#### Phase 4 – Public REST API Layer
+- **Task 4.1**: Implement read‑only viewsets/serializers for Projects, Skills, Experience, Articles, SiteProfile, Uses, Resume data.
+- **Task 4.2**: Ensure serializers output camelCase keys via `camelize` utility.
+- **Task 4.3**: Add pagination, filtering where required (e.g., project category).
+- **Task 4.4**: Implement contact form endpoint `/api/v1/contact/` with validation, honeypot, and synchronous DB save.
+- **Task 4.5**: Set up rate‑limiting middleware (optional).
+- **Deliverable**: All public endpoints pass contract tests and return data matching frontend types.
+
+#### Phase 5 – Administrative CMS API Layer
+- **Task 5.1**: Protect admin routes with `IsAuthenticated & IsAdminUser`.
+- **Task 5.2**: Create CRUD viewsets for each core model under `/api/v1/admin/`.
+- **Task 5.3**: Add file upload handling for resume PDFs using `FileField` and `FileResponse`.
+- **Task 5.4**: Implement bulk update endpoints where the UI expects them.
+- **Task 5.5**: Write OpenAPI schema generation (`drf-spectacular` optional) for frontend consumption.
+- **Deliverable**: Admin UI can perform all CRUD operations without UI changes.
+
+#### Phase 6 – Frontend Integration Strategy
+- **Task 6.1**: Update `src/lib/djangoApi.ts` to point to `VITE_DJANGO_API_URL`.
+- **Task 6.2**: Add Axios interceptor for JWT refresh (401 → token refresh → retry).
+- **Task 6.3**: Provide fallback to mock data when API is unreachable.
+- **Task 6.4**: Verify TypeScript typings against DRF serializer output (e.g., using `ts-json-schema-generator`).
+- **Deliverable**: Frontend runs against live API with zero UI regression.
+
+#### Phase 7 – Asynchronous Tasks & Caching
+- **Task 7.1**: Configure Celery app (`celery.py`) with Redis broker/result backend.
+- **Task 7.2**: Implement email notification task for new inquiries.
+- **Task 7.3**: Add cache decorators on list endpoints (1‑hour TTL) and invalidate on `post_save`/`post_delete`.
+- **Task 7.4**: Set up SimpleJWT token blacklist storage in Redis.
+- **Deliverable**: Background jobs execute reliably; cache improves response times.
+
+#### Phase 8 – End‑to‑End Testing & Verification
+- **Task 8.1**: Write integration tests exercising full request/response cycle (including auth).
+- **Task 8.2**: Run the full frontend Vitest suite against the live API (use `VITE_DJANGO_API_URL` pointing to dev server).
+- **Task 8.3**: Measure coverage; enforce ≥90 % for backend.
+- **Task 8.4**: Perform manual UI smoke test for admin portal.
+- **Deliverable**: Automated test pipeline passing on CI.
+
+#### Phase 9 – Production Deployment & Release
+- **Task 9.1**: Containerize backend with Dockerfile (multi‑stage build, gunicorn entrypoint).
+- **Task 9.2**: Write `docker-compose.yml` for local dev (Postgres, Redis, Celery worker, Django, Vite).
+- **Task 9.3**: Configure CI/CD pipeline (GitHub Actions) to build, run tests, push Docker image, and deploy to Render/DigitalOcean.
+- **Task 9.4**: Set environment variables in production, enable HTTPS, configure allowed hosts.
+- **Task 9.5**: Perform final health‑check monitoring and roll‑out.
+- **Deliverable**: Live API at `https://api.manojkc1.com.np` with zero downtime.
+
+---

@@ -1,0 +1,1 @@
+"""Portfolio showcase application."""
