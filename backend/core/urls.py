@@ -6,6 +6,10 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 from django.contrib import admin
 from django.urls import path, include
+from apps.authentication.views import (
+    PortfolioTokenObtainPairView,
+    ChangePasswordView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -15,6 +19,7 @@ urlpatterns = [
     path('api/v1/auth/', include('apps.authentication.urls', namespace='v1_auth')),
 
     # Compatibility Aliases for Frontend Client
-    path('api/auth/', include('apps.authentication.urls')),
-    path('api/token/', include('apps.authentication.urls')),
+    path('api/token/', PortfolioTokenObtainPairView.as_view(), name='compat_token_obtain_pair'),
+    path('api/auth/login/', PortfolioTokenObtainPairView.as_view(), name='compat_auth_login'),
+    path('api/auth/change-password/', ChangePasswordView.as_view(), name='compat_auth_change_password'),
 ]

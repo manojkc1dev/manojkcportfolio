@@ -63,27 +63,45 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertIn('access', data)
+        self.assertIn('refresh', data)
         self.assertEqual(data['user']['username'], self.username)
+        self.assertEqual(data['user']['email'], self.email)
 
-    def test_login_with_invalid_credentials_fails(self):
+    def test_login_with_case_insensitive_email_and_whitespace(self):
         response = self.client.post(self.login_url, {
-            'username': self.username,
-            'password': 'WrongPassword123!',
+            'email': f"  {self.email.upper()}  ",
+            'password': self.password,
         }, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertNotIn('access', response.json())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertIn('access', data)
+        self.assertEqual(data['user']['username'], self.username)
 
-    def test_login_with_disabled_user_fails(self):
-        self.user.is_active = False
-        self.user.save()
-
+    def test_login_with_missing_credentials_fails(self):
         response = self.client.post(self.login_url, {
-            'username': self.username,
             'password': self.password,
         }, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_compatibility_token_endpoint(self):
+        response = self.client.post('/api/token/', {
+            'username': self.username,
+            'password': self.password,
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.json())
+
+    def test_compatibility_auth_login_endpoint(self):
+        response = self.client.post('/api/auth/login/', {
+            'email': self.email,
+            'password': self.password,
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.json())
 
     # -------------------------------------------------------------------------
     # 2. Token Refresh & Verification

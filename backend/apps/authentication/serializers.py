@@ -34,9 +34,31 @@ class PortfolioTokenObtainPairSerializer(TokenObtainPairSerializer):
     returning access & refresh tokens along with safe user metadata.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields[self.username_field] = serializers.CharField(
+            required=False,
+            allow_blank=True,
+            write_only=True,
+            help_text="Username or email address."
+        )
+        self.fields['email'] = serializers.CharField(
+            required=False,
+            allow_blank=True,
+            write_only=True,
+            help_text="Optional explicit email field for email-based login."
+        )
+
     def validate(self, attrs):
-        username_or_email = attrs.get('username') or attrs.get('email')
+        request = self.context.get('request')
+        raw_username = attrs.get('username')
+        raw_email = attrs.get('email')
         password = attrs.get('password')
+
+        username_or_email = (
+            (raw_username.strip() if isinstance(raw_username, str) and raw_username.strip() else None)
+            or (raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None)
+        )
 
         if not username_or_email or not password:
             raise serializers.ValidationError('Both username/email and password are required.')
@@ -44,13 +66,13 @@ class PortfolioTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = None
 
         # 1. Try authenticating as username
-        user = authenticate(username=username_or_email, password=password)
+        user = authenticate(request=request, username=username_or_email, password=password)
 
         # 2. If unsuccessful, try resolving user by email
-        if user is None and '@' in username_or_email:
+        if user is None:
             try:
                 user_obj = User.objects.get(email__iexact=username_or_email)
-                user = authenticate(username=user_obj.username, password=password)
+                user = authenticate(request=request, username=user_obj.username, password=password)
             except (User.DoesNotExist, User.MultipleObjectsReturned):
                 user = None
 
