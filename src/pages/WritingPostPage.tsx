@@ -4,11 +4,34 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArrowLeft, Calendar, Clock, Tag } from 'lucide-react';
 import { Seo } from '../components/Seo';
-import { posts, type Post } from '../data/writing';
+import { useArticle } from '../hooks/useWriting';
 
 export const WritingPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const post: Post | undefined = posts.find((p) => p.slug === slug);
+  const { data: post, loading } = useArticle(slug);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8" aria-busy="true" aria-label="Loading article">
+        <div className="mb-8">
+          <Link
+            to="/writing"
+            className="inline-flex items-center gap-2 text-xs font-mono text-neutral-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>All Articles</span>
+          </Link>
+        </div>
+
+        <div className="animate-pulse space-y-6">
+          <div className="h-4 w-40 bg-neutral-200 dark:bg-neutral-800 rounded" />
+          <div className="h-10 w-3/4 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+          <div className="h-6 w-full bg-neutral-200/60 dark:bg-neutral-800/60 rounded" />
+          <div className="h-64 w-full bg-neutral-200/40 dark:bg-neutral-800/40 rounded-2xl mt-8" />
+        </div>
+      </main>
+    );
+  }
 
   if (!post) {
     return (
@@ -36,7 +59,7 @@ export const WritingPostPage: React.FC = () => {
         title={`${post.title} | Manoj K.C.`}
         description={post.excerpt}
         canonical={`https://manojkc1.com.np/writing/${post.slug}`}
-        ogImage={post.coverImage || 'https://manojkc1.com.np/og-image.png'}
+        ogImage={post.headerImage || 'https://manojkc1.com.np/og-image.png'}
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'BlogPosting',
@@ -45,7 +68,7 @@ export const WritingPostPage: React.FC = () => {
           datePublished: post.date,
           author: {
             '@type': 'Person',
-            name: 'Manoj K.C.',
+            name: post.authorName || 'Manoj K.C.',
             url: 'https://manojkc1.com.np/',
           },
           publisher: {
@@ -73,7 +96,7 @@ export const WritingPostPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-neutral-500 dark:text-neutral-400 mb-4">
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
-              <span>{post.date}</span>
+              <span>{post.date || 'Recent'}</span>
             </span>
             <span>&bull;</span>
             <span className="inline-flex items-center gap-1.5">
@@ -91,7 +114,7 @@ export const WritingPostPage: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap gap-1.5">
-            {post.tags.map((tag) => (
+            {(post.tags || []).map((tag) => (
               <span
                 key={tag}
                 className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-mono rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200/70 dark:border-neutral-700/60"
