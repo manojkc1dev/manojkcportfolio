@@ -4,6 +4,7 @@ API Views for Inbound Client Inquiries and Public Contact Form Ingestion.
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.throttling import AnonRateThrottle
 from .models import Inquiry
 from .serializers import InquiryCreateSerializer
 
@@ -14,6 +15,7 @@ class InquiryCreateView(generics.CreateAPIView):
     and input sanitization.
     """
     permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
     serializer_class = InquiryCreateSerializer
     queryset = Inquiry.objects.all()
 

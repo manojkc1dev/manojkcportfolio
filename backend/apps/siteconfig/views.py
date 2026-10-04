@@ -1,12 +1,13 @@
 """
 Public Read-Only API Views for Site Profile, Workstation Setup, and Active Building Roadmap.
 """
+from django.db.models import Prefetch
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from .models import SiteProfile, UseCategory, CurrentItem
+from .models import SiteProfile, SocialLink, UseCategory, CurrentItem
 from .serializers import SiteProfileSerializer, UseCategorySerializer, CurrentItemSerializer
 
 
@@ -15,13 +16,14 @@ class SiteProfileView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
+        visible_socials = Prefetch('socials_items', queryset=SocialLink.objects.filter(visible=True))
         profile = (
-            SiteProfile.objects.prefetch_related('stats_items', 'socials_items')
+            SiteProfile.objects.prefetch_related('stats_items', visible_socials)
             .filter(id='main')
             .first()
         )
         if not profile:
-            profile = SiteProfile.objects.prefetch_related('stats_items', 'socials_items').first()
+            profile = SiteProfile.objects.prefetch_related('stats_items', visible_socials).first()
         if not profile:
             return Response({'detail': 'Site profile not configured.'}, status=status.HTTP_404_NOT_FOUND)
         serializer = SiteProfileSerializer(profile)

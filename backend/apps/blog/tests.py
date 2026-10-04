@@ -89,4 +89,53 @@ class BlogAPITests(TestCase):
         draft_resp = self.client.get('/api/v1/articles/draft-article/')
         self.assertEqual(draft_resp.status_code, 404)
 
+    def test_public_articles_filter_by_category(self):
+        """Verify ?category=... returns only matching published articles."""
+        Article.objects.create(
+            id='docker-cicd',
+            title='Docker CI/CD Pipelines',
+            slug='docker-cicd',
+            category='DevOps',
+            excerpt='CI/CD guide',
+            content='Content',
+            visibility='Published'
+        )
+        response = self.client.get('/api/v1/articles/?category=DevOps')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'docker-cicd')
 
+    def test_public_articles_filter_by_featured(self):
+        """Verify ?featured=true returns only matching published articles."""
+        Article.objects.create(
+            id='featured-post',
+            title='Featured Post',
+            slug='featured-post',
+            excerpt='Featured excerpt',
+            content='Content',
+            visibility='Published',
+            featured=True
+        )
+        response = self.client.get('/api/v1/articles/?featured=true')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'featured-post')
+
+    def test_public_articles_filter_by_tag(self):
+        """Verify ?tag=... returns only matching published articles."""
+        Article.objects.create(
+            id='redis-caching',
+            title='Redis Caching Patterns',
+            slug='redis-caching',
+            excerpt='Redis guide',
+            content='Content',
+            visibility='Published',
+            tags_list=['Redis', 'Architecture']
+        )
+        response = self.client.get('/api/v1/articles/?tag=Redis')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'redis-caching')

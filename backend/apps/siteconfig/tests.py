@@ -149,6 +149,28 @@ class SiteConfigAPITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['name'], 'Manoj Khatri')
 
+    def test_public_profile_excludes_invisible_social_links(self):
+        """Regression test: invisible social links (visible=False) must NOT be returned publicly."""
+        SocialLink.objects.create(
+            profile=self.profile,
+            name='GitHub',
+            url='https://github.com/manojkc1dev',
+            visible=True,
+            order=1
+        )
+        SocialLink.objects.create(
+            profile=self.profile,
+            name='SecretNetwork',
+            url='https://secret.network/manoj',
+            visible=False,
+            order=2
+        )
+        response = self.client.get('/api/v1/profile/')
+        self.assertEqual(response.status_code, 200)
+        socials = response.json().get('socials', [])
+        self.assertEqual(len(socials), 1)
+        self.assertEqual(socials[0]['name'], 'GitHub')
+
     def test_public_uses_endpoint(self):
         response = self.client.get('/api/v1/uses/')
         self.assertEqual(response.status_code, 200)
@@ -160,4 +182,24 @@ class SiteConfigAPITests(TestCase):
         self.assertEqual(len(response.json()), 1)
         self.assertEqual(response.json()[0]['id'], 'ats-resume')
 
+    def test_currently_building_filter_by_status(self):
+        """Verify ?status=active filters currently-building items."""
+        CurrentItem.objects.create(
+            id='distributed-scheduler',
+            title='Distributed Task Scheduler',
+            description='Celery-inspired task manager in Go',
+            status='planned',
+            progress=0
+        )
+        # All items
+        all_resp = self.client.get('/api/v1/currently-building/')
+        self.assertEqual(all_resp.status_code, 200)
+        self.assertEqual(len(all_resp.json()), 2)
 
+        # Filtered by status=active
+        active_resp = self.client.get('/api/v1/currently-building/?status=active')
+        self.assertEqual(active_resp.status_code, 200)
+        data = active_resp.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'ats-resume')
+        self.assertEqual(data[0]['status'], 'active')
