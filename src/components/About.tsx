@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Terminal,
 } from 'lucide-react';
-import { profile } from '../data/profile';
+import { useProfile } from '../hooks/useProfile';
 
 interface StatItem {
   value: string;
@@ -49,6 +49,7 @@ const quickStats: StatItem[] = [
 ];
 
 export const About: React.FC = () => {
+  const { data: profile } = useProfile();
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [imgError, setImgError] = useState(false);
 

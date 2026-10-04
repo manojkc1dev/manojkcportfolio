@@ -12,93 +12,48 @@ import {
   Music2,
 } from 'lucide-react';
 import { track } from '../lib/analytics';
+import { useProfile } from '../hooks/useProfile';
+import { getResumeDownloadUrl } from '../lib/api';
 
-const taglines: string[] = [
+/** Fallback taglines used before API data arrives or if API is unavailable. */
+const STATIC_TAGLINES: string[] = [
   'Backend systems engineered for scale, security, and long-term reliability.',
   'I build the backend layer your business can grow on.',
   'Secure by design. Scalable by default. Reliable in production.',
   "Production-grade APIs built for businesses that can't afford downtime.",
 ];
 
-interface SocialItem {
-  name: string;
-  url: string;
-  icon: React.ElementType;
-  handle: string;
-}
-
-const socials: SocialItem[] = [
-  {
-    name: 'GitHub',
-    url: 'https://github.com/manojkc1dev',
-    icon: Github,
-    handle: '@manojkc1dev',
-  },
-  {
-    name: 'LinkedIn',
-    url: 'https://linkedin.com/in/manojkc1dev',
-    icon: Linkedin,
-    handle: '@manojkc1dev',
-  },
-  {
-    name: 'X (Twitter)',
-    url: 'https://twitter.com/manojkc1dev',
-    icon: Twitter,
-    handle: '@manojkc1dev',
-  },
-  {
-    name: 'Instagram',
-    url: 'https://instagram.com/manojkc1dev',
-    icon: Instagram,
-    handle: '@manojkc1dev',
-  },
-  {
-    name: 'Facebook',
-    url: 'https://facebook.com/manojkc1dev',
-    icon: Facebook,
-    handle: '@manojkc1dev',
-  },
-  {
-    name: 'TikTok',
-    url: 'https://tiktok.com/@manojkc1dev',
-    icon: Music2,
-    handle: '@manojkc1dev',
-  },
-];
+/** Map icon string names from Profile.socials to Lucide components. */
+const ICON_MAP: Record<string, React.ElementType> = {
+  Github,
+  Linkedin,
+  Twitter,
+  Instagram,
+  Facebook,
+  Music2,
+};
 
 export const Hero: React.FC = () => {
+  const { data: profile } = useProfile();
   const [currentTaglineIndex, setCurrentTaglineIndex] = useState<number>(0);
   const shouldReduceMotion = useReducedMotion();
   const [spotlightPos, setSpotlightPos] = useState({ x: -1000, y: -1000 });
   const [canSpotlight, setCanSpotlight] = useState(false);
-  const [resumeUrl, setResumeUrl] = useState<string>('/resume.pdf');
-  const [resumeFileName, setResumeFileName] = useState<string>('Manoj_KC_Backend_Engineer_Resume.pdf');
 
-  useEffect(() => {
-    const updateResume = () => {
-      try {
-        const savedData = localStorage.getItem('portfolio_resume_data');
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          if (parsed.resumeUrl) setResumeUrl(parsed.resumeUrl);
-          if (parsed.fileName) setResumeFileName(parsed.fileName);
-        }
-        const savedUpload = localStorage.getItem('portfolio_uploaded_resume');
-        if (savedUpload) {
-          const uploadParsed = JSON.parse(savedUpload);
-          if (uploadParsed.isActive && (uploadParsed.dataUrl || uploadParsed.url)) {
-            setResumeUrl(uploadParsed.dataUrl || uploadParsed.url || '/api/active-resume');
-            setResumeFileName(uploadParsed.fileName || 'Manoj_KC_Resume.pdf');
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-    updateResume();
-    window.addEventListener('portfolio_data_updated', updateResume);
-    return () => window.removeEventListener('portfolio_data_updated', updateResume);
-  }, []);
+  // Derive taglines: use profile.tagline as the primary, prefixed before static list.
+  // If the API returned a tagline different from the default, surface it first.
+  const taglines: string[] = profile.tagline
+    ? [profile.tagline, ...STATIC_TAGLINES.filter((t) => t !== profile.tagline)]
+    : STATIC_TAGLINES;
+
+  // Derive socials with resolved Lucide icons from profile API data.
+  const socials = profile.socials
+    .map((s) => ({ ...s, icon: ICON_MAP[s.icon] ?? Github }))
+    .filter((s) => s.url);
+
+  // Resume download URL: canonical Django endpoint, fallback to profile.resumeUrl.
+  const resumeUrl = getResumeDownloadUrl() || profile.resumeUrl || '/resume.pdf';
+  const resumeFileName = 'Manoj_KC_Backend_Engineer_Resume.pdf';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -138,7 +93,7 @@ export const Hero: React.FC = () => {
     }
   };
 
-  const nameWords = ['Manoj', 'Khatri'];
+  const nameWords = ['Manoj', 'K.C.'];
 
   // Word-by-word entrance variants
   const containerVariants = {
