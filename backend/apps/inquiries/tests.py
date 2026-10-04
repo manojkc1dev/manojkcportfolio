@@ -139,13 +139,13 @@ class InquiryAPITests(TestCase):
         self.assertEqual(saved.name, 'Persistent User')
         self.assertEqual(saved.status, 'New')
 
-    def test_public_inquiry_get_returns_405(self):
+    def test_public_inquiry_get_unauthenticated_returns_401(self):
         """
-        GET /api/v1/inquiries/ must NOT be publicly accessible.
-        CreateAPIView only registers POST; GET returns 405 Method Not Allowed.
+        GET /api/v1/inquiries/ requires authentication.
+        Unauthenticated GET returns 401 Unauthorized.
         """
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 401)
 
     def test_second_honeypot_field_rejection(self):
         payload = {
@@ -158,10 +158,16 @@ class InquiryAPITests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_inquiry_throttle_class_configured(self):
-        """Verify that AnonRateThrottle is configured on InquiryCreateView."""
+        """Verify that AnonRateThrottle is configured for public POST inquiries."""
         from rest_framework.throttling import AnonRateThrottle
-        from apps.inquiries.views import InquiryCreateView
-        self.assertIn(AnonRateThrottle, InquiryCreateView.throttle_classes)
+        from apps.inquiries.views import InquiryListCreateView
+        view = InquiryListCreateView()
+        # Create request mock for POST
+        from django.test.client import RequestFactory
+        req = RequestFactory().post('/api/v1/inquiries/')
+        view.request = req
+        throttles = [type(t) for t in view.get_throttles()]
+        self.assertIn(AnonRateThrottle, throttles)
 
     def test_inquiry_rate_limit_exceeded_returns_429(self):
         """Verify 429 Too Many Requests is returned when anon rate limit is hit."""
@@ -182,3 +188,110 @@ class InquiryAPITests(TestCase):
             resp3 = self.client.post(self.url, payload, format='json')
             self.assertEqual(resp3.status_code, 429)
         cache.clear()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Admin Inquiries API Tests (Phase 5C)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class AdminInquiryAPITests(TestCase):
+    """Phase 5C: Authenticated Admin Inquiries DRF Endpoints."""
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.admin_user = User.objects.create_user(
+            username='admin_test',
+            email='admin@manojkc1.com.np',
+            password='Password123!',
+            is_staff=True
+        )
+        self.client = APIClient()
+        self.inquiry1 = Inquiry.objects.create(
+            name='Elena Rostova',
+            email='elena@example.com',
+            company='Vertex AI',
+            phone='+977 9851011111',
+            message='We want to discuss microservice scaling in Django.',
+            scope_title='Full-Stack Microservices',
+            budget_range='US$2,500–5,000',
+            status='New',
+            read=False,
+            replied=False,
+        )
+        self.inquiry2 = Inquiry.objects.create(
+            name='Devendra Shrestha',
+            email='devendra@example.com',
+            company='FinTech Nepal',
+            phone='+977 9851022222',
+            message='Looking for PostgreSQL audit and query optimization.',
+            scope_title='PostgreSQL Audit',
+            budget_range='NPR 200,000–400,000',
+            status='In Progress',
+            read=True,
+            replied=True,
+        )
+
+    def test_authenticated_admin_can_list_inquiries(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get('/api/v1/inquiries/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 2)
+        names = [item['name'] for item in data]
+        self.assertIn('Elena Rostova', names)
+        self.assertIn('Devendra Shrestha', names)
+        # Verify serialized fields
+        first = data[0]
+        self.assertIn('submittedAt', first)
+        self.assertIn('hasWhatsApp', first)
+        self.assertIn('status', first)
+
+    def test_authenticated_admin_can_retrieve_single_inquiry(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get(f'/api/v1/inquiries/{self.inquiry1.id}/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['id'], str(self.inquiry1.id))
+        self.assertEqual(data['name'], 'Elena Rostova')
+        self.assertEqual(data['scopeTitle'], 'Full-Stack Microservices')
+
+    def test_authenticated_admin_can_update_status_and_read_replied(self):
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            'status': 'Won',
+            'read': True,
+            'replied': True,
+        }
+        response = self.client.patch(f'/api/v1/inquiries/{self.inquiry1.id}/', payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'Won')
+        self.assertTrue(data['read'])
+        self.assertTrue(data['replied'])
+
+        self.inquiry1.refresh_from_db()
+        self.assertEqual(self.inquiry1.status, 'Won')
+        self.assertTrue(self.inquiry1.read)
+        self.assertTrue(self.inquiry1.replied)
+
+    def test_authenticated_admin_can_delete_inquiry(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.delete(f'/api/v1/inquiries/{self.inquiry1.id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Inquiry.objects.filter(id=self.inquiry1.id).exists())
+
+    def test_unauthenticated_delete_returns_401(self):
+        response = self.client.delete(f'/api/v1/inquiries/{self.inquiry1.id}/')
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(Inquiry.objects.filter(id=self.inquiry1.id).exists())
+
+    def test_unauthenticated_patch_returns_401(self):
+        response = self.client.patch(
+            f'/api/v1/inquiries/{self.inquiry1.id}/',
+            {'status': 'Closed'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 401)
+

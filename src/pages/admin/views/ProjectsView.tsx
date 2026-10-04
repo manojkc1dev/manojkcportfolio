@@ -17,6 +17,12 @@ import { ProjectEditModal } from './ProjectEditModal';
 import { projects as publicProjects } from '../../../data/projects';
 import { exportCaseStudyAsPdf } from '../../../lib/caseStudyPdf';
 import type { Project } from '../../../types';
+import { isDjangoConfigured } from '../../../lib/api/client';
+import {
+  createAdminProject,
+  updateAdminProject,
+  deleteAdminProject,
+} from '../../../lib/api/admin';
 
 interface ProjectsViewProps {
   projects: AdminProject[];
@@ -48,29 +54,62 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     return matchesSearch && matchesCategory;
   });
 
-  const handleToggleFeatured = (id: string) => {
-    const updated = projects.map((p) => (p.id === id ? { ...p, featured: !p.featured } : p));
+  const handleToggleFeatured = async (id: string) => {
+    const target = projects.find((p) => p.id === id);
+    if (!target) return;
+    const newFeatured = !target.featured;
+    const updated = projects.map((p) => (p.id === id ? { ...p, featured: newFeatured } : p));
     onUpdateProjects(updated);
+    if (isDjangoConfigured) {
+      try {
+        await updateAdminProject(id, { featured: newFeatured });
+      } catch (err) {
+        console.warn('Django update project featured notice:', err);
+      }
+    }
     onShowToast('Project showcase status updated.');
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this project?')) {
       const updated = projects.filter((p) => p.id !== id);
       onUpdateProjects(updated);
+      if (isDjangoConfigured) {
+        try {
+          await deleteAdminProject(id);
+        } catch (err) {
+          console.warn('Django delete project notice:', err);
+        }
+      }
       onShowToast('Project deleted successfully.');
     }
   };
 
-  const handleSaveProject = (savedProject: AdminProject) => {
-    const exists = projects.some((p) => p.id === savedProject.id);
+  const handleSaveProject = async (savedProject: AdminProject) => {
+    const exists = projects.some((p) => p.id === savedProject.id || p.slug === savedProject.slug);
     let updated: AdminProject[];
     if (exists) {
-      updated = projects.map((p) => (p.id === savedProject.id ? savedProject : p));
+      updated = projects.map((p) =>
+        p.id === savedProject.id || p.slug === savedProject.slug ? savedProject : p
+      );
       onShowToast('Project updated successfully.');
+      if (isDjangoConfigured) {
+        try {
+          await updateAdminProject(savedProject.id, savedProject);
+        } catch (err) {
+          console.warn('Django update project notice:', err);
+        }
+      }
     } else {
       updated = [savedProject, ...projects];
       onShowToast('New project created and published.');
+      if (isDjangoConfigured) {
+        try {
+          await createAdminProject(savedProject);
+        } catch (err) {
+          console.warn('Django create project notice:', err);
+        }
+      }
     }
     onUpdateProjects(updated);
     setEditingProject(undefined);

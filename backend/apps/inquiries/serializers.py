@@ -85,14 +85,15 @@ class InquiryCreateSerializer(serializers.ModelSerializer):
 
 
 class InquiryDetailSerializer(serializers.ModelSerializer):
-    """Serializer for administrative inquiry inspection."""
-    projectId = serializers.CharField(source='project_id', read_only=True)
-    projectTitle = serializers.CharField(source='project_title', read_only=True)
-    sourcePage = serializers.CharField(source='source_page', read_only=True)
-    hasWhatsApp = serializers.BooleanField(source='has_whatsapp', read_only=True)
-    scopeTitle = serializers.CharField(source='scope_title', read_only=True)
-    budgetRange = serializers.CharField(source='budget_range', read_only=True)
+    """Serializer for administrative inquiry inspection and status management."""
+    projectId = serializers.CharField(source='project_id', required=False, allow_blank=True, allow_null=True)
+    projectTitle = serializers.CharField(source='project_title', required=False, allow_blank=True)
+    sourcePage = serializers.CharField(source='source_page', required=False, allow_blank=True)
+    hasWhatsApp = serializers.BooleanField(source='has_whatsapp', required=False)
+    scopeTitle = serializers.CharField(source='scope_title', required=False, allow_blank=True)
+    budgetRange = serializers.CharField(source='budget_range', required=False, allow_blank=True)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    submittedAt = serializers.DateTimeField(source='created_at', read_only=True)
 
     class Meta:
         model = Inquiry
@@ -114,4 +115,5 @@ class InquiryDetailSerializer(serializers.ModelSerializer):
             'projectTitle',
             'sourcePage',
             'createdAt',
+            'submittedAt',
         )

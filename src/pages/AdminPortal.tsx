@@ -43,6 +43,8 @@ import {
   logout as djLogout,
   updatePassword as djUpdatePassword,
 } from '../lib/api/auth';
+import { getAdminInquiries, deleteAdminInquiry } from '../lib/api/inquiries';
+import { getAdminProjects } from '../lib/api/admin';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -375,43 +377,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     try {
       const map = new Map<string, AdminInquiry>();
 
-      // 1. Fetch server messages from API
-      try {
-        const res = await fetch('/api/messages', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.messages && Array.isArray(data.messages)) {
-            data.messages
-              .filter(
-                (msg: any) =>
-                  !msg.name?.includes('Prashant Joshi') && !msg.email?.includes('prashant.j')
-              )
-              .forEach((msg: any) => {
-                map.set(msg.id, {
-                  id: msg.id,
-                  name: msg.name || 'Client',
-                  company: msg.company || '',
-                  email: msg.email || '',
-                  phone: msg.phone || '',
-                  hasWhatsApp: msg.hasWhatsApp ?? true,
-                  scopeTitle: msg.scopeTitle || 'Website Contact Inquiry',
-                  budgetRange: msg.budgetRange || 'Standard Project',
-                  timeline: msg.timeline || '2–3 Months',
-                  message: msg.message || '',
-                  submittedAt: msg.createdAt
-                    ? typeof msg.createdAt === 'string'
-                      ? new Date(msg.createdAt).toLocaleString()
-                      : new Date((msg.createdAt.seconds || 0) * 1000).toLocaleString()
-                    : 'Recent',
-                  status: msg.status || 'New',
-                  read: msg.read ?? false,
-                  replied: msg.replied ?? false,
-                });
-              });
-          }
+      // 1. Fetch server messages from authenticated Django DRF API
+      if (isDjangoConfigured) {
+        try {
+          const djangoList = await getAdminInquiries();
+          djangoList
+            .filter(
+              (msg) =>
+                !msg.name?.includes('Prashant Joshi') && !msg.email?.includes('prashant.j')
+            )
+            .forEach((msg) => {
+              map.set(msg.id, msg);
+            });
+        } catch (apiErr) {
+          console.warn('Django inquiries fetch note:', apiErr);
         }
-      } catch (apiErr) {
-        console.warn('API messages fetch note:', apiErr);
       }
 
       // 2. Fetch from LocalStorage portfolio_inquiries backup
@@ -550,8 +530,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     return () => window.removeEventListener('portfolio_auth_unauthorized', handleUnauthorized);
   }, []);
 
+  // Sync projects from authenticated Django admin API
+  const syncProjects = async (): Promise<void> => {
+    if (!isDjangoConfigured) return;
+    try {
+      const djangoProjects = await getAdminProjects();
+      if (Array.isArray(djangoProjects) && djangoProjects.length > 0) {
+        updateProjects(djangoProjects);
+      }
+    } catch (err) {
+      console.warn('Django projects fetch error:', err);
+    }
+  };
+
   useEffect(() => {
     syncServerInquiries(false);
+    syncProjects();
 
     const handleInquiriesUpdated = () => {
       syncServerInquiries(false);
@@ -569,15 +563,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     const updated = inquiries.filter((i) => i.id !== id);
     updateInquiries(updated);
 
-    // 2. Call server endpoint to permanently delete from .data/messages.json
-    try {
-      await fetch(`/api/messages?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-    } catch (err) {
-      console.warn('Server delete message notice:', err);
+    // 2. Call Django DRF API to permanently delete from backend
+    if (isDjangoConfigured) {
+      try {
+        await deleteAdminInquiry(id);
+      } catch (err) {
+        console.warn('Django delete inquiry notice:', err);
+      }
     }
 
     // 3. Delete from Firestore if configured

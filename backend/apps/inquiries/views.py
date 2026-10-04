@@ -1,23 +1,37 @@
 """
-API Views for Inbound Client Inquiries and Public Contact Form Ingestion.
+API Views for Inbound Client Inquiries and Public Contact Form Ingestion,
+plus Authenticated Administrative Lead Management.
 """
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import AnonRateThrottle
 from .models import Inquiry
-from .serializers import InquiryCreateSerializer
+from .serializers import InquiryCreateSerializer, InquiryDetailSerializer
 
 
-class InquiryCreateView(generics.CreateAPIView):
+class InquiryListCreateView(generics.ListCreateAPIView):
     """
-    Public endpoint for submitting client inquiries with honeypot anti-spam validation
-    and input sanitization.
+    POST: Public endpoint for submitting client inquiries (AllowAny, rate limited).
+    GET: Authenticated endpoint for administrative listing of all leads (IsAuthenticated).
     """
-    permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle]
-    serializer_class = InquiryCreateSerializer
-    queryset = Inquiry.objects.all()
+    queryset = Inquiry.objects.all().order_by('-created_at')
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            return [AnonRateThrottle()]
+        return []
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return InquiryCreateSerializer
+        return InquiryDetailSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -41,3 +55,15 @@ class InquiryCreateView(generics.CreateAPIView):
             },
             status=status.HTTP_201_CREATED
         )
+
+
+class InquiryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Authenticated endpoint for retrieving, updating (status/read/replied),
+    and deleting client inquiries (IsAuthenticated).
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = InquiryDetailSerializer
+    queryset = Inquiry.objects.all()
+    lookup_field = 'id'
+    lookup_url_kwarg = 'pk'
