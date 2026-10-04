@@ -5,9 +5,10 @@
  * logout, and password updates.
  */
 
-import { apiClient, type RequestOptions } from './client';
+import { apiClient, adminApiClient, type RequestOptions } from './client';
 import {
   getDjangoAccessToken,
+  getDjangoRefreshToken,
   setDjangoTokens,
   clearDjangoTokens,
   type DjangoAuthResponse,
@@ -92,10 +93,11 @@ export async function logout(refreshToken?: string): Promise<void> {
 /**
  * Retrieve authenticated user profile.
  * GET /api/v1/auth/me/
+ * Uses adminApiClient so the request benefits from automatic 401 retry with refresh.
  */
 export function getCurrentUser(token?: string, options?: RequestOptions): Promise<UserProfileResponse> {
   const authToken = token || getDjangoAccessToken();
-  return apiClient.get<UserProfileResponse>('/api/v1/auth/me/', {
+  return adminApiClient.get<UserProfileResponse>('/api/v1/auth/me/', {
     ...options,
     token: authToken,
   });
@@ -104,6 +106,7 @@ export function getCurrentUser(token?: string, options?: RequestOptions): Promis
 /**
  * Change administrator password.
  * POST /api/v1/auth/change-password/
+ * Uses adminApiClient so the request benefits from automatic 401 retry with refresh.
  */
 export function updatePassword(
   oldPassword: string,
@@ -112,7 +115,7 @@ export function updatePassword(
   options?: RequestOptions
 ): Promise<{ detail?: string; message?: string }> {
   const authToken = token || getDjangoAccessToken();
-  return apiClient.post<{ detail?: string; message?: string }>(
+  return adminApiClient.post<{ detail?: string; message?: string }>(
     '/api/v1/auth/change-password/',
     {
       old_password: oldPassword,
@@ -127,5 +130,6 @@ export function updatePassword(
 
 // Token helper re-exports
 export const getAccessToken = getDjangoAccessToken;
+export const getRefreshToken = getDjangoRefreshToken;
 export const setTokens = setDjangoTokens;
 export const clearTokens = clearDjangoTokens;

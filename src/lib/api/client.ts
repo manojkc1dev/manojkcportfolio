@@ -3,6 +3,10 @@
  *
  * Provides a typed fetch wrapper with baseUrl resolution, query string serialization,
  * safe error normalization, and DRF error handling.
+ *
+ * Also exposes `authRequest` — a canonical mechanism for authenticated admin API
+ * calls with automatic Bearer-token injection, single 401 retry with token refresh,
+ * and safe cleanup on session expiry.
  */
 
 export const DJANGO_API_BASE_URL: string = (
@@ -196,4 +200,137 @@ export const apiClient = {
 
   delete: <T>(endpoint: string, options?: RequestOptions): Promise<T> =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
+};
+
+// ---------------------------------------------------------------------------
+// Authenticated Admin API client
+// ---------------------------------------------------------------------------
+// Lazy-imported token helpers to avoid circular dependencies at module load time.
+// We import from djangoApi at call-time so tree-shaking is preserved.
+
+/** Shared refresh promise — deduplicates concurrent 401 refresh attempts. */
+let _refreshPromise: Promise<string> | null = null;
+
+/**
+ * Dispatch a custom DOM event to signal that the admin session has expired.
+ * AdminPortal (or any listener) can react to this event to show the login screen.
+ */
+function notifySessionExpired(): void {
+  try {
+    window.dispatchEvent(new CustomEvent('portfolio_auth_unauthorized'));
+  } catch {
+    // Not in a browser context (e.g., tests) — no-op.
+  }
+}
+
+/**
+ * Perform a single token-refresh attempt.
+ * Returns the new access token or throws if refresh fails.
+ * Deduplicates concurrent callers: only one actual refresh request is made.
+ */
+async function performTokenRefresh(): Promise<string> {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    // Import lazily to avoid circular module dependency.
+    const { getDjangoRefreshToken, setDjangoTokens, clearDjangoTokens } = await import(
+      '../djangoApi'
+    ).catch(
+      () => ({ getDjangoRefreshToken: (): string | null => null, setDjangoTokens: () => {}, clearDjangoTokens: () => {} })
+    );
+
+    const refreshToken = getDjangoRefreshToken?.();
+    if (!refreshToken) {
+      clearDjangoTokens?.();
+      notifySessionExpired();
+      throw new ApiError('No refresh token available — session expired.', 401, null);
+    }
+
+    const data = await request<{ access: string; refresh?: string }>(
+      '/api/v1/auth/token/refresh/',
+      { method: 'POST', body: { refresh: refreshToken } }
+    );
+
+    if (!data?.access) {
+      clearDjangoTokens?.();
+      notifySessionExpired();
+      throw new ApiError('Token refresh returned no access token.', 401, null);
+    }
+
+    setDjangoTokens?.(data.access, data.refresh);
+    return data.access;
+  })().finally(() => {
+    _refreshPromise = null;
+  });
+
+  return _refreshPromise;
+}
+
+/**
+ * Execute an authenticated admin API request.
+ *
+ * - Reads the current access token from storage and injects it as `Authorization: Bearer`.
+ * - On HTTP 401: attempts a single token refresh then retries the original request.
+ * - On refresh failure: clears auth state and dispatches `portfolio_auth_unauthorized`.
+ * - Never performs more than one refresh cycle per original request (no loops).
+ * - Multiple concurrent 401s share a single refresh promise.
+ */
+export async function authRequest<T>(
+  endpoint: string,
+  options: FullRequestOptions = {}
+): Promise<T> {
+  // Lazy-import to avoid circular dependency at module load time.
+  const { getDjangoAccessToken, clearDjangoTokens } = await import('../djangoApi').catch(
+    () => ({ getDjangoAccessToken: (): string | null => null, clearDjangoTokens: () => {} })
+  );
+
+  const accessToken = getDjangoAccessToken?.();
+
+  try {
+    return await request<T>(endpoint, {
+      ...options,
+      token: accessToken || options.token,
+    });
+  } catch (err) {
+    // Only intercept 401 Unauthorized — let all other errors propagate normally.
+    if (!(err instanceof ApiError) || err.status !== 401) throw err;
+
+    // Attempt a single token refresh.
+    let newToken: string;
+    try {
+      newToken = await performTokenRefresh();
+    } catch (refreshErr) {
+      // Refresh failed — auth state already cleared inside performTokenRefresh.
+      clearDjangoTokens?.();
+      notifySessionExpired();
+      throw refreshErr;
+    }
+
+    // Retry the original request exactly once with the fresh token.
+    return request<T>(endpoint, {
+      ...options,
+      token: newToken,
+    });
+  }
+}
+
+/**
+ * Convenience object mirroring `apiClient` but using `authRequest` for all calls.
+ * Use this for any authenticated admin endpoint instead of the plain `apiClient`.
+ */
+export const adminApiClient = {
+  get: <T>(endpoint: string, options?: RequestOptions): Promise<T> =>
+    authRequest<T>(endpoint, { ...options, method: 'GET' }),
+
+  post: <T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> =>
+    authRequest<T>(endpoint, { ...options, method: 'POST', body }),
+
+  put: <T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> =>
+    authRequest<T>(endpoint, { ...options, method: 'PUT', body }),
+
+  patch: <T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> =>
+    authRequest<T>(endpoint, { ...options, method: 'PATCH', body }),
+
+  delete: <T>(endpoint: string, options?: RequestOptions): Promise<T> =>
+    authRequest<T>(endpoint, { ...options, method: 'DELETE' }),
 };
