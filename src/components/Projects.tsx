@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Layers, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { projects as defaultProjects } from '../data/projects';
+import { projects as staticProjects } from '../data/projects';
+import { useProjects } from '../hooks/useProjects';
 import { FeaturedProjectCard } from './FeaturedProjectCard';
 import { ProjectCard } from './ProjectCard';
 import { ProjectModal } from './ProjectModal';
@@ -29,80 +30,9 @@ const REQUIRED_PROJECT_IDS = [
 export const Projects: React.FC = () => {
   const navigate = useNavigate();
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
-  const [dataVersion, setDataVersion] = useState(0);
 
-  // Re-read storage dynamically when admin saves changes in the CMS
-  useEffect(() => {
-    const handleUpdate = () => setDataVersion((v) => v + 1);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
-
-  const allProjects = useMemo<Project[]>(() => {
-    try {
-      const saved = localStorage.getItem('portfolio_projects') || localStorage.getItem('admin_cms_projects');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((p: any) => {
-            const rawId = p.id || p.slug || '';
-            const defaultMatch = defaultProjects.find(
-              (dp) =>
-                dp.id === rawId ||
-                dp.id === p.slug ||
-                rawId.includes(dp.id) ||
-                (p.title && dp.title.toLowerCase().includes(p.title.toLowerCase().slice(0, 10)))
-            );
-            const canonicalId = defaultMatch ? defaultMatch.id : rawId;
-
-            return {
-              id: canonicalId,
-              title: p.title || defaultMatch?.title || '',
-              tagline: p.tagline || (p.client ? `${p.client}` : defaultMatch?.tagline || p.shortDescription || ''),
-              description: p.shortDescription || p.description || defaultMatch?.description || '',
-              category: p.category || defaultMatch?.category || 'backend',
-              year: p.year || defaultMatch?.year || 2026,
-              status: p.status || defaultMatch?.status || 'live',
-              role: p.role || defaultMatch?.role,
-              duration: p.yearDuration || p.duration || defaultMatch?.duration,
-              highlights: Array.isArray(p.highlights) && p.highlights.length > 0
-                ? p.highlights
-                : p.keyHighlights
-                ? p.keyHighlights.split(';').map((s: string) => s.trim()).filter(Boolean)
-                : defaultMatch?.highlights || [p.shortDescription || ''],
-              tech: p.technologies || p.tech || defaultMatch?.tech || [],
-              links: {
-                live: p.liveUrl || p.links?.live || defaultMatch?.links.live,
-                github: p.githubUrl || p.links?.github || defaultMatch?.links.github,
-                caseStudy: p.caseStudyUrl || p.links?.caseStudy || defaultMatch?.links.caseStudy || `/projects/${canonicalId}`,
-                apiDocs: p.apiDocs || p.links?.apiDocs || defaultMatch?.links.apiDocs,
-                postman: p.postman || p.links?.postman || defaultMatch?.links.postman,
-              },
-              featured: Boolean(p.featured ?? defaultMatch?.featured),
-              image: p.thumbnail !== undefined ? p.thumbnail : (defaultMatch?.image || ''),
-              gallery: p.gallery || defaultMatch?.gallery,
-              metrics: (p.metrics && p.metrics.length > 0) ? p.metrics : defaultMatch?.metrics || [],
-              proof: (p.proof && p.proof.length > 0) ? p.proof : defaultMatch?.proof || [],
-              problem: p.problem || defaultMatch?.problem,
-              solution: p.solution || p.fullCaseStudy || defaultMatch?.solution,
-              architecture: p.architecture || defaultMatch?.architecture,
-              whatIBuilt: p.whatIBuilt || defaultMatch?.whatIBuilt,
-              techStackTable: p.techStackTable || defaultMatch?.techStackTable,
-              challenges: p.challenges || defaultMatch?.challenges,
-              lessonsLearned: p.lessonsLearned || defaultMatch?.lessonsLearned,
-            };
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Projects storage load error:', e);
-    }
-    return defaultProjects;
-  }, [dataVersion]);
+  // Django API is the primary source; staticProjects is the offline fallback.
+  const { data: allProjects } = useProjects();
 
   // Curate featured projects: supports starred projects from admin panel while maintaining required order
   const displayProjects = useMemo(() => {
@@ -117,7 +47,7 @@ export const Projects: React.FC = () => {
 
     // 1. Project #1 (Featured Hero Project)
     // Always start with Agritech if available, or first starred project
-    const agritech = projectMap.get('agritech') || defaultProjects.find((p) => p.id === 'agritech');
+    const agritech = projectMap.get('agritech') || staticProjects.find((p) => p.id === 'agritech');
     if (agritech && (agritech.featured || starredProjects.length === 0)) {
       ordered.push(agritech);
     } else if (starredProjects.length > 0) {
@@ -127,7 +57,7 @@ export const Projects: React.FC = () => {
     // 2. Add remaining required projects in specified order if starred or by default
     for (const reqId of REQUIRED_PROJECT_IDS) {
       if (ordered.some((op) => op.id === reqId)) continue;
-      const found = projectMap.get(reqId) || defaultProjects.find((p) => p.id === reqId);
+      const found = projectMap.get(reqId) || staticProjects.find((p) => p.id === reqId);
       if (found && (found.featured || starredProjects.length === 0)) {
         ordered.push(found);
       }
@@ -143,7 +73,7 @@ export const Projects: React.FC = () => {
     // 4. Backfill from REQUIRED_PROJECT_IDS if fewer than 7
     if (ordered.length < 7) {
       for (const reqId of REQUIRED_PROJECT_IDS) {
-        const found = projectMap.get(reqId) || defaultProjects.find((p) => p.id === reqId);
+        const found = projectMap.get(reqId) || staticProjects.find((p) => p.id === reqId);
         if (found && !ordered.some((op) => op.id === found.id)) {
           ordered.push(found);
           if (ordered.length === 7) break;

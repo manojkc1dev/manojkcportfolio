@@ -24,7 +24,8 @@ import {
   Activity,
   ChevronLeft,
 } from 'lucide-react';
-import { projects } from '../data/projects';
+import { useProject } from '../hooks/useProject';
+import { useProjects } from '../hooks/useProjects';
 import { ProofBadges } from '../components/projects/ProofBadges';
 import { MermaidDiagram } from '../components/projects/MermaidDiagram';
 import { Seo } from '../components/Seo';
@@ -43,13 +44,15 @@ export const ProjectCaseStudyPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  const currentIndex = projects.findIndex((p) => p.id === slug);
-  const project: Project | undefined = projects[currentIndex];
+  // Django API is the primary source; static data is the instant seed / fallback.
+  const { data: project } = useProject(slug);
+  const { data: allProjects } = useProjects();
 
-  const prevProject = currentIndex > 0 ? projects[currentIndex - 1] : null;
+  const currentIndex = allProjects.findIndex((p) => p.id === slug);
+  const prevProject = currentIndex > 0 ? allProjects[currentIndex - 1] : null;
   const nextProject =
-    currentIndex >= 0 && currentIndex < projects.length - 1
-      ? projects[currentIndex + 1]
+    currentIndex >= 0 && currentIndex < allProjects.length - 1
+      ? allProjects[currentIndex + 1]
       : null;
 
   // Challenge accordion state (open indices)
@@ -107,8 +110,8 @@ export const ProjectCaseStudyPage: React.FC = () => {
   }
 
   // Related project objects
-  const relatedProjectsList = (project.relatedProjects || [])
-    .map((rId) => projects.find((p) => p.id === rId))
+  const relatedProjectsList = (project?.relatedProjects || [])
+    .map((rId) => allProjects.find((p) => p.id === rId))
     .filter(Boolean) as Project[];
 
   // SEO tags

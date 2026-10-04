@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { projects as defaultProjects, ProjectCategory, ProjectStatus } from '../data/projects';
+import { ProjectCategory, ProjectStatus } from '../data/projects';
+import { useProjects } from '../hooks/useProjects';
 import { ProjectCard } from '../components/ProjectCard';
 import { ProjectModal } from '../components/ProjectModal';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
@@ -39,88 +40,14 @@ export const ProjectsPage: React.FC = () => {
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
   const firstNewCardRef = useRef<HTMLDivElement | null>(null);
   const [prevCount, setPrevCount] = useState<number>(PAGE_SIZE);
-  const [dataVersion, setDataVersion] = useState(0);
 
-  // Live updates when changes are saved from the admin CMS
-  useEffect(() => {
-    const handleUpdate = () => setDataVersion((v) => v + 1);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
-
-  // Read URL query params
+  // Django API is the primary source; staticProjects is the offline fallback.
+  const { data: allProjects } = useProjects();
   const queryParam = searchParams.get('q') || '';
   const categoryParam = (searchParams.get('category') || 'all') as 'all' | ProjectCategory;
   const statusParam = (searchParams.get('status') || 'all') as 'all' | ProjectStatus;
   const sortParam = (searchParams.get('sort') || 'newest') as SortOption;
   const pageParam = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-
-  // Projects list (supports local admin overrides if available)
-  const allProjects = useMemo<Project[]>(() => {
-    try {
-      const saved = localStorage.getItem('portfolio_projects') || localStorage.getItem('admin_cms_projects');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((p: any) => {
-            const rawId = p.id || p.slug || '';
-            const defaultMatch = defaultProjects.find(
-              (dp) =>
-                dp.id === rawId ||
-                dp.id === p.slug ||
-                rawId.includes(dp.id) ||
-                (p.title && dp.title.toLowerCase().includes(p.title.toLowerCase().slice(0, 10)))
-            );
-            const canonicalId = defaultMatch ? defaultMatch.id : rawId;
-
-            return {
-              id: canonicalId,
-              title: p.title || defaultMatch?.title || '',
-              tagline: p.tagline || (p.client ? `${p.client}` : defaultMatch?.tagline || p.shortDescription || ''),
-              description: p.shortDescription || p.description || defaultMatch?.description || '',
-              category: p.category || defaultMatch?.category || 'backend',
-              year: p.year || defaultMatch?.year || 2026,
-              status: p.status || defaultMatch?.status || 'live',
-              role: p.role || defaultMatch?.role,
-              duration: p.yearDuration || p.duration || defaultMatch?.duration,
-              highlights: Array.isArray(p.highlights) && p.highlights.length > 0
-                ? p.highlights
-                : p.keyHighlights
-                ? p.keyHighlights.split(';').map((s: string) => s.trim()).filter(Boolean)
-                : defaultMatch?.highlights || [p.shortDescription || ''],
-              tech: p.technologies || p.tech || defaultMatch?.tech || [],
-              links: {
-                live: p.liveUrl || p.links?.live || defaultMatch?.links.live,
-                github: p.githubUrl || p.links?.github || defaultMatch?.links.github,
-                caseStudy: p.caseStudyUrl || p.links?.caseStudy || defaultMatch?.links.caseStudy || `/projects/${canonicalId}`,
-                apiDocs: p.apiDocs || p.links?.apiDocs || defaultMatch?.links.apiDocs,
-                postman: p.postman || p.links?.postman || defaultMatch?.links.postman,
-              },
-              featured: Boolean(p.featured ?? defaultMatch?.featured),
-              image: p.thumbnail !== undefined ? p.thumbnail : (defaultMatch?.image || ''),
-              gallery: p.gallery || defaultMatch?.gallery,
-              metrics: (p.metrics && p.metrics.length > 0) ? p.metrics : defaultMatch?.metrics || [],
-              proof: (p.proof && p.proof.length > 0) ? p.proof : defaultMatch?.proof || [],
-              problem: p.problem || defaultMatch?.problem,
-              solution: p.solution || p.fullCaseStudy || defaultMatch?.solution,
-              architecture: p.architecture || defaultMatch?.architecture,
-              whatIBuilt: p.whatIBuilt || defaultMatch?.whatIBuilt,
-              techStackTable: p.techStackTable || defaultMatch?.techStackTable,
-              challenges: p.challenges || defaultMatch?.challenges,
-              lessonsLearned: p.lessonsLearned || defaultMatch?.lessonsLearned,
-            };
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Projects storage load error:', e);
-    }
-    return defaultProjects;
-  }, [dataVersion]);
 
   // Update query params helper
   const updateParams = (updates: Record<string, string | null>) => {
