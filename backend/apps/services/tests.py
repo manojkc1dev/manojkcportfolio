@@ -76,4 +76,29 @@ class ServiceAPITests(TestCase):
         draft_resp = self.client.get('/api/v1/services/draft-svc/')
         self.assertEqual(draft_resp.status_code, 404)
 
+    def test_public_service_detail_404_for_missing_slug(self):
+        """GET /api/v1/services/<missing-slug>/ must return 404."""
+        response = self.client.get('/api/v1/services/non-existent-slug/')
+        self.assertEqual(response.status_code, 404)
 
+    def test_public_service_list_filter_by_featured(self):
+        """Verify ?featured=true returns only matching featured published services."""
+        Service.objects.create(
+            id='perf-opt',
+            title='Database Performance Tuning',
+            slug='perf-opt',
+            short_summary='PostgreSQL optimization',
+            visibility='Published',
+            featured=True
+        )
+        # All published
+        all_resp = self.client.get('/api/v1/services/')
+        self.assertEqual(all_resp.status_code, 200)
+        self.assertEqual(len(all_resp.json()), 2)
+
+        # Filtered by featured=true
+        feat_resp = self.client.get('/api/v1/services/?featured=true')
+        self.assertEqual(feat_resp.status_code, 200)
+        data = feat_resp.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], 'perf-opt')

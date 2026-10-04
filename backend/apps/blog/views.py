@@ -1,6 +1,7 @@
 """
 Public Read-Only API Views for Technical Blog Articles.
 """
+from django.db.models import Q
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from .models import Article
@@ -23,7 +24,9 @@ class ArticleListView(generics.ListAPIView):
             queryset = queryset.filter(featured=True)
         tag = self.request.query_params.get('tag')
         if tag:
-            queryset = queryset.filter(tags_list__contains=[tag])
+            queryset = queryset.filter(
+                Q(tags__name__iexact=tag) | Q(tags__slug__iexact=tag) | Q(tags_list__icontains=tag)
+            ).distinct()
         return queryset
 
 

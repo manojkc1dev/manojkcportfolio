@@ -156,3 +156,29 @@ class InquiryAPITests(TestCase):
         }
         response = self.client.post(self.url, payload, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_inquiry_throttle_class_configured(self):
+        """Verify that AnonRateThrottle is configured on InquiryCreateView."""
+        from rest_framework.throttling import AnonRateThrottle
+        from apps.inquiries.views import InquiryCreateView
+        self.assertIn(AnonRateThrottle, InquiryCreateView.throttle_classes)
+
+    def test_inquiry_rate_limit_exceeded_returns_429(self):
+        """Verify 429 Too Many Requests is returned when anon rate limit is hit."""
+        from rest_framework.throttling import AnonRateThrottle
+        from unittest.mock import patch
+        from django.core.cache import cache
+        cache.clear()
+        with patch.object(AnonRateThrottle, 'get_rate', return_value='2/hour'):
+            payload = {
+                'name': 'Rate Limit Test',
+                'email': 'rate@example.com',
+                'message': 'Testing rate limit threshold for submissions.',
+            }
+            resp1 = self.client.post(self.url, payload, format='json')
+            self.assertEqual(resp1.status_code, 201)
+            resp2 = self.client.post(self.url, payload, format='json')
+            self.assertEqual(resp2.status_code, 201)
+            resp3 = self.client.post(self.url, payload, format='json')
+            self.assertEqual(resp3.status_code, 429)
+        cache.clear()

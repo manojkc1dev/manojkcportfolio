@@ -77,4 +77,7 @@ class ExperienceAPITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['id'], 'sajha-infotech')
 
-
+    def test_public_experience_detail_404_for_missing_id(self):
+        """GET /api/v1/experience/<missing-id>/ must return 404."""
+        response = self.client.get('/api/v1/experience/non-existent-id/')
+        self.assertEqual(response.status_code, 404)

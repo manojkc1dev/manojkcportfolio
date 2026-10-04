@@ -15,9 +15,7 @@ class ProjectListView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        queryset = Project.objects.filter(visibility='Published').prefetch_related(
-            'metrics_items', 'challenges_items', 'tech_choices_items'
-        )
+        queryset = Project.objects.filter(visibility='Published')
         category = self.request.query_params.get('category')
         if category:
             queryset = queryset.filter(category__iexact=category)
