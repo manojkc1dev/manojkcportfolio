@@ -146,14 +146,14 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     expect(mockUpdatePassword).toHaveBeenCalledWith('oldpass123', 'newsecret2026');
 
     // Loading state is active
-    expect(screen.getByText(/updating passphrase in firebase/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /updating passphrase in firebase/i })).toBeDisabled();
+    expect(screen.getByText(/updating passphrase\.{3}/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /updating passphrase\.{3}/i })).toBeDisabled();
 
     // Resolve operation
     resolvePasswordUpdate();
 
     await waitFor(() => {
-      expect(screen.getByText(/updated successfully in firebase auth/i)).toBeInTheDocument();
+      expect(screen.getByText(/updated successfully/i)).toBeInTheDocument();
     });
 
     // Inputs cleared on success

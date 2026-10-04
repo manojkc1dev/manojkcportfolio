@@ -34,8 +34,15 @@ import {
   loginWithDjango,
   changeDjangoPassword,
   getDjangoAccessToken,
+  getDjangoRefreshToken,
   clearDjangoTokens,
 } from '../lib/djangoApi';
+import {
+  loginWithCredentials,
+  getCurrentUser,
+  logout as djLogout,
+  updatePassword as djUpdatePassword,
+} from '../lib/api/auth';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -141,6 +148,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
       localStorage.getItem('lightcode_admin_session') === 'active'
     );
   });
+
+  // Canonical Django-authenticated user (from /api/v1/auth/me/)
+  const [djangoUser, setDjangoUser] = useState<{ username: string; email: string } | null>(null);
 
   // Login form state
   const [email, setEmail] = useState('');
@@ -508,6 +518,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     }
   };
 
+  // On mount: restore Django JWT session if tokens are already stored
+  useEffect(() => {
+    if (!isDjangoConfigured) return;
+    const accessToken = getDjangoAccessToken();
+    if (!accessToken) return;
+
+    getCurrentUser()
+      .then((profile) => {
+        setDjangoUser({ username: profile.username, email: profile.email });
+        setLocalAdminAuthenticated(true);
+        localStorage.setItem('portfolio_admin_session', 'active');
+      })
+      .catch(() => {
+        // Token invalid/expired — leave unauthenticated; user must log in
+        clearDjangoTokens();
+      });
+  }, []);
+
+  // Listen for portfolio_auth_unauthorized (fired by authRequest on unrecoverable 401)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearDjangoTokens();
+      setDjangoUser(null);
+      setLocalAdminAuthenticated(false);
+      localStorage.removeItem('portfolio_admin_session');
+      localStorage.removeItem('lightcode_admin_session');
+      showToast('Session expired. Please log in again.');
+    };
+    window.addEventListener('portfolio_auth_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('portfolio_auth_unauthorized', handleUnauthorized);
+  }, []);
+
   useEffect(() => {
     syncServerInquiries(false);
 
@@ -569,12 +611,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
 
   // Secure Password Change Handler (Django REST API or Firebase Authentication)
   const handleUpdatePassword = async (currentPass: string, newPass: string): Promise<void> => {
-    // 1. If active session is via Django REST Framework API
+    // 1. If active session is via Django REST Framework API (canonical path)
     if (isDjangoConfigured && getDjangoAccessToken()) {
       try {
-        await changeDjangoPassword(currentPass, newPass);
-        showToast('Administrative passphrase updated in Django backend. Signing out for security...');
-        clearDjangoTokens();
+        await djUpdatePassword(currentPass, newPass);
+        showToast('Administrative passphrase updated. Signing out for security...');
+        const refreshToken = getDjangoRefreshToken();
+        await djLogout(refreshToken || undefined);
+        setDjangoUser(null);
         setLocalAdminAuthenticated(false);
         localStorage.removeItem('portfolio_admin_session');
         localStorage.removeItem('lightcode_admin_session');
@@ -625,10 +669,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     setAuthLoading(true);
     setAuthError(null);
 
-    // 1. If Python/Django REST API is configured (VITE_DJANGO_API_URL):
+    // 1. If Python/Django REST API is configured (VITE_DJANGO_API_URL): use canonical loginWithCredentials
     if (isDjangoConfigured) {
       try {
-        await loginWithDjango(email.trim(), password);
+        await loginWithCredentials(email.trim(), password);
+        const profile = await getCurrentUser();
+        setDjangoUser({ username: profile.username, email: profile.email });
         setLocalAdminAuthenticated(true);
         localStorage.setItem('portfolio_admin_session', 'active');
         showToast('Signed in via Python / Django REST Framework API.');
@@ -708,11 +754,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     showToast('Demo administrative console unlocked.');
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    // Canonical Django logout: blacklist refresh token server-side
+    if (isDjangoConfigured) {
+      const refreshToken = getDjangoRefreshToken();
+      try {
+        await djLogout(refreshToken || undefined);
+      } catch {
+        // Network failure on logout is safe to ignore; tokens cleared below
+      }
+    }
     if (user) {
       signOut();
     }
-    clearDjangoTokens();
+    setDjangoUser(null);
     setLocalAdminAuthenticated(false);
     localStorage.removeItem('portfolio_admin_session');
     localStorage.removeItem('lightcode_admin_session');
@@ -897,7 +952,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         onBackToHome={onBackToHome}
         onSignOut={handleSignOut}
-        userEmail={user?.email || 'manojkc1dev@gmail.com'}
+        userEmail={djangoUser?.email || user?.email || 'manojkc1dev@gmail.com'}
         userAvatar={profileData.photo || '/images/manoj.jpg'}
       />
 
@@ -910,7 +965,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
           isOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
           unreadInquiriesCount={inquiries.filter((i) => !i.read).length}
-          userEmail={user?.email || 'manojkc1dev@gmail.com'}
+          userEmail={djangoUser?.email || user?.email || 'manojkc1dev@gmail.com'}
           userAvatar={profileData.photo || '/images/manoj.jpg'}
           onSignOut={handleSignOut}
           onBackToHome={onBackToHome}
@@ -1024,8 +1079,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
 
           {(activeTab === 'settings' || activeTab === 'security' || (activeTab as string) === 'blog') && (
             <SettingsView
-              currentUserEmail={user?.email || null}
+              currentUserEmail={djangoUser?.email || user?.email || null}
               isFirebaseAuth={Boolean(user && isFirebaseConfigured)}
+              isDjangoAuth={isDjangoConfigured && !!getDjangoAccessToken()}
               onUpdatePassword={handleUpdatePassword}
               onShowToast={showToast}
               allData={{
