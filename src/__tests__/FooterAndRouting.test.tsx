@@ -33,7 +33,7 @@ describe('Enterprise Footer UI/UX', () => {
   });
 });
 
-describe('Secret Admin Portal (/lc-zadmin-cc/)', () => {
+describe('Canonical Admin Portal (/mkc-admin-z/)', () => {
   it('renders admin console signin interface with restricted zone notice', () => {
     render(
       <ThemeProvider>
@@ -44,7 +44,7 @@ describe('Secret Admin Portal (/lc-zadmin-cc/)', () => {
     expect(screen.getByText(/Portfolio Admin Console/i)).toBeInTheDocument();
     expect(screen.getByText(/RESTRICTED ZONE · PORTFOLIO CONSOLE/i)).toBeInTheDocument();
     expect(screen.getByText(/Admin Email Address/i)).toBeInTheDocument();
-    expect(screen.getByText(/Passphrase/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Passphrase$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Authenticate & Enter Console/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Return to Portfolio/i })).toBeInTheDocument();
   });

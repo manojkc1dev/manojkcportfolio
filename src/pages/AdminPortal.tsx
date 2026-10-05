@@ -36,6 +36,8 @@ import {
   getCurrentUser,
   logout as djLogout,
   updatePassword as djUpdatePassword,
+  requestPasswordReset,
+  confirmPasswordReset,
 } from '../lib/api/auth';
 import { getAdminInquiries, deleteAdminInquiry } from '../lib/api/inquiries';
 import { getAdminProjects } from '../lib/api/admin';
@@ -140,12 +142,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
   // Canonical Django-authenticated user (from /api/v1/auth/me/)
   const [djangoUser, setDjangoUser] = useState<{ username: string; email: string } | null>(null);
 
-  // Login form state
+  // Login & Password Reset form state
+  const [authMode, setAuthMode] = useState<'login' | 'forgot-password' | 'reset-confirm'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Password reset specific state
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetUid, setResetUid] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -486,7 +497,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
   useEffect(() => {
     if (!isDjangoConfigured) return;
     const accessToken = getDjangoAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) {
+      try {
+        const search = new URLSearchParams(window.location.search);
+        const tab = search.get('tab');
+        const uid = search.get('uid');
+        const token = search.get('token');
+        if (tab === 'reset-password' && uid && token) {
+          setAuthMode('reset-confirm');
+          setResetUid(uid);
+          setResetToken(token);
+        }
+      } catch {
+        // Fallback
+      }
+      return;
+    }
 
     getCurrentUser()
       .then((profile) => {
@@ -606,12 +632,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setAuthError('Please enter both administrative email and password.');
+      setAuthError('Invalid email or password.');
       return;
     }
 
     if (!isDjangoConfigured) {
-      setAuthError('Django backend is not configured. Set VITE_DJANGO_API_URL to enable authentication.');
+      setAuthError('Unable to authenticate right now. Please try again.');
       return;
     }
 
@@ -624,13 +650,73 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
       setDjangoUser({ username: profile.username, email: profile.email });
       showToast('Signed in via Python / Django REST Framework API.');
     } catch (djangoErr: unknown) {
-      setAuthError(
-        djangoErr instanceof Error
-          ? djangoErr.message
-          : 'Django authentication failed. Please verify credentials.'
-      );
+      if (
+        djangoErr instanceof Error &&
+        (djangoErr.message.toLowerCase().includes('network') ||
+          djangoErr.message.toLowerCase().includes('failed to fetch') ||
+          djangoErr.message.toLowerCase().includes('connection refused'))
+      ) {
+        setAuthError('Unable to authenticate right now. Please try again.');
+      } else {
+        setAuthError('Invalid email or password.');
+      }
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setAuthError('Invalid email or password.');
+      return;
+    }
+
+    if (!isDjangoConfigured) {
+      setAuthError('Unable to authenticate right now. Please try again.');
+      return;
+    }
+
+    setResetLoading(true);
+    setAuthError(null);
+
+    try {
+      await requestPasswordReset(resetEmail.trim());
+      setResetSuccess(true);
+      showToast('Password reset instructions have been sent.');
+    } catch {
+      setAuthError('Invalid email or password.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetNewPassword || !resetUid || !resetToken) {
+      setAuthError('Invalid or expired password reset link.');
+      return;
+    }
+
+    if (!isDjangoConfigured) {
+      setAuthError('Unable to authenticate right now. Please try again.');
+      return;
+    }
+
+    setResetLoading(true);
+    setAuthError(null);
+
+    try {
+      await confirmPasswordReset(resetUid, resetToken, resetNewPassword);
+      showToast('Password has been reset successfully. Please log in.');
+      setAuthMode('login');
+      setPassword('');
+      setResetSuccess(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Invalid or expired password reset link.';
+      setAuthError(msg);
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -715,55 +801,172 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                 </div>
               )}
 
-              {/* Login Form */}
-              <form onSubmit={handleSignIn} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Admin Email Address
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="admin@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Passphrase
-                  </label>
-                  <div className="relative">
+              {/* Mode 1: Login Form */}
+              {authMode === 'login' && (
+                <form onSubmit={handleSignIn} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                      Admin Email Address
+                    </label>
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type="text"
                       required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-9"
+                      placeholder="contactmanojkc1.com.np@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-neutral-700 dark:text-neutral-300">
+                        Passphrase
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('forgot-password');
+                          setAuthError(null);
+                        }}
+                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        Forgot passphrase?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {authLoading ? 'Verifying Credentials...' : 'Authenticate & Enter Console'}
+                  </button>
+                </form>
+              )}
+
+              {/* Mode 2: Forgot Password Form */}
+              {authMode === 'forgot-password' && (
+                <div className="space-y-4 text-xs">
+                  {resetSuccess ? (
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 space-y-2">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Reset Instructions Sent</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed">
+                        If this address matches the authorized administrator account, password reset instructions have been dispatched.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('login');
+                          setResetSuccess(false);
+                          setAuthError(null);
+                        }}
+                        className="mt-2 w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs cursor-pointer"
+                      >
+                        Return to Sign In
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+                      <div>
+                        <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                          Authorized Admin Email Address
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="contactmanojkc1.com.np@gmail.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={resetLoading}
+                        className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        {resetLoading ? 'Sending Instructions...' : 'Send Password Reset Email'}
+                      </button>
+
+                      <div className="text-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode('login');
+                            setAuthError(null);
+                          }}
+                          className="text-[11px] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+                        >
+                          ← Back to Sign In
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 3: Reset Password Confirm Form */}
+              {authMode === 'reset-confirm' && (
+                <form onSubmit={handleConfirmPasswordReset} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                      New Administrator Passphrase
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Minimum 8 characters"
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {resetLoading ? 'Updating Passphrase...' : 'Save New Passphrase & Sign In'}
+                  </button>
+
+                  <div className="text-center pt-2">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setAuthError(null);
+                      }}
+                      className="text-[11px] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      ← Back to Sign In
                     </button>
                   </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  {authLoading ? 'Verifying Credentials...' : 'Authenticate & Enter Console'}
-                </button>
-              </form>
-
-
+                </form>
+              )}
             </motion.div>
           </div>
         </main>

@@ -1,6 +1,6 @@
 """
 Authentication API Views implementing SimpleJWT token pair issuance, refresh,
-verification, profile inspection, password rotation, and token revocation.
+verification, profile inspection, password rotation, password reset, and token revocation.
 """
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -17,6 +17,8 @@ from .serializers import (
     UserProfileSerializer,
     ChangePasswordSerializer,
     LogoutSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
 )
 
 
@@ -77,6 +79,37 @@ class ChangePasswordView(APIView):
             {"detail": "Password updated successfully."},
             status=status.HTTP_200_OK
         )
+
+
+class PasswordResetRequestView(APIView):
+    """
+    Initiate administrative password reset.
+    Strictly limited to the authorized administrator email.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"detail": "Invalid email or password."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    Confirm password reset with token and new password.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):

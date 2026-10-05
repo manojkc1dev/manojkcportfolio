@@ -128,6 +128,42 @@ export function updatePassword(
   );
 }
 
+/**
+ * Request password reset instructions.
+ * POST /api/v1/auth/password-reset/
+ */
+export async function requestPasswordReset(
+  email: string,
+  options?: RequestOptions
+): Promise<{ detail: string }> {
+  return apiClient.post<{ detail: string }>(
+    '/api/v1/auth/password-reset/',
+    { email: email.trim() },
+    options
+  );
+}
+
+/**
+ * Confirm password reset with token.
+ * POST /api/v1/auth/password-reset/confirm/
+ */
+export async function confirmPasswordReset(
+  uid: string,
+  token: string,
+  newPass: string,
+  options?: RequestOptions
+): Promise<{ detail: string }> {
+  return apiClient.post<{ detail: string }>(
+    '/api/v1/auth/password-reset/confirm/',
+    {
+      uid,
+      token,
+      new_password: newPass,
+    },
+    options
+  );
+}
+
 // Token helper re-exports
 export const getAccessToken = getDjangoAccessToken;
 export const getRefreshToken = getDjangoRefreshToken;

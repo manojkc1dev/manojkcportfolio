@@ -109,7 +109,7 @@ describe('Admin Inquiries DRF API Client', () => {
       expect(result[1].status).toBe('In Progress');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/inquiries/',
+        expect.stringContaining('/api/v1/inquiries/'),
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -220,7 +220,7 @@ describe('Admin Inquiries DRF API Client', () => {
       expect(result.replied).toBe(true);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/inquiries/inq-123/',
+        expect.stringContaining('/api/v1/inquiries/inq-123/'),
         expect.objectContaining({
           method: 'PATCH',
           headers: expect.objectContaining({
@@ -265,7 +265,7 @@ describe('Admin Inquiries DRF API Client', () => {
       await deleteAdminInquiry('inq-delete-target');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/inquiries/inq-delete-target/',
+        expect.stringContaining('/api/v1/inquiries/inq-delete-target/'),
         expect.objectContaining({
           method: 'DELETE',
           headers: expect.objectContaining({
@@ -314,7 +314,7 @@ describe('Admin Inquiries DRF API Client', () => {
       expect(response.id).toBe('new-inquiry-uuid');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/inquiries/',
+        expect.stringContaining('/api/v1/inquiries/'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({

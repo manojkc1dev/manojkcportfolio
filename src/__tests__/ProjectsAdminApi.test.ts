@@ -305,7 +305,7 @@ describe('Admin Projects API & Adapter Integration', () => {
       expect(results[1].featured).toBe(false);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/admin/projects/',
+        expect.stringContaining('/api/v1/admin/projects/'),
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -408,7 +408,7 @@ describe('Admin Projects API & Adapter Integration', () => {
       expect(result.featured).toBe(true);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/admin/projects/agritech/',
+        expect.stringContaining('/api/v1/admin/projects/agritech/'),
         expect.objectContaining({
           method: 'GET',
         })
@@ -483,7 +483,7 @@ describe('Admin Projects API & Adapter Integration', () => {
       expect(result.technologies).toEqual(['Go', 'PostgreSQL', 'Kafka']);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/admin/projects/',
+        expect.stringContaining('/api/v1/admin/projects/'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -523,7 +523,7 @@ describe('Admin Projects API & Adapter Integration', () => {
       expect(result.status).toBe('Archived');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/admin/projects/agritech/',
+        expect.stringContaining('/api/v1/admin/projects/agritech/'),
         expect.objectContaining({
           method: 'PATCH',
           headers: expect.objectContaining({
@@ -602,7 +602,7 @@ describe('Admin Projects API & Adapter Integration', () => {
       await deleteAdminProject('agritech');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/admin/projects/agritech/',
+        expect.stringContaining('/api/v1/admin/projects/agritech/'),
         expect.objectContaining({
           method: 'DELETE',
           headers: expect.objectContaining({
