@@ -70,6 +70,7 @@ LOCAL_APPS = [
     'apps.services',
     'apps.resume',
     'apps.siteconfig',
+    'apps.assistant',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -193,6 +194,7 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
     'DEFAULT_THROTTLE_RATES': {
         'anon': '10/hour',
+        'assistant_anon': '30/min',
     },
 }
 

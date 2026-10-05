@@ -23,17 +23,17 @@ import {
 } from 'lucide-react';
 import { soundFx } from '../lib/soundFx';
 import { useTheme } from '../context/ThemeContext';
+import { postAssistantQuery, postAssistantFeedback } from '../lib/api/assistant';
+import type { AssistantSuggestedAction } from '../lib/api/assistant';
+import { isDjangoConfigured } from '../lib/api/client';
 
 interface ChatMessage {
   id: string;
   sender: 'bot' | 'user';
   text: string;
   timestamp: string;
-  suggestedActions?: Array<{
-    label: string;
-    actionType: 'link' | 'query';
-    target: string;
-  }>;
+  dataSource?: 'live_db' | 'static_fallback';
+  suggestedActions?: AssistantSuggestedAction[];
 }
 
 interface KnowledgeTopic {
@@ -42,11 +42,7 @@ interface KnowledgeTopic {
   keywords: string[];
   patterns: RegExp[];
   answer: string;
-  suggestedActions?: Array<{
-    label: string;
-    actionType: 'link' | 'query';
-    target: string;
-  }>;
+  suggestedActions?: AssistantSuggestedAction[];
 }
 
 const KNOWLEDGE_BASE: KnowledgeTopic[] = [
@@ -59,14 +55,14 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Namaste! 🙏 I'm Manoj's Technical Portfolio Assistant.\n\nI can provide deep technical insights into Manoj's backend architectures, PostgreSQL performance benchmarks, payment integrations, or availability for freelance and full-time engineering.\n\nSelect a topic below or type any technical question:",
     suggestedActions: [
-      { label: '🛠️ Backend Specialization', actionType: 'query', target: 'What backend technologies does Manoj specialize in?' },
-      { label: '⚡ PostgreSQL Optimization', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
-      { label: '💳 Payment Gateways & Idempotency', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
-      { label: '💼 Rates & Remote Availability', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
+      { label: '🛠️ Backend Specialization', action_type: 'query', target: 'What backend technologies does Manoj specialize in?' },
+      { label: '⚡ PostgreSQL Optimization', action_type: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '💳 Payment Gateways & Idempotency', action_type: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '💼 Rates & Remote Availability', action_type: 'query', target: "What are Manoj's project rates and freelance availability?" },
     ],
   },
 
-  // 2. TECH STACK & BACKEND SPECIALIZATION (FAQ 1)
+  // 2. TECH STACK & BACKEND SPECIALIZATION
   {
     id: 'tech_stack',
     category: 'tech',
@@ -75,13 +71,13 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Manoj's core backend engineering stack:\n\n• Core Languages: Python 3.12, TypeScript, SQL\n• Frameworks: Django 5.x, Django REST Framework (DRF), FastAPI\n• Databases: PostgreSQL (advanced relational schema design, indexing), MySQL\n• Asynchronous & Caching: Redis (in-memory caching, distributed locks), Celery (task queues, scheduled cron workers)\n• Authentication & Security: JWT, OAuth2, granular RBAC, CORS/CSRF hardening\n• DevOps & Infrastructure: Docker, Docker Compose, Linux system administration, Nginx reverse proxy, GitHub Actions CI/CD",
     suggestedActions: [
-      { label: '🛠️ View Detailed Skills Matrix', actionType: 'link', target: '#skills' },
-      { label: '⚡ PostgreSQL Query Tuning', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
-      { label: '📂 View Production Projects', actionType: 'link', target: '#projects' },
+      { label: '🛠️ View Detailed Skills Matrix', action_type: 'link', target: '#skills' },
+      { label: '⚡ PostgreSQL Query Tuning', action_type: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '📂 View Production Projects', action_type: 'link', target: '#projects' },
     ],
   },
 
-  // 3. DATABASE OPTIMIZATION & POSTGRESQL TUNING (FAQ 4)
+  // 3. DATABASE OPTIMIZATION & POSTGRESQL TUNING
   {
     id: 'database_optimization',
     category: 'database',
@@ -90,13 +86,13 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Manoj systematically resolves database bottlenecks through a 4-pillar methodology:\n\n1. Execution Plan Profiling: Auditing queries with PostgreSQL `EXPLAIN (ANALYZE, BUFFERS, VERBOSE)` to identify sequential table scans and memory spills.\n2. Eliminating N+1 ORM Traps: Enforcing `select_related` for ForeignKeys/OneToOne and `prefetch_related` with `Prefetch()` objects for ManyToMany/reverse relationships.\n3. Strategic B-Tree & Partial Indexing: Creating composite indexes tailored to high-cardinality filters (`WHERE tenant_id = ? AND status = ?`) and partial indexes for active records.\n4. Redis Query Caching: Storing serialized querysets for hot, high-read endpoints with transaction-safe cache invalidation signals.\n\nVerified Outcome: ~30% latency reduction across high-traffic inventory and transaction endpoints.",
     suggestedActions: [
-      { label: '📂 Inspect Retail ERP Architecture', actionType: 'link', target: '#projects' },
-      { label: '💳 Payment Webhook Pipelines', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
-      { label: '💬 Book Architecture Audit', actionType: 'link', target: '#contact' },
+      { label: '📂 Inspect Retail ERP Architecture', action_type: 'link', target: '#projects' },
+      { label: '💳 Payment Webhook Pipelines', action_type: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '💬 Book Architecture Audit', action_type: 'link', target: '#contact' },
     ],
   },
 
-  // 4. PAYMENT INTEGRATIONS & FINTECH IDEMPOTENCY (FAQ 3)
+  // 4. PAYMENT INTEGRATIONS & FINTECH IDEMPOTENCY
   {
     id: 'payments',
     category: 'payments',
@@ -105,13 +101,13 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Manoj has engineered production payment integrations with local and international gateways:\n\n• Khalti API v2: Server-to-server token verification with automated transaction state confirmation.\n• eSewa EPAY v2: HMAC-SHA256 request signature verification and automated status reconciliation.\n• Stripe: PaymentIntents API, asynchronous webhook event subscriptions, and customer portal sync.\n\nEnterprise Reliability Protections:\n✓ Unique Idempotency Keys: Enforced at database constraint level to prevent double-charging on network retries.\n✓ Signature Verification: Cryptographic verification of all incoming webhook payloads before processing.\n✓ Dead-Letter Queue (DLQ): Failed webhook events are persisted for automated exponential-backoff replay.\n✓ Two-Phase Ledger Reconciliation: Audit trails matching gateway settlement records against internal order states.",
     suggestedActions: [
-      { label: '📂 View FinTech Settlement Case Study', actionType: 'link', target: '#projects' },
-      { label: '💬 Inquire About Custom Payment Engine', actionType: 'link', target: 'https://wa.me/9779842203976' },
-      { label: '💼 Rates & Timelines', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
+      { label: '📂 View FinTech Settlement Case Study', action_type: 'link', target: '#projects' },
+      { label: '💬 Inquire About Custom Payment Engine', action_type: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '💼 Rates & Timelines', action_type: 'query', target: "What are Manoj's project rates and freelance availability?" },
     ],
   },
 
-  // 5. RATES, TIMELINES & FREELANCE AVAILABILITY (FAQ 2)
+  // 5. RATES, TIMELINES & FREELANCE AVAILABILITY
   {
     id: 'rates_hiring',
     category: 'hiring',
@@ -120,9 +116,9 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Manoj is actively available for remote freelance contracts, dedicated backend engineering, and technical consulting:\n\n• Availability: Immediate (Remote worldwide or on-site in Kathmandu)\n• Collaboration Hours: Sunday – Friday, 9:00 AM – 6:00 PM NPT (UTC+5:45), with regular overlap for North American & European time zones.\n\nTransparent Pricing Guidelines:\n• Small Modules / REST API Integrations: NPR 50,000 – 100,000 (~US$380 – $750) [1-2 weeks]\n• Full-Stack / Custom Web Applications: NPR 100,000 – 200,000 (~US$750 – $1,500) [3-4 weeks]\n• Multi-Module Enterprise ERP / FinTech Platforms: NPR 200,000 – 400,000+ (~US$1,500 – $3,000+) [2-3 months]\n\nEvery project includes clean source code, Docker configs, documentation, and post-launch maintenance.",
     suggestedActions: [
-      { label: '💬 Direct WhatsApp Message', actionType: 'link', target: 'https://wa.me/9779842203976' },
-      { label: '✉️ Send Email Inquiry', actionType: 'link', target: 'mailto:manojkc1dev@gmail.com' },
-      { label: '📝 Fill Project Request Form', actionType: 'link', target: '#contact' },
+      { label: '💬 Direct WhatsApp Message', action_type: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '✉️ Send Email Inquiry', action_type: 'link', target: 'mailto:manojkc1dev@gmail.com' },
+      { label: '📝 Fill Project Request Form', action_type: 'link', target: '#contact' },
     ],
   },
 
@@ -135,9 +131,9 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Manoj engineered the core backend for the Himalayan Retail Group Enterprise ERP:\n\n• Challenge: Synchronizing high-volume stock movements across 5 distribution warehouses and 12 retail POS branches.\n• Solution: Designed a distributed Django/PostgreSQL architecture with Celery workers for offline-first queue synchronization, double-entry financial ledgers, and automated VAT invoicing compliant with Inland Revenue Department regulations.\n• Scale: Handles 50,000+ SKU movements daily with zero stock drift and sub-80ms transaction confirmation.",
     suggestedActions: [
-      { label: '📂 Explore Full Project Details', actionType: 'link', target: '#projects' },
-      { label: '⚡ Review PostgreSQL Tuning Used', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
-      { label: '💬 Discuss a Custom ERP', actionType: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '📂 Explore Full Project Details', action_type: 'link', target: '#projects' },
+      { label: '⚡ Review PostgreSQL Tuning Used', action_type: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '💬 Discuss a Custom ERP', action_type: 'link', target: 'https://wa.me/9779842203976' },
     ],
   },
 
@@ -150,9 +146,9 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Manoj enforces rigorous enterprise security across all API deployments:\n\n• Authentication: Stateless JWT with short-lived access tokens, encrypted refresh tokens stored in HttpOnly SameSite cookies, and token blacklisting on logout.\n• Authorization: Granular Role-Based Access Control (RBAC) via custom Django REST permissions, decoupling user roles from domain business logic.\n• Data Protection: Parameterized ORM queries preventing SQL injection, strict input sanitization, automated rate-limiting via Redis, and secure secret management via environment variables.\n• Transport: Mandatory HTTPS, HSTS, secure CORS origin whitelisting, and strict Content Security Policies (CSP).",
     suggestedActions: [
-      { label: '🛠️ View Engineering Philosophy', actionType: 'link', target: '#about' },
-      { label: '💳 Payment Gateway Security', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
-      { label: '📩 Inquire for Security Audit', actionType: 'link', target: '#contact' },
+      { label: '🛠️ View Engineering Philosophy', action_type: 'link', target: '#about' },
+      { label: '💳 Payment Gateway Security', action_type: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '📩 Inquire for Security Audit', action_type: 'link', target: '#contact' },
     ],
   },
 
@@ -165,28 +161,29 @@ const KNOWLEDGE_BASE: KnowledgeTopic[] = [
     answer:
       "Direct channels to connect with Manoj K.C.:\n\n• Phone / WhatsApp: +977 9842203976 (Direct response within 2 hours)\n• Email: manojkc1dev@gmail.com\n• LinkedIn: linkedin.com/in/manojkc1dev\n• GitHub: github.com/manojkc1dev\n• Location: Kathmandu, Nepal (Available for international contracts)",
     suggestedActions: [
-      { label: '💬 Open WhatsApp Chat', actionType: 'link', target: 'https://wa.me/9779842203976' },
-      { label: '✉️ Email Manoj', actionType: 'link', target: 'mailto:manojkc1dev@gmail.com' },
-      { label: '📝 Submit Contact Form', actionType: 'link', target: '#contact' },
+      { label: '💬 Open WhatsApp Chat', action_type: 'link', target: 'https://wa.me/9779842203976' },
+      { label: '✉️ Email Manoj', action_type: 'link', target: 'mailto:manojkc1dev@gmail.com' },
+      { label: '📝 Submit Contact Form', action_type: 'link', target: '#contact' },
     ],
   },
 ];
 
+
 const FALLBACK_RESPONSE: {
   answer: string;
-  suggestedActions: NonNullable<KnowledgeTopic['suggestedActions']>;
+  suggestedActions: AssistantSuggestedAction[];
 } = {
   answer:
     "I'm here to provide verified technical facts about Manoj's backend engineering, database architectures, payment pipelines, or contract rates. Please choose a topic below or reach out directly:",
   suggestedActions: [
-    { label: '⚡ Backend & Tech Stack', actionType: 'query', target: 'What backend technologies does Manoj specialize in?' },
-    { label: '🚀 Database Optimization', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
-    { label: '💳 Payment Gateways', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
-    { label: '💼 Rates & Availability', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
+    { label: '⚡ Backend & Tech Stack', action_type: 'query', target: 'What backend technologies does Manoj specialize in?' },
+    { label: '🚀 Database Optimization', action_type: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+    { label: '💳 Payment Gateways', action_type: 'query', target: 'What payment gateways has Manoj integrated?' },
+    { label: '💼 Rates & Availability', action_type: 'query', target: "What are Manoj's project rates and freelance availability?" },
   ],
 };
 
-function matchQuery(userQuery: string): { answer: string; suggestedActions?: KnowledgeTopic['suggestedActions'] } {
+function matchQuery(userQuery: string): { answer: string; suggestedActions?: AssistantSuggestedAction[] } {
   const clean = userQuery.toLowerCase().trim();
 
   let bestTopic: KnowledgeTopic | null = null;
@@ -236,10 +233,10 @@ export const QABot: React.FC = () => {
     text: "Namaste! I'm Manoj's Technical Portfolio Assistant. You can ask deep technical questions about his backend architecture, database tuning, payment integrations, or select a topic below:",
     timestamp: 'Just now',
     suggestedActions: [
-      { label: '🛠️ Backend Specialization', actionType: 'query', target: 'What backend technologies does Manoj specialize in?' },
-      { label: '⚡ PostgreSQL Tuning', actionType: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
-      { label: '💳 Payment Gateways & Idempotency', actionType: 'query', target: 'What payment gateways has Manoj integrated?' },
-      { label: '💼 Rates & Remote Availability', actionType: 'query', target: 'What are Manoj’s project rates and freelance availability?' },
+      { label: '🛠️ Backend Specialization', action_type: 'query', target: 'What backend technologies does Manoj specialize in?' },
+      { label: '⚡ PostgreSQL Tuning', action_type: 'query', target: 'How does Manoj optimize database performance in Django/PostgreSQL?' },
+      { label: '💳 Payment Gateways & Idempotency', action_type: 'query', target: 'What payment gateways has Manoj integrated?' },
+      { label: '💼 Rates & Remote Availability', action_type: 'query', target: "What are Manoj's project rates and freelance availability?" },
     ],
   };
 
@@ -275,20 +272,52 @@ export const QABot: React.FC = () => {
     if (!textToSend) setInputValue('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const match = matchQuery(query);
-      const botReply: ChatMessage = {
-        id: `bot-${Date.now()}`,
-        sender: 'bot',
-        text: match.answer,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggestedActions: match.suggestedActions,
-      };
-      setMessages((prev) => [...prev, botReply]);
-      setIsTyping(false);
+    const buildBotReply = (
+      answer: string,
+      suggestedActions: AssistantSuggestedAction[],
+      dataSource?: 'live_db' | 'static_fallback',
+    ): ChatMessage => ({
+      id: `bot-${Date.now()}`,
+      sender: 'bot',
+      text: answer,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      suggestedActions,
+      dataSource,
+    });
 
-      if (!isSoundMuted) soundFx.playReceive();
-    }, 350);
+    // ── Try the Django backend first ────────────────────────────────────────
+    if (isDjangoConfigured) {
+      postAssistantQuery(query)
+        .then((res) => {
+          setMessages((prev) => [
+            ...prev,
+            buildBotReply(res.answer, res.suggested_actions, res.data_source),
+          ]);
+          setIsTyping(false);
+          if (!isSoundMuted) soundFx.playReceive();
+        })
+        .catch(() => {
+          // Backend unavailable — fall through to local knowledge base
+          const match = matchQuery(query);
+          setMessages((prev) => [
+            ...prev,
+            buildBotReply(match.answer, match.suggestedActions ?? [], 'static_fallback'),
+          ]);
+          setIsTyping(false);
+          if (!isSoundMuted) soundFx.playReceive();
+        });
+    } else {
+      // ── Local deterministic fallback (no backend configured) ─────────────
+      setTimeout(() => {
+        const match = matchQuery(query);
+        setMessages((prev) => [
+          ...prev,
+          buildBotReply(match.answer, match.suggestedActions ?? [], 'static_fallback'),
+        ]);
+        setIsTyping(false);
+        if (!isSoundMuted) soundFx.playReceive();
+      }, 350);
+    }
   };
 
   const handleClearChat = () => {
@@ -296,11 +325,11 @@ export const QABot: React.FC = () => {
     setMessages([initialBotMessage]);
   };
 
-  const handleActionClick = (action: { label: string; actionType: 'link' | 'query'; target: string }) => {
+  const handleActionClick = (action: AssistantSuggestedAction) => {
     if (!isSoundMuted) soundFx.playTap();
-    if (action.actionType === 'query') {
+    if (action.action_type === 'query') {
       handleSendMessage(action.target);
-    } else if (action.actionType === 'link') {
+    } else if (action.action_type === 'link') {
       if (action.target.startsWith('#')) {
         const el = document.querySelector(action.target);
         if (el) {

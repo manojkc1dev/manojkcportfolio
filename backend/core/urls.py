@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/v1/', include('apps.blog.urls', namespace='v1_blog')),
     path('api/v1/', include('apps.resume.urls', namespace='v1_resume')),
     path('api/v1/', include('apps.inquiries.urls', namespace='v1_inquiries')),
+    path('api/v1/', include('apps.assistant.urls', namespace='v1_assistant')),
 
     # Compatibility Aliases for Frontend Client
     path('api/token/', PortfolioTokenObtainPairView.as_view(), name='compat_token_obtain_pair'),
