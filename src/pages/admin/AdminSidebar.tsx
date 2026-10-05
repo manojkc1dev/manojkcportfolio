@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Menu,
   LayoutDashboard,
   FolderGit2,
   Cpu,
@@ -11,8 +12,6 @@ import {
   Settings,
   LogOut,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import type { AdminTab } from './types';
 
@@ -56,6 +55,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const collapsed = isCollapsed !== undefined ? isCollapsed : internalCollapsed;
 
   const handleToggleCollapse = () => {
+    if (window.innerWidth < 1024) {
+      onCloseMobile();
+      return;
+    }
     if (onToggleCollapse) {
       onToggleCollapse();
     } else {
@@ -105,19 +108,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } ${collapsed ? 'w-64 lg:w-16' : 'w-64'}`}
       >
-        {/* Navigation Scrollable Area */}
-        <div className={`flex-1 overflow-y-auto ${collapsed ? 'px-2 py-3 space-y-3' : 'px-3 py-4 space-y-6'}`}>
-          {/* Accessible Desktop Collapse/Expand Toggle Header */}
-          <div
-            className={`hidden lg:flex items-center pb-2 border-b border-neutral-100 dark:border-neutral-800/80 ${
-              collapsed ? 'justify-center' : 'justify-between px-1'
-            }`}
-          >
-            {!collapsed && (
-              <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
-                Navigation
-              </span>
-            )}
+        {/* Brand Profile & Hamburger Toggle Header */}
+        <div
+          className={`border-b border-neutral-200 dark:border-neutral-800 ${
+            collapsed ? 'p-2 flex flex-col items-center gap-2.5' : 'p-3.5 flex items-center justify-between gap-2.5'
+          }`}
+        >
+          <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? 'flex-col' : ''}`}>
             <button
               type="button"
               id="admin-sidebar-collapse-toggle"
@@ -126,16 +123,44 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!collapsed}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="p-1.5 rounded-md text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
             >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <ChevronLeft className="w-4 h-4" />
-              )}
+              <Menu className="w-5 h-5" />
             </button>
-          </div>
 
+            <div
+              className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 shadow-xs"
+              title={collapsed ? 'Manoj Khatri (ADMIN)' : undefined}
+            >
+              {!imgError ? (
+                <img
+                  src={avatarUrl}
+                  alt="Manoj Khatri profile picture"
+                  className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                  MK
+                </div>
+              )}
+            </div>
+
+            {!collapsed && (
+              <div className="min-w-0 flex flex-col">
+                <span className="font-semibold text-neutral-900 dark:text-white text-xs truncate">
+                  Manoj Khatri
+                </span>
+                <span className="inline-block w-fit px-1.5 py-0.5 mt-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
+                  ADMIN
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation Scrollable Area */}
+        <div className={`flex-1 overflow-y-auto ${collapsed ? 'px-2 py-3 space-y-3' : 'px-3 py-4 space-y-6'}`}>
           {/* Section: OVERVIEW */}
           <div>
             {!collapsed ? (

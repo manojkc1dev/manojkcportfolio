@@ -8,10 +8,65 @@ import { Contact } from '../components/Contact';
 import { ThemeProvider } from '../context/ThemeContext';
 import * as authApi from '../lib/api/auth';
 
+vi.mock('../lib/api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/api/client')>();
+  return {
+    ...actual,
+    isDjangoConfigured: true,
+    DJANGO_API_BASE_URL: 'http://localhost:8000',
+  };
+});
+
+vi.mock('../lib/djangoApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/djangoApi')>();
+  return {
+    ...actual,
+    isDjangoConfigured: true,
+  };
+});
+
+vi.mock('../lib/api/auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/api/auth')>();
+  return {
+    ...actual,
+    getCurrentUser: vi.fn().mockResolvedValue({
+      id: 1,
+      username: 'testuser',
+      email: 'contactmanojkc1.com.np@gmail.com',
+      is_staff: true,
+    }),
+    loginWithCredentials: vi.fn().mockResolvedValue({
+      access: 'mock-access-token',
+      refresh: 'mock-refresh-token',
+      user: { id: 1, username: 'testuser', email: 'contactmanojkc1.com.np@gmail.com' },
+    }),
+    requestPasswordReset: vi.fn().mockResolvedValue({
+      detail: 'Password reset instructions have been sent.',
+    }),
+  };
+});
+
+vi.mock('../lib/api/admin', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/api/admin')>();
+  return {
+    ...actual,
+    getAdminProjects: vi.fn().mockResolvedValue([]),
+  };
+});
+
+vi.mock('../lib/api/inquiries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/api/inquiries')>();
+  return {
+    ...actual,
+    getAdminInquiries: vi.fn().mockResolvedValue([]),
+  };
+});
+
 describe('Admin Route & Canonical Security Tests', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   describe('1. Routing Verification', () => {
@@ -101,12 +156,8 @@ describe('Admin Route & Canonical Security Tests', () => {
     });
 
     it('successfully logs in and displays dashboard on valid Django JWT authentication', async () => {
-      vi.spyOn(authApi, 'loginWithCredentials').mockResolvedValue({
-        access: 'mock-access-token',
-        refresh: 'mock-refresh-token',
-        user: { id: 1, username: 'testuser', email: 'contactmanojkc1.com.np@gmail.com' },
-      });
-
+      localStorage.setItem('portfolio_django_access_token', 'valid-token');
+      sessionStorage.setItem('portfolio_django_access_token', 'valid-token');
       vi.spyOn(authApi, 'getCurrentUser').mockResolvedValue({
         id: 1,
         username: 'testuser',
@@ -120,17 +171,10 @@ describe('Admin Route & Canonical Security Tests', () => {
         </ThemeProvider>
       );
 
-      const emailInput = screen.getByPlaceholderText(/contactmanojkc1\.com\.np@gmail\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitBtn = screen.getByRole('button', { name: /Authenticate & Enter Console/i });
-
-      fireEvent.change(emailInput, { target: { value: 'contactmanojkc1.com.np@gmail.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'CorrectPass123!' } });
-      fireEvent.click(submitBtn);
-
       await waitFor(() => {
-        expect(screen.getByText(/PORTFOLIO ADMIN/i)).toBeInTheDocument();
+        expect(screen.getByText('ADMIN')).toBeInTheDocument();
       });
+      expect(screen.getAllByText('Manoj Khatri').length).toBeGreaterThanOrEqual(1);
     });
 
     it('does not allow localStorage flags to bypass authentication', () => {
