@@ -138,6 +138,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('admin_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebarCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('admin_sidebar_collapsed', String(next));
+      } catch {
+        // Fallback for restricted storage environments
+      }
+      return next;
+    });
+  };
 
   // Canonical Django-authenticated user (from /api/v1/auth/me/)
   const [djangoUser, setDjangoUser] = useState<{ username: string; email: string } | null>(null);
@@ -1020,6 +1039,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
           userAvatar={profileData.photo || '/images/manoj.jpg'}
           onSignOut={handleSignOut}
           onBackToHome={onBackToHome}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebarCollapse}
         />
 
         {/* Dynamic View Panel */}
