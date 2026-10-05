@@ -395,3 +395,51 @@ describe('updatePassword', () => {
     await expect(updatePassword('wrong', 'newSecret123')).rejects.toMatchObject({ status: 400 });
   });
 });
+
+// ---------------------------------------------------------------------------
+// requestPasswordReset & confirmPasswordReset
+// ---------------------------------------------------------------------------
+describe('requestPasswordReset & confirmPasswordReset', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it('requestPasswordReset sends email in payload to POST /api/v1/auth/password-reset/', async () => {
+    const { requestPasswordReset } = await import('../lib/api/auth');
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ detail: 'Password reset instructions have been sent.' }),
+    });
+
+    const res = await requestPasswordReset('contactmanojkc1.com.np@gmail.com');
+    expect(res.detail).toBe('Password reset instructions have been sent.');
+
+    const call = (global.fetch as any).mock.calls[0];
+    expect(call[0]).toContain('/api/v1/auth/password-reset/');
+    const body = JSON.parse(call[1].body);
+    expect(body.email).toBe('contactmanojkc1.com.np@gmail.com');
+  });
+
+  it('confirmPasswordReset sends uid, token, and new_password to POST /api/v1/auth/password-reset/confirm/', async () => {
+    const { confirmPasswordReset } = await import('../lib/api/auth');
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ detail: 'Password has been reset successfully.' }),
+    });
+
+    const res = await confirmPasswordReset('uid123', 'tok456', 'NewS3curePass@2026');
+    expect(res.detail).toBe('Password has been reset successfully.');
+
+    const call = (global.fetch as any).mock.calls[0];
+    expect(call[0]).toContain('/api/v1/auth/password-reset/confirm/');
+    const body = JSON.parse(call[1].body);
+    expect(body.uid).toBe('uid123');
+    expect(body.token).toBe('tok456');
+    expect(body.new_password).toBe('NewS3curePass@2026');
+  });
+});

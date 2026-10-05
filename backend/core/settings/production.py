@@ -37,3 +37,7 @@ if os.getenv('SESSION_COOKIE_SECURE', 'True').lower() in ('true', '1', 'yes'):
 
 if os.getenv('CSRF_COOKIE_SECURE', 'True').lower() in ('true', '1', 'yes'):
     CSRF_COOKIE_SECURE = True
+
+# Production Email: enforce real SMTP / transactional delivery
+if not os.getenv('EMAIL_BACKEND'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

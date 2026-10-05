@@ -198,9 +198,12 @@ class AuthenticationTests(TestCase):
         self.assertIn('old_password', response.json())
 
     # -------------------------------------------------------------------------
-    # 5. Password Reset Endpoints
+    # 5. Password Reset Endpoints & Email Verification
     # -------------------------------------------------------------------------
-    def test_password_reset_request_authorized_email_succeeds(self):
+    def test_password_reset_request_authorized_email_sends_email_with_secure_link(self):
+        from django.core import mail
+        mail.outbox = []
+
         response = self.client.post(self.password_reset_url, {
             'email': self.email,
         }, format='json')
@@ -208,6 +211,15 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json()['detail'], 'Password reset instructions have been sent.')
+
+        # Verify email was actually dispatched via mail subsystem
+        self.assertEqual(len(mail.outbox), 1)
+        sent_email = mail.outbox[0]
+        self.assertEqual(sent_email.subject, "Reset your Manoj Khatri Portfolio Admin password")
+        self.assertEqual(sent_email.to, [self.email])
+        self.assertIn("Manoj Khatri", sent_email.from_email)
+        self.assertIn("/mkc-admin-z?tab=reset-password&uid=", sent_email.body)
+        self.assertIn("This link expires in 24 hours.", sent_email.body)
 
     def test_password_reset_request_unauthorized_email_fails_with_generic_error(self):
         response = self.client.post(self.password_reset_url, {
@@ -217,7 +229,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()['detail'], 'Invalid email or password.')
 
-    def test_password_reset_confirm_flow(self):
+    def test_password_reset_confirm_flow_and_token_invalidation(self):
         token = default_token_generator.make_token(self.user)
         uid = urlsafe_base64_encode(force_bytes(self.user.pk))
         reset_pass = 'ResetS3cureP@ssword2026!'
@@ -230,12 +242,45 @@ class AuthenticationTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Login with newly reset password
+        # Login with newly reset password succeeds
         login_resp = self.client.post(self.login_url, {
             'email': self.email,
             'password': reset_pass,
         }, format='json')
         self.assertEqual(login_resp.status_code, status.HTTP_200_OK)
+
+        # Old password no longer works
+        old_login = self.client.post(self.login_url, {
+            'email': self.email,
+            'password': self.password,
+        }, format='json')
+        self.assertEqual(old_login.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Token cannot be reused
+        reuse_resp = self.client.post(self.password_reset_confirm_url, {
+            'uid': uid,
+            'token': token,
+            'new_password': 'AnotherNewPassword2026!',
+        }, format='json')
+        self.assertEqual(reuse_resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_password_reset_confirm_invalid_token_rejected(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        response = self.client.post(self.password_reset_confirm_url, {
+            'uid': uid,
+            'token': 'completely-invalid-token-12345',
+            'new_password': 'SomeNewPassword2026!',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_password_reset_confirm_invalid_uid_rejected(self):
+        response = self.client.post(self.password_reset_confirm_url, {
+            'uid': 'invalid_uid_base64',
+            'token': 'some-token',
+            'new_password': 'SomeNewPassword2026!',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
     # -------------------------------------------------------------------------
     # 6. Logout & Token Blacklisting

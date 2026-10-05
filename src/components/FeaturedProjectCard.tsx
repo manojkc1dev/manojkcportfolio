@@ -219,10 +219,10 @@ export const FeaturedProjectCard: React.FC<FeaturedProjectCardProps> = ({
         </div>
 
         {/* Right Column: Hero Visual Container */}
-        <div className="lg:col-span-5 order-1 lg:order-2 flex flex-col justify-center">
+        <div className="lg:col-span-5 order-1 lg:order-2 flex flex-col justify-center my-auto">
           <div
             onClick={() => onOpenDetails && onOpenDetails(project)}
-            className="relative group/img rounded-2xl overflow-hidden bg-neutral-950 border border-neutral-200/90 dark:border-neutral-800 shadow-lg cursor-pointer w-full h-full min-h-[200px] sm:min-h-[280px] lg:min-h-[420px] aspect-video sm:aspect-16/10 lg:aspect-auto flex items-center justify-center"
+            className="relative group/img rounded-2xl overflow-hidden bg-neutral-950 border border-neutral-200/90 dark:border-neutral-800 shadow-lg cursor-pointer w-full aspect-video sm:aspect-16/10 flex items-center justify-center"
             title="Click to view full architecture & details"
             tabIndex={0}
             role="button"

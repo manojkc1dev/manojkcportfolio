@@ -135,19 +135,21 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000').rstrip('/')
         reset_link = f"{frontend_url}/mkc-admin-z?tab=reset-password&uid={uid}&token={token}"
 
-        subject = "Manoj K.C. Portfolio — Administrative Password Reset"
+        subject = "Reset your Manoj Khatri Portfolio Admin password"
         message = (
             f"Hello {user.first_name or user.username},\n\n"
-            f"A password reset request was initiated for your administrator console account.\n\n"
-            f"To choose a new password, click the link below or copy it into your browser:\n"
+            f"A password reset was requested for your Portfolio Admin account.\n\n"
+            f"Use the secure link below to create a new password:\n\n"
             f"{reset_link}\n\n"
-            f"If you did not request this password reset, no action is required.\n\n"
-            f"Best regards,\nManoj K.C. Portfolio Security Subsystem"
+            f"This link expires in 24 hours.\n\n"
+            f"If you did not request this change, you can safely ignore this email.\n\n"
+            f"Best regards,\n"
+            f"Manoj Khatri Portfolio Security Subsystem"
         )
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'Manoj K.C. Portfolio <manojkc1dev@gmail.com>')
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'Manoj Khatri <contact@manojkc1.com.np>')
 
         try:
             send_mail(
@@ -158,8 +160,9 @@ class PasswordResetRequestSerializer(serializers.Serializer):
                 fail_silently=False,
             )
         except Exception as e:
-            # Fallback for offline/test environments
-            pass
+            # Re-raise in production if fail_silently is false, or pass in offline test
+            if not getattr(settings, 'DEBUG', True):
+                raise serializers.ValidationError({"detail": f"Failed to deliver reset email: {str(e)}"})
 
         return {"detail": "Password reset instructions have been sent."}
 
