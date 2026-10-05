@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AdminSidebar } from '../pages/admin/AdminSidebar';
 import { AdminHeader } from '../pages/admin/AdminHeader';
+import { DashboardView } from '../pages/admin/views/DashboardView';
 import { ThemeProvider } from '../context/ThemeContext';
 
 describe('AdminSidebar & Navigation Refinement Tests', () => {
@@ -221,5 +222,86 @@ describe('AdminSidebar & Navigation Refinement Tests', () => {
     );
 
     expect(screen.getByTestId('admin-sidebar')).toHaveAttribute('data-collapsed', 'true');
+  });
+
+  describe('Single Source of Profile Identity & Welcome Banner Tests', () => {
+    it('sidebar expanded renders avatar, Manoj Khatri, and ADMIN badge', () => {
+      render(
+        <AdminSidebar
+          currentTab="dashboard"
+          onSelectTab={vi.fn()}
+          isOpen={true}
+          onCloseMobile={vi.fn()}
+          onBackToHome={vi.fn()}
+          userAvatar="/images/manoj.jpg"
+          userEmail="manojkc1dev@gmail.com"
+          onSignOut={vi.fn()}
+        />
+      );
+
+      const avatarImgs = screen.getAllByAltText('Manoj Khatri profile picture');
+      expect(avatarImgs.length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Manoj Khatri').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('ADMIN')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+    });
+
+    it('sidebar collapsed does NOT render avatar, Manoj Khatri, or ADMIN badge', () => {
+      render(
+        <AdminSidebar
+          currentTab="dashboard"
+          onSelectTab={vi.fn()}
+          isOpen={true}
+          onCloseMobile={vi.fn()}
+          onBackToHome={vi.fn()}
+          userAvatar="/images/manoj.jpg"
+          userEmail="manojkc1dev@gmail.com"
+          isCollapsed={true}
+          onSignOut={vi.fn()}
+        />
+      );
+
+      // In collapsed mode, no profile avatars or profile names should render
+      expect(screen.queryByAltText('Manoj Khatri profile picture')).not.toBeInTheDocument();
+      expect(screen.queryByText('Manoj Khatri')).not.toBeInTheDocument();
+      expect(screen.queryByText('ADMIN')).not.toBeInTheDocument();
+      expect(screen.queryByText('manojkc1dev@gmail.com')).not.toBeInTheDocument();
+
+      // Navigation toggle and sign out button should still be accessible
+      expect(screen.getByTestId('admin-sidebar-collapse-toggle')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument();
+    });
+
+    it('DashboardView renders welcome banner without duplicate profile card, avatar, or role badge', () => {
+      render(
+        <DashboardView
+          projects={[]}
+          inquiries={[]}
+          skillsCount={10}
+          focusCount={3}
+          experienceCount={4}
+          onSelectTab={vi.fn()}
+          onAddProject={vi.fn()}
+          onViewInquiry={vi.fn()}
+          onBackToHome={vi.fn()}
+        />
+      );
+
+      // Banner heading and description remain
+      expect(screen.getByText('Welcome back, Manoj Khatri')).toBeInTheDocument();
+      expect(screen.getByText(/Manage your personal portfolio projects/i)).toBeInTheDocument();
+
+      // Action buttons remain
+      expect(screen.getByRole('button', { name: /Add New Project/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Skills & Tech Stack/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Experience Timeline/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Inquiries/i })).toBeInTheDocument();
+
+      // Duplicate profile card, avatar, and active administrator badge must NOT exist
+      expect(screen.queryByAltText('Manoj Khatri')).not.toBeInTheDocument();
+      expect(screen.queryByText('Active Administrator')).not.toBeInTheDocument();
+      expect(screen.queryByText('Backend Software Engineer')).not.toBeInTheDocument();
+    });
   });
 });

@@ -117,8 +117,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="space-y-6">
       {/* 1. Welcome Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-md">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="max-w-2xl">
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="max-w-3xl">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mb-3">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Backend Engineer Portfolio Console</span>
@@ -128,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Welcome back, Manoj Khatri
             </h1>
 
-            <p className="mt-2 text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-2xl">
+            <p className="mt-2 text-xs sm:text-sm text-neutral-300 leading-relaxed">
               Manage your personal portfolio projects, live demos, GitHub repositories, technical skills stack,
               work experience, and incoming recruiter inquiries in real-time.
             </p>
@@ -169,26 +169,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Inbox className="w-3.5 h-3.5" />
                 <span>Inquiries ({unreadInquiries} unread)</span>
               </button>
-            </div>
-          </div>
-
-          {/* Profile Card Preview (1:1 Square) */}
-          <div className="hidden lg:flex flex-col items-center justify-center text-center shrink-0 w-44 h-44 aspect-square p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs shadow-md">
-            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-indigo-400/50 shadow-md shrink-0 bg-neutral-800 mb-2.5">
-              <img
-                src="/images/manoj.jpg"
-                alt="Manoj Khatri"
-                className="w-full h-full object-cover aspect-square"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/images/manoj_passport.png';
-                }}
-              />
-            </div>
-            <div className="text-sm font-bold text-white leading-tight">Manoj Khatri</div>
-            <div className="text-xs text-indigo-200 mt-1 leading-tight">Backend Software Engineer</div>
-            <div className="text-[11px] text-emerald-400 flex items-center justify-center gap-1.5 mt-2 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <span>Active Administrator</span>
             </div>
           </div>
         </div>

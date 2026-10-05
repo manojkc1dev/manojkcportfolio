@@ -111,10 +111,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* Brand Profile & Hamburger Toggle Header */}
         <div
           className={`border-b border-neutral-200 dark:border-neutral-800 ${
-            collapsed ? 'p-2 flex flex-col items-center gap-2.5' : 'p-3.5 flex items-center justify-between gap-2.5'
+            collapsed ? 'p-2 flex items-center justify-center' : 'p-3.5 flex items-center justify-between gap-2.5'
           }`}
         >
-          <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? 'flex-col' : ''}`}>
+          <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? 'justify-center' : ''}`}>
             <button
               type="button"
               id="admin-sidebar-collapse-toggle"
@@ -128,33 +128,34 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <Menu className="w-5 h-5" />
             </button>
 
-            <div
-              className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 shadow-xs"
-              title={collapsed ? 'Manoj Khatri (ADMIN)' : undefined}
-            >
-              {!imgError ? (
-                <img
-                  src={avatarUrl}
-                  alt="Manoj Khatri profile picture"
-                  className="w-full h-full object-cover"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                  MK
-                </div>
-              )}
-            </div>
-
             {!collapsed && (
-              <div className="min-w-0 flex flex-col">
-                <span className="font-semibold text-neutral-900 dark:text-white text-xs truncate">
-                  Manoj Khatri
-                </span>
-                <span className="inline-block w-fit px-1.5 py-0.5 mt-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
-                  ADMIN
-                </span>
-              </div>
+              <>
+                <div
+                  className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 shadow-xs"
+                >
+                  {!imgError ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Manoj Khatri profile picture"
+                      className="w-full h-full object-cover"
+                      onError={() => setImgError(true)}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                      MK
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex flex-col">
+                  <span className="font-semibold text-neutral-900 dark:text-white text-xs truncate">
+                    Manoj Khatri
+                  </span>
+                  <span className="inline-block w-fit px-1.5 py-0.5 mt-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
+                    ADMIN
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -368,7 +369,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
         {/* Bottom Profile Footer */}
         <div className={`border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70 ${
-          collapsed ? 'p-2' : 'p-3'
+          collapsed ? 'p-2 flex items-center justify-center' : 'p-3'
         }`}>
           {!collapsed ? (
             <div className="flex items-center justify-between gap-2">
@@ -410,36 +411,17 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-2">
-              <div
-                className="w-8 h-8 rounded-full overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0"
-                title={`${userEmail || 'Manoj Khatri'}`}
+            onSignOut ? (
+              <button
+                type="button"
+                onClick={onSignOut}
+                aria-label="Sign out"
+                title="Sign out of Admin Portal"
+                className="p-1.5 rounded-md text-neutral-400 hover:text-rose-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
               >
-                {!imgError ? (
-                  <img
-                    src={avatarUrl}
-                    alt="Manoj Khatri profile picture"
-                    className="w-full h-full object-cover"
-                    onError={() => setImgError(true)}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
-                    M
-                  </div>
-                )}
-              </div>
-              {onSignOut && (
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  aria-label="Sign out"
-                  title="Sign out of Admin Portal"
-                  className="p-1.5 rounded-md text-neutral-400 hover:text-rose-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+                <LogOut className="w-4 h-4" />
+              </button>
+            ) : null
           )}
         </div>
       </aside>
