@@ -8,7 +8,6 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Sparkles,
   CheckCircle2,
 } from 'lucide-react';
 import {
@@ -23,16 +22,11 @@ import {
 } from 'firebase/firestore';
 import {
   useAuth,
-  formatAuthError,
   db,
   isFirebaseConfigured,
-  changeCurrentUserPassword,
 } from '../firebase';
 import {
   isDjangoConfigured,
-  DJANGO_API_BASE_URL,
-  loginWithDjango,
-  changeDjangoPassword,
   getDjangoAccessToken,
   getDjangoRefreshToken,
   clearDjangoTokens,
@@ -84,7 +78,7 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
-  const { user, signIn, signUp, resetPassword, signOut } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
 
   // Navigation tab state
@@ -143,14 +137,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
   }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Master demo session override: allows direct preview & testing even if Firebase Auth is not yet configured
-  const [localAdminAuthenticated, setLocalAdminAuthenticated] = useState<boolean>(() => {
-    return (
-      localStorage.getItem('portfolio_admin_session') === 'active' ||
-      localStorage.getItem('lightcode_admin_session') === 'active'
-    );
-  });
-
   // Canonical Django-authenticated user (from /api/v1/auth/me/)
   const [djangoUser, setDjangoUser] = useState<{ username: string; email: string } | null>(null);
 
@@ -158,10 +144,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -507,12 +491,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     getCurrentUser()
       .then((profile) => {
         setDjangoUser({ username: profile.username, email: profile.email });
-        setLocalAdminAuthenticated(true);
-        localStorage.setItem('portfolio_admin_session', 'active');
       })
       .catch(() => {
         // Token invalid/expired — leave unauthenticated; user must log in
         clearDjangoTokens();
+        setDjangoUser(null);
       });
   }, []);
 
@@ -521,9 +504,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     const handleUnauthorized = () => {
       clearDjangoTokens();
       setDjangoUser(null);
-      setLocalAdminAuthenticated(false);
-      localStorage.removeItem('portfolio_admin_session');
-      localStorage.removeItem('lightcode_admin_session');
       showToast('Session expired. Please log in again.');
     };
     window.addEventListener('portfolio_auth_unauthorized', handleUnauthorized);
@@ -601,56 +581,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     showToast('Database restore complete: All modules updated.');
   };
 
-  // Secure Password Change Handler (Django REST API or Firebase Authentication)
+  // Secure Password Change Handler (Django REST API — canonical path)
   const handleUpdatePassword = async (currentPass: string, newPass: string): Promise<void> => {
-    // 1. If active session is via Django REST Framework API (canonical path)
-    if (isDjangoConfigured && getDjangoAccessToken()) {
-      try {
-        await djUpdatePassword(currentPass, newPass);
-        showToast('Administrative passphrase updated. Signing out for security...');
-        const refreshToken = getDjangoRefreshToken();
-        await djLogout(refreshToken || undefined);
-        setDjangoUser(null);
-        setLocalAdminAuthenticated(false);
-        localStorage.removeItem('portfolio_admin_session');
-        localStorage.removeItem('lightcode_admin_session');
-        return;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Django passphrase update failed';
-        showToast(`Error: ${msg}`);
-        throw new Error(msg);
-      }
+    if (!isDjangoConfigured || !getDjangoAccessToken()) {
+      const errMsg = 'Password changes require an active Django JWT session. Please sign in first.';
+      showToast(`Error: ${errMsg}`);
+      throw new Error(errMsg);
     }
-
-    // 2. If active session is via Firebase Auth
-    if (isFirebaseConfigured && user) {
-      try {
-        // Perform secure reauthentication and password update in Firebase Auth
-        await changeCurrentUserPassword(currentPass, newPass);
-        showToast('Master admin passphrase updated in Firebase Authentication. Signing out for security...');
-
-        // Session handling: sign out and clear session tokens
-        await signOut();
-        setLocalAdminAuthenticated(false);
-        localStorage.removeItem('portfolio_admin_session');
-        localStorage.removeItem('lightcode_admin_session');
-        return;
-      } catch (err: unknown) {
-        const formatted = err instanceof Error ? err.message : formatAuthError(err);
-        showToast(`Password update failed: ${formatted}`);
-        throw new Error(formatted);
-      }
+    try {
+      await djUpdatePassword(currentPass, newPass);
+      showToast('Administrative passphrase updated. Signing out for security...');
+      const refreshToken = getDjangoRefreshToken();
+      await djLogout(refreshToken || undefined);
+      setDjangoUser(null);
+      return;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Django passphrase update failed';
+      showToast(`Error: ${msg}`);
+      throw new Error(msg);
     }
-
-    // 3. Fallback error when no live backend session is active
-    const errMsg = isDjangoConfigured || isFirebaseConfigured
-      ? 'Password changes require an active authenticated session. Please log in with your administrative credentials first.'
-      : 'No active backend authentication provider configured. Live password changes require Firebase Auth or Python/Django API.';
-    showToast(`Error: ${errMsg}`);
-    throw new Error(errMsg);
   };
 
-  // Auth Submit Handlers
+  // Auth Submit Handler — Django JWT only
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
@@ -658,115 +610,43 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
       return;
     }
 
-    setAuthLoading(true);
-    setAuthError(null);
-
-    // 1. If Python/Django REST API is configured (VITE_DJANGO_API_URL): use canonical loginWithCredentials
-    if (isDjangoConfigured) {
-      try {
-        await loginWithCredentials(email.trim(), password);
-        const profile = await getCurrentUser();
-        setDjangoUser({ username: profile.username, email: profile.email });
-        setLocalAdminAuthenticated(true);
-        localStorage.setItem('portfolio_admin_session', 'active');
-        showToast('Signed in via Python / Django REST Framework API.');
-        return;
-      } catch (djangoErr: unknown) {
-        setAuthError(
-          djangoErr instanceof Error
-            ? djangoErr.message
-            : 'Django authentication failed. Please verify credentials.'
-        );
-        return;
-      } finally {
-        setAuthLoading(false);
-      }
-    }
-
-    // 2. If Firebase is configured, authenticate via Firebase Auth
-    if (isFirebaseConfigured) {
-      try {
-        await signIn(email.trim(), password);
-        setLocalAdminAuthenticated(true);
-        localStorage.setItem('portfolio_admin_session', 'active');
-        showToast('Signed in to Portfolio Admin Console via Firebase Auth.');
-      } catch (err: unknown) {
-        const formatted = formatAuthError(err);
-
-        // Fallback: If Firebase rejected because the preview domain is not in the GCP API Key HTTP Referrers,
-        // or network error, but the user entered valid portfolio admin credentials, allow local entry.
-        const isDemoCredential =
-          (email.trim().toLowerCase() === 'manojkc1dev@gmail.com' ||
-            email.trim().toLowerCase() === 'teamlightcode@gmail.com' ||
-            email.trim().toLowerCase() === 'manoj@manojkc1.com.np' ||
-            email.trim().toLowerCase() === 'admin@manojkc1.com.np' ||
-            email.trim().toLowerCase() === 'admin') &&
-          (password === 'admin123' || password === 'manoj2026' || password === 'admin');
-
-        if (
-          isDemoCredential &&
-          (formatted.includes('Domain/Referer') ||
-            formatted.includes('network') ||
-            formatted.includes('API key'))
-        ) {
-          setLocalAdminAuthenticated(true);
-          localStorage.setItem('portfolio_admin_session', 'active');
-          showToast('Firebase domain restriction active. Unlocked via administrative fallback.');
-        } else {
-          setAuthError(formatted);
-        }
-      } finally {
-        setAuthLoading(false);
-      }
+    if (!isDjangoConfigured) {
+      setAuthError('Django backend is not configured. Set VITE_DJANGO_API_URL to enable authentication.');
       return;
     }
 
-    // 3. Default local demo admin credentials for Manoj Khatri's portfolio
-    if (
-      (email.trim().toLowerCase() === 'manojkc1dev@gmail.com' ||
-        email.trim().toLowerCase() === 'teamlightcode@gmail.com' ||
-        email.trim().toLowerCase() === 'manoj@manojkc1.com.np' ||
-        email.trim().toLowerCase() === 'admin@manojkc1.com.np' ||
-        email.trim().toLowerCase() === 'admin') &&
-      (password === 'admin123' || password === 'manoj2026' || password === 'admin')
-    ) {
-      setLocalAdminAuthenticated(true);
-      localStorage.setItem('portfolio_admin_session', 'active');
-      setAuthLoading(false);
-      showToast('Administrative portfolio session active.');
-    } else {
-      setAuthLoading(false);
-      setAuthError('Invalid credentials. Use manojkc1dev@gmail.com / admin123, or click Instant Demo Access.');
-    }
-  };
+    setAuthLoading(true);
+    setAuthError(null);
 
-  const handleQuickDemoAccess = () => {
-    setLocalAdminAuthenticated(true);
-    localStorage.setItem('portfolio_admin_session', 'active');
-    showToast('Demo administrative console unlocked.');
+    try {
+      await loginWithCredentials(email.trim(), password);
+      const profile = await getCurrentUser();
+      setDjangoUser({ username: profile.username, email: profile.email });
+      showToast('Signed in via Python / Django REST Framework API.');
+    } catch (djangoErr: unknown) {
+      setAuthError(
+        djangoErr instanceof Error
+          ? djangoErr.message
+          : 'Django authentication failed. Please verify credentials.'
+      );
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const handleSignOut = async () => {
     // Canonical Django logout: blacklist refresh token server-side
-    if (isDjangoConfigured) {
-      const refreshToken = getDjangoRefreshToken();
-      try {
-        await djLogout(refreshToken || undefined);
-      } catch {
-        // Network failure on logout is safe to ignore; tokens cleared below
-      }
-    }
-    if (user) {
-      signOut();
+    const refreshToken = getDjangoRefreshToken();
+    try {
+      await djLogout(refreshToken || undefined);
+    } catch {
+      // Network failure on logout is safe to ignore; tokens are always cleared below
     }
     setDjangoUser(null);
-    setLocalAdminAuthenticated(false);
-    localStorage.removeItem('portfolio_admin_session');
-    localStorage.removeItem('lightcode_admin_session');
     showToast('Signed out of administrative console.');
   };
 
-  const isAuthenticated = !!user || localAdminAuthenticated;
+  const isAuthenticated = !!djangoUser;
 
   // Render: Not Authenticated (Login screen with full light & dark mode)
   if (!isAuthenticated) {
@@ -820,10 +700,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono bg-neutral-50 dark:bg-neutral-800/80 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     {isDjangoConfigured
-                      ? `Auth: Python/Django REST API`
-                      : isFirebaseConfigured
-                      ? 'Auth: Firebase Authentication'
-                      : 'Auth: Local Admin Mode'}
+                      ? 'Auth: Python/Django REST API'
+                      : 'Auth: Django backend not configured'}
                   </span>
                 </div>
               </div>
@@ -834,15 +712,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span className="font-medium leading-relaxed">{authError}</span>
                   </div>
-                  {authError.includes('Domain/Referer') && (
-                    <button
-                      type="button"
-                      onClick={handleQuickDemoAccess}
-                      className="mt-1 text-left text-[11px] font-semibold underline text-rose-800 dark:text-rose-200 hover:opacity-80 cursor-pointer"
-                    >
-                      Bypass restriction & enter console now →
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -855,7 +724,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                   <input
                     type="text"
                     required
-                    placeholder="manojkc1dev@gmail.com"
+                    placeholder="admin@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -894,20 +763,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                 </button>
               </form>
 
-              {/* Quick Demo Access Bypass Button */}
-              <div className="mt-5 pt-4 border-t border-neutral-200 dark:border-neutral-800 text-center">
-                <button
-                  type="button"
-                  onClick={handleQuickDemoAccess}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 font-semibold text-xs transition-colors cursor-pointer w-full justify-center"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Instant Demo Access (No Credentials Required)</span>
-                </button>
-                <p className="text-[11px] text-neutral-400 mt-2">
-                  Default credentials: <code className="font-mono">manojkc1dev@gmail.com</code> / <code className="font-mono">admin123</code>
-                </p>
-              </div>
+
             </motion.div>
           </div>
         </main>
@@ -944,7 +800,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         onBackToHome={onBackToHome}
         onSignOut={handleSignOut}
-        userEmail={djangoUser?.email || user?.email || 'manojkc1dev@gmail.com'}
+        userEmail={djangoUser?.email || ''}
         userAvatar={profileData.photo || '/images/manoj.jpg'}
       />
 
@@ -957,7 +813,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
           isOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
           unreadInquiriesCount={inquiries.filter((i) => !i.read).length}
-          userEmail={djangoUser?.email || user?.email || 'manojkc1dev@gmail.com'}
+          userEmail={djangoUser?.email || ''}
           userAvatar={profileData.photo || '/images/manoj.jpg'}
           onSignOut={handleSignOut}
           onBackToHome={onBackToHome}
@@ -1071,8 +927,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
 
           {(activeTab === 'settings' || activeTab === 'security' || (activeTab as string) === 'blog') && (
             <SettingsView
-              currentUserEmail={djangoUser?.email || user?.email || null}
-              isFirebaseAuth={Boolean(user && isFirebaseConfigured)}
+              currentUserEmail={djangoUser?.email || null}
+              isFirebaseAuth={false}
               isDjangoAuth={isDjangoConfigured && !!getDjangoAccessToken()}
               onUpdatePassword={handleUpdatePassword}
               onShowToast={showToast}
