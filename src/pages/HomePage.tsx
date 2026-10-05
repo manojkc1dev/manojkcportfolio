@@ -37,8 +37,8 @@ export const HomePage: React.FC = () => {
   return (
     <>
       <Seo
-        title="Manoj K.C. | Backend Software Engineer | Python, Django, DRF"
-        description="Manoj K.C. is a Python/Django backend engineer in Kathmandu, Nepal, building secure REST APIs with DRF, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations."
+        title="Manoj Khatri | Python Django REST API Developer | Manoj K.C."
+        description="Manoj Khatri (Manoj K.C.) is a Python Django REST API developer in Kathmandu, Nepal, building secure REST APIs with Django REST Framework, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations."
         canonical="https://manojkc1.com.np/"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -46,11 +46,26 @@ export const HomePage: React.FC = () => {
             {
               '@type': 'Person',
               '@id': 'https://manojkc1.com.np/#person',
-              name: 'Manoj K.C.',
-              alternateName: 'Manoj Khatri',
-              jobTitle: 'Backend Software Engineer',
+              name: 'Manoj Khatri',
+              alternateName: [
+                'Manoj K.C.',
+                'ManojKC',
+                'manojkc',
+                'manojkc1',
+                'ManojKhatri',
+                'manojkhatri',
+                'manojk.c',
+                'manojk.c.',
+                'manoj k.c.',
+                'Manoj',
+              ],
+              jobTitle: 'Python Django REST API Developer',
               url: 'https://manojkc1.com.np/',
-              image: 'https://manojkc1.com.np/images/manoj.jpg',
+              image: {
+                '@type': 'ImageObject',
+                url: 'https://manojkc1.com.np/images/manoj.jpg',
+                caption: 'Manoj Khatri — Python Django REST API Developer',
+              },
               email: 'mailto:manojkc1dev@gmail.com',
               telephone: '+977-9842203976',
               address: {
@@ -78,13 +93,16 @@ export const HomePage: React.FC = () => {
                 'https://github.com/manojkc1dev/',
                 'https://linkedin.com/in/manojkc1dev/',
                 'https://twitter.com/manojkc1dev',
+                'https://instagram.com/manojkc1dev',
+                'https://facebook.com/manojkc1dev',
+                'https://tiktok.com/@manojkc1dev',
               ],
             },
             {
               '@type': 'WebSite',
               '@id': 'https://manojkc1.com.np/#website',
               url: 'https://manojkc1.com.np/',
-              name: 'Manoj K.C. | Backend Software Engineer',
+              name: 'Manoj Khatri | Python Django REST API Developer',
               publisher: { '@id': 'https://manojkc1.com.np/#person' },
               inLanguage: 'en',
               potentialAction: {
@@ -97,9 +115,9 @@ export const HomePage: React.FC = () => {
               '@type': 'WebPage',
               '@id': 'https://manojkc1.com.np/#webpage',
               url: 'https://manojkc1.com.np/',
-              name: 'Manoj K.C. | Backend Software Engineer | Python, Django, DRF',
+              name: 'Manoj Khatri | Python Django REST API Developer | Manoj K.C.',
               description:
-                'Manoj K.C. is a Python/Django backend engineer in Kathmandu, Nepal, building secure REST APIs with DRF, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations.',
+                'Manoj Khatri (Manoj K.C.) is a Python Django REST API developer in Kathmandu, Nepal, building secure REST APIs with Django REST Framework, PostgreSQL, JWT auth, and Khalti/eSewa payment integrations.',
               isPartOf: { '@id': 'https://manojkc1.com.np/#website' },
               about: { '@id': 'https://manojkc1.com.np/#person' },
             },
@@ -107,7 +125,7 @@ export const HomePage: React.FC = () => {
               '@type': 'ProfilePage',
               '@id': 'https://manojkc1.com.np/#profilepage',
               url: 'https://manojkc1.com.np/',
-              name: 'Manoj K.C. Profile & Engineering Portfolio',
+              name: 'Manoj Khatri — Python Django REST API Developer',
               mainEntity: { '@id': 'https://manojkc1.com.np/#person' },
             },
             {
@@ -116,34 +134,34 @@ export const HomePage: React.FC = () => {
               mainEntity: [
                 {
                   '@type': 'Question',
-                  name: 'What backend technologies does Manoj K.C. specialize in?',
+                  name: 'What backend technologies does Manoj Khatri specialize in?',
                   acceptedAnswer: {
                     '@type': 'Answer',
-                    text: 'Manoj K.C. specializes in Python 3.12, Django 5.x, Django REST Framework (DRF), and PostgreSQL database architecture. His engineering core encompasses composite B-Tree query indexing, Celery asynchronous task queues, Redis caching, Docker containerization, and Linux server operations. He develops secure RESTful APIs fortified with JWT authentication, role-based access control (RBAC), and strict input validation.',
+                    text: 'Manoj Khatri (Manoj K.C.) specializes in Python 3.12, Django 5.x, Django REST Framework (DRF), and PostgreSQL database architecture. His engineering core encompasses composite B-Tree query indexing, Celery asynchronous task queues, Redis caching, Docker containerization, and Linux server operations. He develops secure RESTful APIs fortified with JWT authentication, role-based access control (RBAC), and strict input validation.',
                   },
                 },
                 {
                   '@type': 'Question',
-                  name: 'Is Manoj K.C. available for remote freelance work?',
+                  name: 'Is Manoj Khatri available for remote freelance work?',
                   acceptedAnswer: {
                     '@type': 'Answer',
-                    text: 'Yes, Manoj K.C. is actively available for remote freelance engineering contracts, technical backend consulting, and full-time junior-to-mid backend engineering roles. Based in Kathmandu, Nepal (NPT / UTC+5:45), he collaborates effectively with international engineering teams across North America, Europe, and Asia-Pacific via asynchronous Git workflows, clear documentation, and prompt communication.',
+                    text: 'Yes, Manoj Khatri is actively available for remote freelance engineering contracts, technical backend consulting, and full-time junior-to-mid backend engineering roles. Based in Kathmandu, Nepal (NPT / UTC+5:45), he collaborates effectively with international engineering teams across North America, Europe, and Asia-Pacific via asynchronous Git workflows, clear documentation, and prompt communication.',
                   },
                 },
                 {
                   '@type': 'Question',
-                  name: 'What payment gateways has Manoj K.C. integrated?',
+                  name: 'What payment gateways has Manoj Khatri integrated?',
                   acceptedAnswer: {
                     '@type': 'Answer',
-                    text: 'Manoj K.C. has built production-grade integrations with Nepalese fintech payment gateways including Khalti API v2 and eSewa EPAY v2 (with HMAC-SHA256 signature verification), as well as global gateways like Stripe. His payment architectures enforce strict transaction idempotency keys, automated reconciliation retries, and failure-safe webhook pipelines to guarantee zero duplicate charges.',
+                    text: 'Manoj Khatri has built production-grade integrations with Nepalese fintech payment gateways including Khalti API v2 and eSewa EPAY v2 (with HMAC-SHA256 signature verification), as well as global gateways like Stripe. His payment architectures enforce strict transaction idempotency keys, automated reconciliation retries, and failure-safe webhook pipelines to guarantee zero duplicate charges.',
                   },
                 },
                 {
                   '@type': 'Question',
-                  name: 'How does Manoj K.C. optimize database performance in Django/PostgreSQL?',
+                  name: 'How does Manoj Khatri optimize database performance in Django/PostgreSQL?',
                   acceptedAnswer: {
                     '@type': 'Answer',
-                    text: 'Manoj systematically profiles execution bottlenecks using PostgreSQL EXPLAIN ANALYZE and Django Debug Toolbar. He eliminates N+1 query loops using select_related and prefetch_related, designs composite indexes tailored to high-cardinality filters, and leverages Redis for cached hot query results—achieving verified ~30% API response time reductions on high-traffic endpoints.',
+                    text: 'Manoj Khatri systematically profiles execution bottlenecks using PostgreSQL EXPLAIN ANALYZE and Django Debug Toolbar. He eliminates N+1 query loops using select_related and prefetch_related, designs composite indexes tailored to high-cardinality filters, and leverages Redis for cached hot query results—achieving verified ~30% API response time reductions on high-traffic endpoints.',
                   },
                 },
               ],

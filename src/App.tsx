@@ -65,25 +65,10 @@ const AppContent: React.FC = () => {
 
   // Normalize path: lowercase, strip trailing slash
   const normalizedPath = location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
-  // Dedicated Administrative paths for manojkc1.com.np
-  const adminAliases = [
-    '/admin',
-    '/admin/login',
-    '/admin/console',
-    '/admin/portal',
-    '/admin/resume',
-    '/mk-admin',
-    '/mkc-admin',
-    '/mk-zadmin-cc',
-    '/mkc-zadmin-cc',
-    '/lc-zadmin-cc',
-  ];
+  // Dedicated Administrative path for manojkc1.com.np
   const isAdminRoute =
-    adminAliases.includes(normalizedPath) ||
-    normalizedPath.startsWith('/admin') ||
-    normalizedPath.startsWith('/mk-admin') ||
-    normalizedPath.startsWith('/mk-zadmin-cc') ||
-    normalizedPath.startsWith('/lc-zadmin-cc');
+    normalizedPath === '/mkc-admin-z' ||
+    normalizedPath.startsWith('/mkc-admin-z');
 
   // Analytics on mount and path change
   useEffect(() => {
@@ -99,7 +84,7 @@ const AppContent: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
         e.preventDefault();
-        navigate('/admin');
+        navigate('/mkc-admin-z');
       }
     };
     window.addEventListener('keydown', handleKeyDown);

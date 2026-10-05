@@ -22,3 +22,7 @@ ALLOWED_HOSTS = [
 
 # CORS in development allows standard local frontends
 CORS_ALLOW_ALL_ORIGINS = False
+
+# Safe development email backend
+if not os.getenv('EMAIL_HOST_USER') and not os.getenv('EMAIL_BACKEND'):
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

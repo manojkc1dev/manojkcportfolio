@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Laptop, ExternalLink, ArrowLeft, Terminal, Cpu, Database, Layout, Sparkles, Cloud, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Seo } from '../components/Seo';
-import { usesData } from '../data/uses';
+import { useUses } from '../hooks/useUses';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Hardware: Cpu,
@@ -16,6 +16,19 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 };
 
 export const UsesPage: React.FC = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Live updates when changes are saved from the admin CMS
+  useEffect(() => {
+    const handleUpdate = () => setRefreshKey((k) => k + 1);
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
+
+  const { data: usesCategories, loading } = useUses(refreshKey);
+
   return (
     <>
       <Seo
@@ -68,75 +81,104 @@ export const UsesPage: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Category Sections */}
-        <div className="space-y-16">
-          {usesData.map((category, catIdx) => {
-            const Icon = CATEGORY_ICONS[category.title] || Laptop;
-
-            return (
-              <motion.section
-                key={category.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.4, delay: catIdx * 0.05 }}
-                className="pt-8 border-t border-neutral-200/80 dark:border-neutral-800"
-              >
-                {/* Category Header */}
+        {/* Category Sections / Skeletons */}
+        {loading ? (
+          <div className="space-y-16" aria-busy="true" aria-label="Loading workspace setup">
+            {[1, 2, 3].map((catIndex) => (
+              <div key={catIndex} className="pt-8 border-t border-neutral-200/80 dark:border-neutral-800 animate-pulse">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/60">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">
-                    {category.title}
-                  </h2>
+                  <div className="w-9 h-9 rounded-xl bg-neutral-200 dark:bg-neutral-800" />
+                  <div className="h-7 w-48 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
                 </div>
-                <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mb-8 ml-11 max-w-2xl">
-                  {category.description}
-                </p>
-
-                {/* Items Grid */}
+                <div className="h-4 w-72 bg-neutral-200/60 dark:bg-neutral-800/60 rounded mb-8 ml-11" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {category.items.map((item, itemIdx) => (
+                  {[1, 2, 3, 4].map((itemIndex) => (
                     <div
-                      key={itemIdx}
-                      className="group relative p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      key={itemIndex}
+                      className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800"
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-semibold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                            {item.name}
-                          </h3>
-                          {item.link && (
-                            <a
-                              href={item.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Visit ${item.name} website`}
-                              className="text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                        </div>
-
-                        {item.tag && (
-                          <span className="shrink-0 px-2 py-0.5 text-[10px] font-mono rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200/70 dark:border-neutral-700/60">
-                            {item.tag}
-                          </span>
-                        )}
+                        <div className="h-5 w-40 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                        <div className="h-4 w-16 bg-neutral-200/60 dark:bg-neutral-800/60 rounded" />
                       </div>
-
-                      <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
-                        {item.why}
-                      </p>
+                      <div className="h-4 w-full bg-neutral-200/40 dark:bg-neutral-800/40 rounded mt-2" />
+                      <div className="h-4 w-4/5 bg-neutral-200/40 dark:bg-neutral-800/40 rounded mt-1" />
                     </div>
                   ))}
                 </div>
-              </motion.section>
-            );
-          })}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {usesCategories.map((category, catIdx) => {
+              const Icon = CATEGORY_ICONS[category.title] || Laptop;
+
+              return (
+                <motion.section
+                  key={category.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-50px' }}
+                  transition={{ duration: 0.4, delay: catIdx * 0.05 }}
+                  className="pt-8 border-t border-neutral-200/80 dark:border-neutral-800"
+                >
+                  {/* Category Header */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/60">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">
+                      {category.title}
+                    </h2>
+                  </div>
+                  <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mb-8 ml-11 max-w-2xl">
+                    {category.description}
+                  </p>
+
+                  {/* Items Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    {category.items.map((item, itemIdx) => (
+                      <div
+                        key={itemIdx}
+                        className="group relative p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-semibold text-neutral-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                              {item.name}
+                            </h3>
+                            {item.link && (
+                              <a
+                                href={item.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Visit ${item.name} website`}
+                                className="text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+
+                          {item.tag && (
+                            <span className="shrink-0 px-2 py-0.5 text-[10px] font-mono rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200/70 dark:border-neutral-700/60">
+                              {item.tag}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                          {item.why}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </motion.section>
+              );
+            })}
+          </div>
+        )}
       </main>
     </>
   );

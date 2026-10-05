@@ -198,3 +198,134 @@ class ProjectAPITests(TestCase):
         self.assertEqual(missing_resp.status_code, 404)
 
 
+class AdminProjectAPITests(TestCase):
+    """Phase 5C: Authenticated Admin Project DRF Endpoints."""
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from rest_framework.test import APIClient
+        User = get_user_model()
+        self.admin_user = User.objects.create_user(
+            username='admin_proj_test',
+            email='admin_proj@manojkc1.com.np',
+            password='Password123!',
+            is_staff=True
+        )
+        self.client = APIClient()
+
+        self.project1 = Project.objects.create(
+            id='calcpro',
+            slug='calcpro',
+            title='CalcPro Enterprise',
+            tagline='Financial calculation platform',
+            description='Django backend with numpy',
+            category='tools',
+            year=2026,
+            status='live',
+            visibility='Published',
+            featured=True,
+            image='/images/calcpro.png',
+            tech=['Python', 'Django', 'React'],
+            links={'live': 'https://calcpro.example.com', 'github': 'https://github.com/manojkc1dev/calcpro'}
+        )
+        self.draft_project = Project.objects.create(
+            id='secret-ai',
+            slug='secret-ai',
+            title='Secret AI Tool',
+            tagline='Internal AI agent',
+            description='Under development',
+            category='backend',
+            year=2026,
+            status='ongoing',
+            visibility='Draft',
+            featured=False
+        )
+
+    def test_admin_list_returns_all_projects_including_drafts(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get('/api/v1/admin/projects/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        slugs = [p['slug'] for p in data]
+        self.assertIn('calcpro', slugs)
+        self.assertIn('secret-ai', slugs)
+
+    def test_unauthenticated_admin_list_returns_401(self):
+        response = self.client.get('/api/v1/admin/projects/')
+        self.assertEqual(response.status_code, 401)
+
+    def test_admin_create_project_with_nested_metrics_and_challenges(self):
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            'id': 'paystream',
+            'slug': 'paystream',
+            'title': 'PayStream Nepal Engine',
+            'tagline': 'High-throughput payment gateway',
+            'description': 'Real-time reconciliation system with eSewa & Khalti.',
+            'category': 'backend',
+            'year': 2026,
+            'status': 'Deployed',
+            'visibility': 'Published',
+            'featured': True,
+            'technologies': ['Django', 'PostgreSQL', 'Redis', 'Celery'],
+            'languages': ['Python', 'SQL'],
+            'liveUrl': 'https://paystream.example.com',
+            'githubUrl': 'https://github.com/manojkc1dev/paystream',
+            'metrics': [
+                {'label': 'Settlement Speed', 'value': 'Instant', 'icon': 'speed'},
+                {'label': 'Throughput', 'value': '10k req/s', 'icon': 'db'},
+            ],
+            'challenges': [
+                {
+                    'title': 'Double-spend prevention',
+                    'problem': 'Duplicate webhooks from bank gateway',
+                    'approach': 'Idempotency keys via Redis atomic locks',
+                    'outcome': 'Zero duplicate transactions recorded'
+                }
+            ],
+            'techStackTable': [
+                {'layer': 'Broker', 'choice': 'Redis 7', 'why': 'Fast message passing'}
+            ]
+        }
+        response = self.client.post('/api/v1/admin/projects/', payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data['id'], 'paystream')
+        self.assertEqual(data['title'], 'PayStream Nepal Engine')
+
+        saved = Project.objects.get(id='paystream')
+        self.assertEqual(saved.metrics_items.count(), 2)
+        self.assertEqual(saved.challenges_items.count(), 1)
+        self.assertEqual(saved.tech_choices_items.count(), 1)
+
+    def test_admin_update_project(self):
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            'title': 'CalcPro Enterprise Pro Max',
+            'featured': False,
+            'status': 'Completed',
+        }
+        response = self.client.patch(f'/api/v1/admin/projects/{self.project1.id}/', payload, format='json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['title'], 'CalcPro Enterprise Pro Max')
+        self.assertFalse(data['featured'])
+
+        self.project1.refresh_from_db()
+        self.assertEqual(self.project1.title, 'CalcPro Enterprise Pro Max')
+        self.assertFalse(self.project1.featured)
+
+    def test_admin_delete_project(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.delete(f'/api/v1/admin/projects/{self.project1.id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Project.objects.filter(id='calcpro').exists())
+
+    def test_unauthenticated_delete_returns_401(self):
+        response = self.client.delete(f'/api/v1/admin/projects/{self.project1.id}/')
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(Project.objects.filter(id='calcpro').exists())
+
+
+

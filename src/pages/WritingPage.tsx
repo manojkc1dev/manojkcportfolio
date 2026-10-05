@@ -1,22 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, Mail, ArrowRight, ArrowLeft, Clock, Calendar, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Seo } from '../components/Seo';
-import { posts, type Post } from '../data/writing';
+import { useWriting } from '../hooks/useWriting';
+import type { ArticleSummary } from '../types';
 
 export const WritingPage: React.FC = () => {
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Live updates when changes are saved from the admin CMS
+  useEffect(() => {
+    const handleUpdate = () => setRefreshKey((k) => k + 1);
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
+
+  const { data: posts, loading } = useWriting(undefined, refreshKey);
 
   // Extract all unique tags
-  const allTags = ['all', ...Array.from(new Set(posts.flatMap((p) => p.tags)))];
+  const allTags = useMemo(() => {
+    return ['all', ...Array.from(new Set(posts.flatMap((p) => p.tags || [])))];
+  }, [posts]);
 
-  const filteredPosts =
-    selectedTag === 'all'
+  const filteredPosts = useMemo(() => {
+    return selectedTag === 'all'
       ? posts
-      : posts.filter((p) => p.tags.includes(selectedTag));
+      : posts.filter((p) => (p.tags || []).includes(selectedTag));
+  }, [posts, selectedTag]);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +92,39 @@ export const WritingPage: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* If posts exist, render tag filter & post grid */}
-        {posts.length > 0 ? (
+        {/* Loading Skeleton */}
+        {loading ? (
+          <div className="space-y-8" aria-busy="true" aria-label="Loading technical writing">
+            <div className="flex gap-2 mb-10 pb-4 border-b border-neutral-200/80 dark:border-neutral-800 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-8 w-20 bg-neutral-200 dark:bg-neutral-800 rounded-full" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 animate-pulse flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-4 w-20 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                      <div className="h-4 w-16 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                    </div>
+                    <div className="h-6 w-4/5 bg-neutral-200 dark:bg-neutral-800 rounded mb-2" />
+                    <div className="h-4 w-full bg-neutral-200/60 dark:bg-neutral-800/60 rounded mb-1" />
+                    <div className="h-4 w-3/4 bg-neutral-200/60 dark:bg-neutral-800/60 rounded mb-4" />
+                  </div>
+                  <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between">
+                    <div className="h-4 w-24 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                    <div className="h-4 w-12 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : posts.length > 0 ? (
+          /* If posts exist, render tag filter & post grid */
           <div>
             {/* Tag Filter Pills */}
             <div className="flex flex-wrap gap-2 mb-10 pb-4 border-b border-neutral-200/80 dark:border-neutral-800">
@@ -99,7 +146,7 @@ export const WritingPage: React.FC = () => {
 
             {/* Posts Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPosts.map((post: Post) => (
+              {filteredPosts.map((post: ArticleSummary) => (
                 <article
                   key={post.slug}
                   className="group flex flex-col justify-between p-6 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
@@ -108,7 +155,7 @@ export const WritingPage: React.FC = () => {
                     <div className="flex items-center gap-3 text-xs text-neutral-400 dark:text-neutral-500 font-mono mb-3">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{post.date}</span>
+                        <span>{post.date || 'Recent'}</span>
                       </span>
                       <span>&bull;</span>
                       <span className="inline-flex items-center gap-1">
@@ -130,7 +177,7 @@ export const WritingPage: React.FC = () => {
 
                   <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between">
                     <div className="flex flex-wrap gap-1">
-                      {post.tags.slice(0, 2).map((t) => (
+                      {(post.tags || []).slice(0, 2).map((t) => (
                         <span
                           key={t}
                           className="px-2 py-0.5 text-[10px] font-mono rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"

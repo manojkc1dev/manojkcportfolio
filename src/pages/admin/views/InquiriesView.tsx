@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import type { AdminInquiry } from '../types';
 import { InquiryDetailModal } from './InquiryDetailModal';
+import { isDjangoConfigured } from '../../../lib/api/client';
+import { submitInquiry, updateAdminInquiry } from '../../../lib/api/inquiries';
 
 interface InquiriesViewProps {
   inquiries: AdminInquiry[];
@@ -115,15 +117,13 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
 
     // Save to server API as well
     try {
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (isDjangoConfigured) {
+        await submitInquiry({
           name: newTestLead.name,
           email: newTestLead.email,
           message: newTestLead.message,
-        }),
-      });
+        });
+      }
     } catch (e) {
       // ignore
     }
@@ -155,16 +155,31 @@ export const InquiriesView: React.FC<InquiriesViewProps> = ({
     if (selectedInquiry && selectedInquiry.id === id) {
       setSelectedInquiry({ ...selectedInquiry, status: newStatus, read: true });
     }
+    if (isDjangoConfigured) {
+      updateAdminInquiry(id, { status: newStatus, read: true }).catch((err) => {
+        console.warn('Django update inquiry status notice:', err);
+      });
+    }
     onShowToast(`Inquiry status updated to ${newStatus}.`);
   };
 
   const handleToggleReplied = (id: string) => {
-    const updated = inquiries.map((i) =>
-      i.id === id ? { ...i, replied: !i.replied, read: true } : i
-    );
+    let newReplied = false;
+    const updated = inquiries.map((i) => {
+      if (i.id === id) {
+        newReplied = !i.replied;
+        return { ...i, replied: newReplied, read: true };
+      }
+      return i;
+    });
     onUpdateInquiries(updated);
     if (selectedInquiry && selectedInquiry.id === id) {
-      setSelectedInquiry({ ...selectedInquiry, replied: !selectedInquiry.replied, read: true });
+      setSelectedInquiry({ ...selectedInquiry, replied: newReplied, read: true });
+    }
+    if (isDjangoConfigured) {
+      updateAdminInquiry(id, { replied: newReplied, read: true }).catch((err) => {
+        console.warn('Django update inquiry replied notice:', err);
+      });
     }
     onShowToast('Inquiry reply state updated.');
   };

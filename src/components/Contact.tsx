@@ -527,19 +527,6 @@ export const Contact: React.FC = () => {
                 </div>
               )}
 
-              {/* Friendly notice when Firebase is not configured */}
-              {!isFirebaseConfigured && (
-                <div
-                  id="contact-unconfigured-notice"
-                  className="mb-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2.5"
-                >
-                  <Info className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>
-                    <strong>UI-Only Mode:</strong> Firebase is not configured with live credentials. Form submissions simulate preview delivery locally.
-                  </span>
-                </div>
-              )}
-
               {/* Inline Failure Banner with Retry Button */}
               {status === 'error' && (
                 <div

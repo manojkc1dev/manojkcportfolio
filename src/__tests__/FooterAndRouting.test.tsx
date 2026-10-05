@@ -33,19 +33,24 @@ describe('Enterprise Footer UI/UX', () => {
   });
 });
 
-describe('Secret Admin Portal (/lc-zadmin-cc/)', () => {
-  it('renders admin console signin interface with restricted zone notice', () => {
+describe('Canonical Admin Portal (/mkc-admin-z/)', () => {
+  it('renders admin console signin interface with new clean heading', () => {
     render(
       <ThemeProvider>
         <AdminPortal onBackToHome={() => {}} />
       </ThemeProvider>
     );
 
-    expect(screen.getByText(/Portfolio Admin Console/i)).toBeInTheDocument();
-    expect(screen.getByText(/RESTRICTED ZONE · PORTFOLIO CONSOLE/i)).toBeInTheDocument();
-    expect(screen.getByText(/Admin Email Address/i)).toBeInTheDocument();
-    expect(screen.getByText(/Passphrase/i)).toBeInTheDocument();
+    const manojKhatriEls = screen.getAllByText(/Manoj Khatri/i);
+    expect(manojKhatriEls.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Portfolio Admin Dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Email Address/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Password$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Authenticate & Enter Console/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Return to Portfolio/i })).toBeInTheDocument();
+    // Removed elements must not be present
+    expect(screen.queryByText(/RESTRICTED ZONE/i)).toBeNull();
+    expect(screen.queryByText(/Manage projects.*services/i)).toBeNull();
+    expect(screen.queryByText(/Auth: Python\/Django REST API/i)).toBeNull();
   });
 });

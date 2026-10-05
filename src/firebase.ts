@@ -140,10 +140,10 @@ export function formatAuthError(error: unknown): string {
   const combined = `${code} ${errStr}`.toLowerCase();
 
   if (combined.includes('requests-from-referer') || combined.includes('unauthorized-domain')) {
-    return 'Domain/Referer restriction: This preview domain is not in the authorized HTTP referrers list in Google Cloud / Firebase Console. Please add this origin to Authorized Domains, or click Instant Demo Access below.';
+    return 'Domain/Referer restriction: This preview domain is not in the authorized HTTP referrers list.';
   }
   if (combined.includes('api-key-not-valid') || combined.includes('app-not-authorized')) {
-    return 'Firebase API key or project authorization issue. Please verify your Firebase project credentials, or use Instant Demo Access.';
+    return 'Authentication provider authorization issue. Please verify your project credentials.';
   }
   if (combined.includes('auth/invalid-credential') || combined.includes('auth/wrong-password')) {
     return 'Invalid email or password. Please verify your credentials.';
@@ -180,7 +180,7 @@ export function formatAuthError(error: unknown): string {
     .trim();
 
   if (!cleaned || cleaned.toLowerCase() === 'error') {
-    return 'Authentication request failed. Please check your credentials or click Instant Demo Access below.';
+    return 'Authentication request failed. Please check your credentials.';
   }
 
   return cleaned;

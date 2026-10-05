@@ -2,10 +2,14 @@
 Public Read-Only API Views for Portfolio Projects and Case Studies.
 """
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import NotFound
 from .models import Project
-from .serializers import ProjectListSerializer, ProjectDetailSerializer
+from .serializers import (
+    ProjectListSerializer,
+    ProjectDetailSerializer,
+    ProjectAdminSerializer,
+)
 
 
 class ProjectListView(generics.ListAPIView):
@@ -45,3 +49,38 @@ class ProjectDetailView(generics.RetrieveAPIView):
             raise NotFound(f"Project '{lookup_value}' not found.")
         self.check_object_permissions(self.request, obj)
         return obj
+
+
+class AdminProjectListCreateView(generics.ListCreateAPIView):
+    """
+    Administrative project listing and creation (IsAuthenticated).
+    Returns ALL projects including drafts.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectAdminSerializer
+    queryset = Project.objects.all().prefetch_related(
+        'metrics_items', 'challenges_items', 'tech_choices_items'
+    )
+    pagination_class = None
+
+
+class AdminProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Administrative project retrieval, updating, and deletion (IsAuthenticated).
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectAdminSerializer
+    queryset = Project.objects.all().prefetch_related(
+        'metrics_items', 'challenges_items', 'tech_choices_items'
+    )
+    lookup_field = 'id'
+    lookup_url_kwarg = 'pk'
+
+    def get_object(self):
+        lookup_val = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
+        obj = self.get_queryset().filter(id=lookup_val).first() or self.get_queryset().filter(slug=lookup_val).first()
+        if obj is None:
+            raise NotFound(f"Project '{lookup_val}' not found.")
+        self.check_object_permissions(self.request, obj)
+        return obj
+

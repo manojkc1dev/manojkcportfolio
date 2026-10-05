@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldCheck,
-  Lock,
   Mail,
   ArrowLeft,
   AlertCircle,
   Eye,
   EyeOff,
-  Sparkles,
   CheckCircle2,
 } from 'lucide-react';
 import {
@@ -23,19 +21,25 @@ import {
 } from 'firebase/firestore';
 import {
   useAuth,
-  formatAuthError,
   db,
   isFirebaseConfigured,
-  changeCurrentUserPassword,
 } from '../firebase';
 import {
   isDjangoConfigured,
-  DJANGO_API_BASE_URL,
-  loginWithDjango,
-  changeDjangoPassword,
   getDjangoAccessToken,
+  getDjangoRefreshToken,
   clearDjangoTokens,
 } from '../lib/djangoApi';
+import {
+  loginWithCredentials,
+  getCurrentUser,
+  logout as djLogout,
+  updatePassword as djUpdatePassword,
+  requestPasswordReset,
+  confirmPasswordReset,
+} from '../lib/api/auth';
+import { getAdminInquiries, deleteAdminInquiry } from '../lib/api/inquiries';
+import { getAdminProjects } from '../lib/api/admin';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -75,7 +79,7 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
-  const { user, signIn, signUp, resetPassword, signOut } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
 
   // Navigation tab state
@@ -133,23 +137,44 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Master demo session override: allows direct preview & testing even if Firebase Auth is not yet configured
-  const [localAdminAuthenticated, setLocalAdminAuthenticated] = useState<boolean>(() => {
-    return (
-      localStorage.getItem('portfolio_admin_session') === 'active' ||
-      localStorage.getItem('lightcode_admin_session') === 'active'
-    );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('admin_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
   });
 
-  // Login form state
+  const handleToggleSidebarCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('admin_sidebar_collapsed', String(next));
+      } catch {
+        // Fallback for restricted storage environments
+      }
+      return next;
+    });
+  };
+
+  // Canonical Django-authenticated user (from /api/v1/auth/me/)
+  const [djangoUser, setDjangoUser] = useState<{ username: string; email: string } | null>(null);
+
+  // Login & Password Reset form state
+  const [authMode, setAuthMode] = useState<'login' | 'forgot-password' | 'reset-confirm'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Password reset specific state
+  const [resetEmail, setResetEmail] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetUid, setResetUid] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -365,43 +390,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     try {
       const map = new Map<string, AdminInquiry>();
 
-      // 1. Fetch server messages from API
-      try {
-        const res = await fetch('/api/messages', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.messages && Array.isArray(data.messages)) {
-            data.messages
-              .filter(
-                (msg: any) =>
-                  !msg.name?.includes('Prashant Joshi') && !msg.email?.includes('prashant.j')
-              )
-              .forEach((msg: any) => {
-                map.set(msg.id, {
-                  id: msg.id,
-                  name: msg.name || 'Client',
-                  company: msg.company || '',
-                  email: msg.email || '',
-                  phone: msg.phone || '',
-                  hasWhatsApp: msg.hasWhatsApp ?? true,
-                  scopeTitle: msg.scopeTitle || 'Website Contact Inquiry',
-                  budgetRange: msg.budgetRange || 'Standard Project',
-                  timeline: msg.timeline || '2–3 Months',
-                  message: msg.message || '',
-                  submittedAt: msg.createdAt
-                    ? typeof msg.createdAt === 'string'
-                      ? new Date(msg.createdAt).toLocaleString()
-                      : new Date((msg.createdAt.seconds || 0) * 1000).toLocaleString()
-                    : 'Recent',
-                  status: msg.status || 'New',
-                  read: msg.read ?? false,
-                  replied: msg.replied ?? false,
-                });
-              });
-          }
+      // 1. Fetch server messages from authenticated Django DRF API
+      if (isDjangoConfigured) {
+        try {
+          const djangoList = await getAdminInquiries();
+          djangoList
+            .filter(
+              (msg) =>
+                !msg.name?.includes('Prashant Joshi') && !msg.email?.includes('prashant.j')
+            )
+            .forEach((msg) => {
+              map.set(msg.id, msg);
+            });
+        } catch (apiErr) {
+          console.warn('Django inquiries fetch note:', apiErr);
         }
-      } catch (apiErr) {
-        console.warn('API messages fetch note:', apiErr);
       }
 
       // 2. Fetch from LocalStorage portfolio_inquiries backup
@@ -508,8 +511,65 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     }
   };
 
+  // On mount: restore Django JWT session if tokens are already stored
+  useEffect(() => {
+    if (!isDjangoConfigured) return;
+    const accessToken = getDjangoAccessToken();
+    if (!accessToken) {
+      try {
+        const search = new URLSearchParams(window.location.search);
+        const tab = search.get('tab');
+        const uid = search.get('uid');
+        const token = search.get('token');
+        if (tab === 'reset-password' && uid && token) {
+          setAuthMode('reset-confirm');
+          setResetUid(uid);
+          setResetToken(token);
+        }
+      } catch {
+        // Fallback
+      }
+      return;
+    }
+
+    getCurrentUser()
+      .then((profile) => {
+        setDjangoUser({ username: profile.username, email: profile.email });
+      })
+      .catch(() => {
+        // Token invalid/expired — leave unauthenticated; user must log in
+        clearDjangoTokens();
+        setDjangoUser(null);
+      });
+  }, []);
+
+  // Listen for portfolio_auth_unauthorized (fired by authRequest on unrecoverable 401)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearDjangoTokens();
+      setDjangoUser(null);
+      showToast('Session expired. Please log in again.');
+    };
+    window.addEventListener('portfolio_auth_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('portfolio_auth_unauthorized', handleUnauthorized);
+  }, []);
+
+  // Sync projects from authenticated Django admin API
+  const syncProjects = async (): Promise<void> => {
+    if (!isDjangoConfigured) return;
+    try {
+      const djangoProjects = await getAdminProjects();
+      if (Array.isArray(djangoProjects) && djangoProjects.length > 0) {
+        updateProjects(djangoProjects);
+      }
+    } catch (err) {
+      console.warn('Django projects fetch error:', err);
+    }
+  };
+
   useEffect(() => {
     syncServerInquiries(false);
+    syncProjects();
 
     const handleInquiriesUpdated = () => {
       syncServerInquiries(false);
@@ -527,15 +587,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     const updated = inquiries.filter((i) => i.id !== id);
     updateInquiries(updated);
 
-    // 2. Call server endpoint to permanently delete from .data/messages.json
-    try {
-      await fetch(`/api/messages?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-    } catch (err) {
-      console.warn('Server delete message notice:', err);
+    // 2. Call Django DRF API to permanently delete from backend
+    if (isDjangoConfigured) {
+      try {
+        await deleteAdminInquiry(id);
+      } catch (err) {
+        console.warn('Django delete inquiry notice:', err);
+      }
     }
 
     // 3. Delete from Firestore if configured
@@ -567,159 +625,132 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
     showToast('Database restore complete: All modules updated.');
   };
 
-  // Secure Password Change Handler (Django REST API or Firebase Authentication)
+  // Secure Password Change Handler (Django REST API — canonical path)
   const handleUpdatePassword = async (currentPass: string, newPass: string): Promise<void> => {
-    // 1. If active session is via Django REST Framework API
-    if (isDjangoConfigured && getDjangoAccessToken()) {
-      try {
-        await changeDjangoPassword(currentPass, newPass);
-        showToast('Administrative passphrase updated in Django backend. Signing out for security...');
-        clearDjangoTokens();
-        setLocalAdminAuthenticated(false);
-        localStorage.removeItem('portfolio_admin_session');
-        localStorage.removeItem('lightcode_admin_session');
-        return;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Django passphrase update failed';
-        showToast(`Error: ${msg}`);
-        throw new Error(msg);
-      }
+    if (!isDjangoConfigured || !getDjangoAccessToken()) {
+      const errMsg = 'Password changes require an active Django JWT session. Please sign in first.';
+      showToast(`Error: ${errMsg}`);
+      throw new Error(errMsg);
     }
-
-    // 2. If active session is via Firebase Auth
-    if (isFirebaseConfigured && user) {
-      try {
-        // Perform secure reauthentication and password update in Firebase Auth
-        await changeCurrentUserPassword(currentPass, newPass);
-        showToast('Master admin passphrase updated in Firebase Authentication. Signing out for security...');
-
-        // Session handling: sign out and clear session tokens
-        await signOut();
-        setLocalAdminAuthenticated(false);
-        localStorage.removeItem('portfolio_admin_session');
-        localStorage.removeItem('lightcode_admin_session');
-        return;
-      } catch (err: unknown) {
-        const formatted = err instanceof Error ? err.message : formatAuthError(err);
-        showToast(`Password update failed: ${formatted}`);
-        throw new Error(formatted);
-      }
+    try {
+      await djUpdatePassword(currentPass, newPass);
+      showToast('Administrative passphrase updated. Signing out for security...');
+      const refreshToken = getDjangoRefreshToken();
+      await djLogout(refreshToken || undefined);
+      setDjangoUser(null);
+      return;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Django passphrase update failed';
+      showToast(`Error: ${msg}`);
+      throw new Error(msg);
     }
-
-    // 3. Fallback error when no live backend session is active
-    const errMsg = isDjangoConfigured || isFirebaseConfigured
-      ? 'Password changes require an active authenticated session. Please log in with your administrative credentials first.'
-      : 'No active backend authentication provider configured. Live password changes require Firebase Auth or Python/Django API.';
-    showToast(`Error: ${errMsg}`);
-    throw new Error(errMsg);
   };
 
-  // Auth Submit Handlers
+  // Auth Submit Handler — Django JWT only
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setAuthError('Please enter both administrative email and password.');
+      setAuthError('Invalid email or password.');
+      return;
+    }
+
+    if (!isDjangoConfigured) {
+      setAuthError('Unable to authenticate right now. Please try again.');
       return;
     }
 
     setAuthLoading(true);
     setAuthError(null);
 
-    // 1. If Python/Django REST API is configured (VITE_DJANGO_API_URL):
-    if (isDjangoConfigured) {
-      try {
-        await loginWithDjango(email.trim(), password);
-        setLocalAdminAuthenticated(true);
-        localStorage.setItem('portfolio_admin_session', 'active');
-        showToast('Signed in via Python / Django REST Framework API.');
-        return;
-      } catch (djangoErr: unknown) {
-        setAuthError(
-          djangoErr instanceof Error
-            ? djangoErr.message
-            : 'Django authentication failed. Please verify credentials.'
-        );
-        return;
-      } finally {
-        setAuthLoading(false);
+    try {
+      await loginWithCredentials(email.trim(), password);
+      const profile = await getCurrentUser();
+      setDjangoUser({ username: profile.username, email: profile.email });
+      showToast('Signed in via Python / Django REST Framework API.');
+    } catch (djangoErr: unknown) {
+      if (
+        djangoErr instanceof Error &&
+        (djangoErr.message.toLowerCase().includes('network') ||
+          djangoErr.message.toLowerCase().includes('failed to fetch') ||
+          djangoErr.message.toLowerCase().includes('connection refused'))
+      ) {
+        setAuthError('Unable to authenticate right now. Please try again.');
+      } else {
+        setAuthError('Invalid email or password.');
       }
+    } finally {
+      setAuthLoading(false);
     }
+  };
 
-    // 2. If Firebase is configured, authenticate via Firebase Auth
-    if (isFirebaseConfigured) {
-      try {
-        await signIn(email.trim(), password);
-        setLocalAdminAuthenticated(true);
-        localStorage.setItem('portfolio_admin_session', 'active');
-        showToast('Signed in to Portfolio Admin Console via Firebase Auth.');
-      } catch (err: unknown) {
-        const formatted = formatAuthError(err);
-
-        // Fallback: If Firebase rejected because the preview domain is not in the GCP API Key HTTP Referrers,
-        // or network error, but the user entered valid portfolio admin credentials, allow local entry.
-        const isDemoCredential =
-          (email.trim().toLowerCase() === 'manojkc1dev@gmail.com' ||
-            email.trim().toLowerCase() === 'teamlightcode@gmail.com' ||
-            email.trim().toLowerCase() === 'manoj@manojkc1.com.np' ||
-            email.trim().toLowerCase() === 'admin@manojkc1.com.np' ||
-            email.trim().toLowerCase() === 'admin') &&
-          (password === 'admin123' || password === 'manoj2026' || password === 'admin');
-
-        if (
-          isDemoCredential &&
-          (formatted.includes('Domain/Referer') ||
-            formatted.includes('network') ||
-            formatted.includes('API key'))
-        ) {
-          setLocalAdminAuthenticated(true);
-          localStorage.setItem('portfolio_admin_session', 'active');
-          showToast('Firebase domain restriction active. Unlocked via administrative fallback.');
-        } else {
-          setAuthError(formatted);
-        }
-      } finally {
-        setAuthLoading(false);
-      }
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setAuthError('Invalid email or password.');
       return;
     }
 
-    // 3. Default local demo admin credentials for Manoj Khatri's portfolio
-    if (
-      (email.trim().toLowerCase() === 'manojkc1dev@gmail.com' ||
-        email.trim().toLowerCase() === 'teamlightcode@gmail.com' ||
-        email.trim().toLowerCase() === 'manoj@manojkc1.com.np' ||
-        email.trim().toLowerCase() === 'admin@manojkc1.com.np' ||
-        email.trim().toLowerCase() === 'admin') &&
-      (password === 'admin123' || password === 'manoj2026' || password === 'admin')
-    ) {
-      setLocalAdminAuthenticated(true);
-      localStorage.setItem('portfolio_admin_session', 'active');
-      setAuthLoading(false);
-      showToast('Administrative portfolio session active.');
-    } else {
-      setAuthLoading(false);
-      setAuthError('Invalid credentials. Use manojkc1dev@gmail.com / admin123, or click Instant Demo Access.');
+    if (!isDjangoConfigured) {
+      setAuthError('Unable to authenticate right now. Please try again.');
+      return;
+    }
+
+    setResetLoading(true);
+    setAuthError(null);
+
+    try {
+      await requestPasswordReset(resetEmail.trim());
+      setResetSuccess(true);
+      showToast('Password reset instructions have been sent.');
+    } catch {
+      setAuthError('Invalid email or password.');
+    } finally {
+      setResetLoading(false);
     }
   };
 
-  const handleQuickDemoAccess = () => {
-    setLocalAdminAuthenticated(true);
-    localStorage.setItem('portfolio_admin_session', 'active');
-    showToast('Demo administrative console unlocked.');
+  const handleConfirmPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetNewPassword || !resetUid || !resetToken) {
+      setAuthError('Invalid or expired password reset link.');
+      return;
+    }
+
+    if (!isDjangoConfigured) {
+      setAuthError('Unable to authenticate right now. Please try again.');
+      return;
+    }
+
+    setResetLoading(true);
+    setAuthError(null);
+
+    try {
+      await confirmPasswordReset(resetUid, resetToken, resetNewPassword);
+      showToast('Password has been reset successfully. Please log in.');
+      setAuthMode('login');
+      setPassword('');
+      setResetSuccess(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Invalid or expired password reset link.';
+      setAuthError(msg);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
-  const handleSignOut = () => {
-    if (user) {
-      signOut();
+  const handleSignOut = async () => {
+    // Canonical Django logout: blacklist refresh token server-side
+    const refreshToken = getDjangoRefreshToken();
+    try {
+      await djLogout(refreshToken || undefined);
+    } catch {
+      // Network failure on logout is safe to ignore; tokens are always cleared below
     }
-    clearDjangoTokens();
-    setLocalAdminAuthenticated(false);
-    localStorage.removeItem('portfolio_admin_session');
-    localStorage.removeItem('lightcode_admin_session');
+    setDjangoUser(null);
     showToast('Signed out of administrative console.');
   };
 
-  const isAuthenticated = !!user || localAdminAuthenticated;
+  const isAuthenticated = !!djangoUser;
 
   // Render: Not Authenticated (Login screen with full light & dark mode)
   if (!isAuthenticated) {
@@ -760,25 +791,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
               {/* Heading */}
               <div className="text-center mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                  Manoj Khatri | Portfolio Admin Console
+                  Manoj Khatri
                 </h1>
-                <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                  Manage projects, services, engineering case studies, skills, and client inquiries.
+                <p className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mt-0.5">
+                  Portfolio Admin Dashboard
                 </p>
-                <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300">
-                  <Lock className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                  <span>RESTRICTED ZONE · PORTFOLIO CONSOLE</span>
-                </div>
-                <div className="mt-2 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono bg-neutral-50 dark:bg-neutral-800/80 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {isDjangoConfigured
-                      ? `Auth: Python/Django REST API`
-                      : isFirebaseConfigured
-                      ? 'Auth: Firebase Authentication'
-                      : 'Auth: Local Admin Mode'}
-                  </span>
-                </div>
               </div>
 
               {authError && (
@@ -787,80 +804,175 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span className="font-medium leading-relaxed">{authError}</span>
                   </div>
-                  {authError.includes('Domain/Referer') && (
-                    <button
-                      type="button"
-                      onClick={handleQuickDemoAccess}
-                      className="mt-1 text-left text-[11px] font-semibold underline text-rose-800 dark:text-rose-200 hover:opacity-80 cursor-pointer"
-                    >
-                      Bypass restriction & enter console now →
-                    </button>
+                </div>
+              )}
+
+              {/* Mode 1: Login Form */}
+              {authMode === 'login' && (
+                <form onSubmit={handleSignIn} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="admin@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-neutral-700 dark:text-neutral-300">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('forgot-password');
+                          setAuthError(null);
+                        }}
+                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {authLoading ? 'Verifying Credentials...' : 'Authenticate & Enter Console'}
+                  </button>
+                </form>
+              )}
+
+              {/* Mode 2: Forgot Password Form */}
+              {authMode === 'forgot-password' && (
+                <div className="space-y-4 text-xs">
+                  {resetSuccess ? (
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 space-y-2">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Reset Instructions Sent</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed">
+                        If this address matches the authorized administrator account, password reset instructions have been dispatched.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('login');
+                          setResetSuccess(false);
+                          setAuthError(null);
+                        }}
+                        className="mt-2 w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all text-xs cursor-pointer"
+                      >
+                        Return to Sign In
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+                      <div>
+                        <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                          Authorized Admin Email Address
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="admin@gmail.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={resetLoading}
+                        className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        {resetLoading ? 'Sending Instructions...' : 'Send Password Reset Email'}
+                      </button>
+
+                      <div className="text-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode('login');
+                            setAuthError(null);
+                          }}
+                          className="text-[11px] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+                        >
+                          ← Back to Sign In
+                        </button>
+                      </div>
+                    </form>
                   )}
                 </div>
               )}
 
-              {/* Login Form */}
-              <form onSubmit={handleSignIn} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Admin Email Address
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="manojkc1dev@gmail.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Passphrase
-                  </label>
-                  <div className="relative">
+              {/* Mode 3: Reset Password Confirm Form */}
+              {authMode === 'reset-confirm' && (
+                <form onSubmit={handleConfirmPasswordReset} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                      New Administrator Passphrase
+                    </label>
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type="password"
                       required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-9"
+                      placeholder="Minimum 8 characters"
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {resetLoading ? 'Updating Passphrase...' : 'Save New Passphrase & Sign In'}
+                  </button>
+
+                  <div className="text-center pt-2">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setAuthError(null);
+                      }}
+                      className="text-[11px] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      ← Back to Sign In
                     </button>
                   </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  {authLoading ? 'Verifying Credentials...' : 'Authenticate & Enter Console'}
-                </button>
-              </form>
-
-              {/* Quick Demo Access Bypass Button */}
-              <div className="mt-5 pt-4 border-t border-neutral-200 dark:border-neutral-800 text-center">
-                <button
-                  type="button"
-                  onClick={handleQuickDemoAccess}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 font-semibold text-xs transition-colors cursor-pointer w-full justify-center"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Instant Demo Access (No Credentials Required)</span>
-                </button>
-                <p className="text-[11px] text-neutral-400 mt-2">
-                  Default credentials: <code className="font-mono">manojkc1dev@gmail.com</code> / <code className="font-mono">admin123</code>
-                </p>
-              </div>
+                </form>
+              )}
             </motion.div>
           </div>
         </main>
@@ -897,7 +1009,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         onBackToHome={onBackToHome}
         onSignOut={handleSignOut}
-        userEmail={user?.email || 'manojkc1dev@gmail.com'}
+        userEmail={djangoUser?.email || ''}
         userAvatar={profileData.photo || '/images/manoj.jpg'}
       />
 
@@ -910,10 +1022,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
           isOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
           unreadInquiriesCount={inquiries.filter((i) => !i.read).length}
-          userEmail={user?.email || 'manojkc1dev@gmail.com'}
+          userEmail={djangoUser?.email || ''}
           userAvatar={profileData.photo || '/images/manoj.jpg'}
           onSignOut={handleSignOut}
           onBackToHome={onBackToHome}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebarCollapse}
         />
 
         {/* Dynamic View Panel */}
@@ -1024,8 +1138,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
 
           {(activeTab === 'settings' || activeTab === 'security' || (activeTab as string) === 'blog') && (
             <SettingsView
-              currentUserEmail={user?.email || null}
-              isFirebaseAuth={Boolean(user && isFirebaseConfigured)}
+              currentUserEmail={djangoUser?.email || null}
+              isFirebaseAuth={false}
+              isDjangoAuth={isDjangoConfigured && !!getDjangoAccessToken()}
               onUpdatePassword={handleUpdatePassword}
               onShowToast={showToast}
               allData={{

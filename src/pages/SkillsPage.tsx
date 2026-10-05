@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { getSkills } from '../lib/api/public';
 import { skillGroups as defaultSkillGroups, currentFocus, SkillLevel } from '../data/skills';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -9,7 +10,7 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AuthorBio } from '../components/ui/AuthorBio';
 import { Seo } from '../components/Seo';
-import type { SkillGroup, SkillItem } from '../types';
+import type { SkillGroup, SkillItem, SkillCategory } from '../types';
 import { Sparkles, Layers, ChevronDown, Star } from 'lucide-react';
 import { track } from '../lib/analytics';
 
@@ -42,6 +43,32 @@ function normalizeSkillLevel(skill: SkillItem): SkillLevel {
   return 'intermediate';
 }
 
+function normalizeApiSkillGroups(categories: SkillCategory[]): SkillGroup[] {
+  return categories.map((cat, idx) => ({
+    id: cat.id ? String(cat.id) : `category-${idx}`,
+    title: cat.title || cat.category || 'Competencies',
+    category: cat.category || cat.title || 'Competencies',
+    description: cat.description || '',
+    skills: Array.isArray(cat.skills)
+      ? cat.skills.map((s) => ({
+          name: s.name,
+          iconName: s.iconName,
+          highlight: Boolean(s.highlight),
+          proficiency:
+            s.proficiency ||
+            (s.level
+              ? ((s.level.charAt(0).toUpperCase() + s.level.slice(1)) as
+                  | 'Advanced'
+                  | 'Intermediate'
+                  | 'Learning')
+              : 'Intermediate'),
+          level: normalizeSkillLevel(s),
+          years: s.years ?? 2,
+        }))
+      : [],
+  }));
+}
+
 function getLevelBadgeStyles(level: SkillLevel) {
   switch (level) {
     case 'expert':
@@ -59,57 +86,65 @@ function getLevelBadgeStyles(level: SkillLevel) {
 export const SkillsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [dataVersion, setDataVersion] = useState(0);
+  const [skills, setSkills] = useState<SkillGroup[]>(defaultSkillGroups);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [, setApiError] = useState<boolean>(false);
+  const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
   // Live updates when changes are saved from the admin CMS
   useEffect(() => {
-    const handleUpdate = () => setDataVersion((v) => v + 1);
-    window.addEventListener('storage', handleUpdate);
+    const handleUpdate = () => setRefreshCounter((c) => c + 1);
     window.addEventListener('portfolio_data_updated', handleUpdate);
     return () => {
-      window.removeEventListener('storage', handleUpdate);
       window.removeEventListener('portfolio_data_updated', handleUpdate);
     };
   }, []);
+
+  // Fetch skills from Django public API
+  useEffect(() => {
+    let isCancelled = false;
+    const controller = new AbortController();
+
+    setIsLoading(true);
+    getSkills({ signal: controller.signal })
+      .then((apiCategories) => {
+        if (isCancelled || controller.signal.aborted) return;
+        if (Array.isArray(apiCategories) && apiCategories.length > 0) {
+          setSkills(normalizeApiSkillGroups(apiCategories));
+          setApiError(false);
+        } else {
+          // Empty response -> fallback to defaultSkillGroups
+          setSkills(defaultSkillGroups);
+        }
+      })
+      .catch((err: Error) => {
+        if (isCancelled || controller.signal.aborted) return;
+        if (import.meta.env.DEV) {
+          console.warn('Failed to load skills from public API:', err);
+        }
+        setApiError(true);
+        setSkills(defaultSkillGroups);
+      })
+      .finally(() => {
+        if (!isCancelled && !controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
+  }, [refreshCounter]);
 
   // Query params
   const queryParam = searchParams.get('q') || '';
   const levelParam = (searchParams.get('level') || 'all') as 'all' | SkillLevel;
   const sortParam = (searchParams.get('sort') || 'group') as SkillSortOption;
 
-  // Skill groups (supports admin localStorage override if saved)
-  const allGroups = useMemo<SkillGroup[]>(() => {
-    try {
-      const saved = localStorage.getItem('portfolio_skills');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((g: any, idx: number) => ({
-            id: g.id || `group-${idx}`,
-            title: g.title || g.category || 'Competencies',
-            category: g.category || g.title,
-            description: g.description || '',
-            skills: Array.isArray(g.skills)
-              ? g.skills.map((s: any) => ({
-                  name: s.name,
-                  level: normalizeSkillLevel(s),
-                  proficiency: s.proficiency || 'Intermediate',
-                  years: s.years || 2,
-                  highlight: Boolean(s.highlight),
-                }))
-              : [],
-          }));
-        }
-      }
-    } catch (e) {
-      console.warn('Skills storage load error:', e);
-    }
-    return defaultSkillGroups;
-  }, [dataVersion]);
-
   const totalSkillCount = useMemo(() => {
-    return allGroups.reduce((acc, g) => acc + g.skills.length, 0);
-  }, [allGroups]);
+    return skills.reduce((acc, g) => acc + g.skills.length, 0);
+  }, [skills]);
 
   const updateParams = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
@@ -150,9 +185,9 @@ export const SkillsPage: React.FC = () => {
   const filteredGroups = useMemo(() => {
     const q = queryParam.toLowerCase().trim();
 
-    return allGroups
+    return skills
       .map((group) => {
-        let skills = group.skills.filter((skill) => {
+        let groupSkills = group.skills.filter((skill) => {
           const skillLevel = normalizeSkillLevel(skill);
 
           // Level filter
@@ -172,26 +207,26 @@ export const SkillsPage: React.FC = () => {
 
         // Sort inside group
         if (sortParam === 'level') {
-          skills = [...skills].sort(
+          groupSkills = [...groupSkills].sort(
             (a, b) => LEVEL_WEIGHT[normalizeSkillLevel(b)] - LEVEL_WEIGHT[normalizeSkillLevel(a)]
           );
         } else if (sortParam === 'alphabetical') {
-          skills = [...skills].sort((a, b) => a.name.localeCompare(b.name));
+          groupSkills = [...groupSkills].sort((a, b) => a.name.localeCompare(b.name));
         }
 
         return {
           ...group,
-          skills,
+          skills: groupSkills,
         };
       })
       .filter((group) => group.skills.length > 0);
-  }, [allGroups, queryParam, levelParam, sortParam]);
+  }, [skills, queryParam, levelParam, sortParam]);
 
   const displayedSkillsCount = useMemo(() => {
     return filteredGroups.reduce((acc, g) => acc + g.skills.length, 0);
   }, [filteredGroups]);
 
-  // JSON-LD structured data
+  // JSON-LD structured data with globally increasing position indexing
   const jsonLd = useMemo(() => ({
     '@context': 'https://schema.org',
     '@graph': [
@@ -210,14 +245,14 @@ export const SkillsPage: React.FC = () => {
         name: 'Technical Skills - Python, Django, DRF, PostgreSQL',
         description: 'Core languages, backend frameworks, relational databases, security protocols, and devops tooling.',
         numberOfItems: displayedSkillsCount,
-        itemListElement: filteredGroups.flatMap((g) =>
-          g.skills.map((s, idx) => ({
+        itemListElement: filteredGroups
+          .flatMap((g) => g.skills.map((s) => ({ skill: s, groupTitle: g.title })))
+          .map(({ skill, groupTitle }, index) => ({
             '@type': 'Thing',
-            position: idx + 1,
-            name: s.name,
-            description: `${s.name} (${normalizeSkillLevel(s)} proficiency) - ${g.title}`,
-          }))
-        ),
+            position: index + 1,
+            name: skill.name,
+            description: `${skill.name} (${normalizeSkillLevel(skill)} proficiency) - ${groupTitle}`,
+          })),
       },
     ],
   }), [filteredGroups, displayedSkillsCount]);
@@ -241,7 +276,7 @@ export const SkillsPage: React.FC = () => {
         eyebrow="Competencies"
         title="Technical Skills - Python, Django, DRF, PostgreSQL"
         subtitle="Everything I work with, grouped by category and calibrated for enterprise reliability."
-        meta={`${allGroups.length} categories · ${totalSkillCount} skills cataloged`}
+        meta={`${skills.length} categories · ${totalSkillCount} skills cataloged`}
       />
 
       {/* Sticky Filter Bar */}
@@ -349,8 +384,40 @@ export const SkillsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Skill Groups Grid or Empty State */}
-        {filteredGroups.length === 0 ? (
+        {/* Skill Groups Grid, Loading Skeleton, or Empty State */}
+        {isLoading ? (
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+            aria-busy="true"
+            aria-label="Loading technical skills"
+          >
+            {[1, 2, 3, 4].map((n) => (
+              <div
+                key={n}
+                className="flex flex-col justify-between rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 p-6 sm:p-7 shadow-xs animate-pulse"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-neutral-200 dark:bg-neutral-800" />
+                      <div className="h-6 w-40 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+                    </div>
+                    <div className="h-5 w-8 bg-neutral-200 dark:bg-neutral-800 rounded-full" />
+                  </div>
+                  <div className="h-4 w-3/4 bg-neutral-200/60 dark:bg-neutral-800/60 rounded mb-6" />
+                  <div className="flex flex-wrap gap-2.5">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="h-8 w-24 bg-neutral-200/70 dark:bg-neutral-800/70 rounded-xl"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredGroups.length === 0 ? (
           <EmptyState
             title="No skills match your search"
             description="Try changing your search term or selecting 'All Levels' to view all technical competencies."

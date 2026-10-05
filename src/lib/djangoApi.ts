@@ -31,6 +31,10 @@ export function getDjangoAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
 }
 
+export function getDjangoRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_KEY) || sessionStorage.getItem(REFRESH_KEY);
+}
+
 export function setDjangoTokens(access: string, refresh?: string, remember = true): void {
   const storage = remember ? localStorage : sessionStorage;
   storage.setItem(TOKEN_KEY, access);

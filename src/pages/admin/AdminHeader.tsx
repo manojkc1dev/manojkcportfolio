@@ -22,26 +22,26 @@ interface AdminHeaderProps {
 }
 
 const TAB_TITLES: Record<AdminTab, { group: string; label: string }> = {
-  dashboard: { group: 'Overview', label: 'Portfolio Dashboard' },
-  projects: { group: 'Portfolio Content', label: 'Projects & Live Demos Manager' },
-  skills: { group: 'Portfolio Content', label: 'Skills & Tech Stack' },
-  experience: { group: 'Portfolio Content', label: 'Experience & Education Timeline' },
+  dashboard: { group: 'Overview', label: 'Dashboard' },
+  projects: { group: 'Portfolio Content', label: 'Projects' },
+  skills: { group: 'Portfolio Content', label: 'Skills' },
+  experience: { group: 'Portfolio Content', label: 'Experience' },
   about: { group: 'Portfolio Content', label: 'About Me & Bio' },
-  resume: { group: 'Portfolio Content', label: 'Resume & CV Manager' },
-  inquiries: { group: 'Communication', label: 'Contact Inquiries' },
-  socials: { group: 'Communication', label: 'Social Profiles & Direct Contact' },
-  settings: { group: 'System', label: 'Settings & Backups' },
-  security: { group: 'System', label: 'Security & Credentials' },
+  resume: { group: 'Portfolio Content', label: 'Resume & CV' },
+  inquiries: { group: 'Communication', label: 'Inquiries' },
+  socials: { group: 'Communication', label: 'Social Profiles' },
+  settings: { group: 'System', label: 'Settings' },
+  security: { group: 'System', label: 'Security' },
   // Compatibility
-  services: { group: 'Portfolio Content', label: 'Skills & Tech Stack' },
-  blog: { group: 'Portfolio Content', label: 'Projects & Live Demos' },
+  services: { group: 'Portfolio Content', label: 'Skills' },
+  blog: { group: 'Portfolio Content', label: 'Projects' },
   homepage: { group: 'Portfolio Content', label: 'About Me & Bio' },
-  'services-catalog': { group: 'Portfolio Content', label: 'Skills & Tech Stack' },
-  'contact-pricing': { group: 'Communication', label: 'Social Profiles & Direct Contact' },
-  'footer-links': { group: 'Communication', label: 'Social Profiles & Direct Contact' },
+  'services-catalog': { group: 'Portfolio Content', label: 'Skills' },
+  'contact-pricing': { group: 'Communication', label: 'Social Profiles' },
+  'footer-links': { group: 'Communication', label: 'Social Profiles' },
   'logo-management': { group: 'Portfolio Content', label: 'About Me & Bio' },
   'company-identity': { group: 'Portfolio Content', label: 'About Me & Bio' },
-  'social-media': { group: 'Communication', label: 'Social Profiles & Direct Contact' },
+  'social-media': { group: 'Communication', label: 'Social Profiles' },
 };
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({
@@ -56,12 +56,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [brandImgError, setBrandImgError] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const avatarUrl = userAvatar || '/images/manoj.jpg';
-
-  const activeBreadcrumb = TAB_TITLES[currentTab] || { group: 'Admin', label: 'Dashboard' };
+  const activeBreadcrumb = TAB_TITLES[currentTab] || { group: 'Portfolio Content', label: 'Dashboard' };
 
   // Filter tabs for search jump
   const searchResults = Object.entries(TAB_TITLES).filter(([tabKey, info]) => {
@@ -88,49 +85,24 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 h-16 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 transition-colors duration-200">
       <div className="h-full px-4 sm:px-6 flex items-center justify-between gap-3">
-        {/* Left: Brand, Toggle, Breadcrumb */}
+        {/* Left: Mobile Toggle & Breadcrumb */}
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={onToggleSidebar}
-            aria-label="Toggle sidebar"
-            className="p-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+            aria-label="Open navigation"
+            className="lg:hidden p-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 shadow-xs">
-              {!brandImgError ? (
-                <img
-                  src={avatarUrl}
-                  alt="Manoj Khatri profile picture"
-                  className="w-full h-full object-cover"
-                  onError={() => setBrandImgError(true)}
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                  MK
-                </div>
-              )}
-            </div>
-            <span className="font-semibold text-neutral-900 dark:text-white text-sm hidden sm:inline">
-              Manoj Khatri
+          {/* Breadcrumb: Group / Label */}
+          <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 truncate">
+            <span className="font-medium text-neutral-600 dark:text-neutral-400 truncate">
+              {activeBreadcrumb.group}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">
-              PORTFOLIO ADMIN
-            </span>
-          </div>
-
-          <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-700 hidden md:block" />
-
-          {/* Breadcrumb */}
-          <div className="hidden md:flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 truncate">
-            <span>Portfolio Admin</span>
-            <span>/</span>
-            <span>{activeBreadcrumb.group}</span>
-            <span>&gt;</span>
-            <span className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
+            <span className="text-neutral-400 dark:text-neutral-600">/</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-100 truncate">
               {activeBreadcrumb.label}
             </span>
           </div>
