@@ -75,10 +75,9 @@ describe('Admin Route & Canonical Security Tests', () => {
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Portfolio Admin Console/i)).toBeInTheDocument();
+        expect(screen.getByText(/Portfolio Admin Dashboard/i)).toBeInTheDocument();
       });
-      expect(screen.getByText(/RESTRICTED ZONE · PORTFOLIO CONSOLE/i)).toBeInTheDocument();
-      expect(screen.getByText(/Admin Email Address/i)).toBeInTheDocument();
+      expect(screen.getByText(/Email Address/i)).toBeInTheDocument();
     });
 
     it('renders AdminPortal on canonical route with trailing slash /mkc-admin-z/', async () => {
@@ -86,7 +85,7 @@ describe('Admin Route & Canonical Security Tests', () => {
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Portfolio Admin Console/i)).toBeInTheDocument();
+        expect(screen.getByText(/Portfolio Admin Dashboard/i)).toBeInTheDocument();
       });
     });
 
@@ -97,7 +96,7 @@ describe('Admin Route & Canonical Security Tests', () => {
       await waitFor(() => {
         // Old /admin should fall through to 404 / NotFound rather than AdminPortal
         expect(screen.getByText(/Route Not Registered/i)).toBeInTheDocument();
-        expect(screen.queryByText(/RESTRICTED ZONE · PORTFOLIO CONSOLE/i)).toBeNull();
+        expect(screen.queryByText(/Portfolio Admin Dashboard/i)).toBeNull();
       });
     });
   });
@@ -114,7 +113,7 @@ describe('Admin Route & Canonical Security Tests', () => {
         </ThemeProvider>
       );
 
-      const emailInput = screen.getByPlaceholderText(/contactmanojkc1\.com\.np@gmail\.com/i);
+      const emailInput = screen.getByPlaceholderText(/admin@gmail\.com/i);
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
       const submitBtn = screen.getByRole('button', { name: /Authenticate & Enter Console/i });
 
@@ -142,7 +141,7 @@ describe('Admin Route & Canonical Security Tests', () => {
         </ThemeProvider>
       );
 
-      const emailInput = screen.getByPlaceholderText(/contactmanojkc1\.com\.np@gmail\.com/i);
+      const emailInput = screen.getByPlaceholderText(/admin@gmail\.com/i);
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
       const submitBtn = screen.getByRole('button', { name: /Authenticate & Enter Console/i });
 
@@ -189,7 +188,7 @@ describe('Admin Route & Canonical Security Tests', () => {
       );
 
       // Must still show the login screen
-      expect(screen.getByText(/RESTRICTED ZONE · PORTFOLIO CONSOLE/i)).toBeInTheDocument();
+      expect(screen.getByText(/Portfolio Admin Dashboard/i)).toBeInTheDocument();
       expect(screen.queryByText(/Control Center/i)).toBeNull();
     });
   });
@@ -206,12 +205,12 @@ describe('Admin Route & Canonical Security Tests', () => {
         </ThemeProvider>
       );
 
-      const forgotBtn = screen.getByRole('button', { name: /Forgot passphrase\?/i });
+      const forgotBtn = screen.getByRole('button', { name: /Forgot password\?/i });
       fireEvent.click(forgotBtn);
 
       expect(screen.getByText(/Authorized Admin Email Address/i)).toBeInTheDocument();
 
-      const resetEmailInput = screen.getByPlaceholderText(/contactmanojkc1\.com\.np@gmail\.com/i);
+      const resetEmailInput = screen.getByPlaceholderText(/admin@gmail\.com/i);
       const sendBtn = screen.getByRole('button', { name: /Send Password Reset Email/i });
 
       fireEvent.change(resetEmailInput, { target: { value: 'contactmanojkc1.com.np@gmail.com' } });
@@ -233,10 +232,10 @@ describe('Admin Route & Canonical Security Tests', () => {
         </ThemeProvider>
       );
 
-      const forgotBtn = screen.getByRole('button', { name: /Forgot passphrase\?/i });
+      const forgotBtn = screen.getByRole('button', { name: /Forgot password\?/i });
       fireEvent.click(forgotBtn);
 
-      const resetEmailInput = screen.getByPlaceholderText(/contactmanojkc1\.com\.np@gmail\.com/i);
+      const resetEmailInput = screen.getByPlaceholderText(/admin@gmail\.com/i);
       const sendBtn = screen.getByRole('button', { name: /Send Password Reset Email/i });
 
       fireEvent.change(resetEmailInput, { target: { value: 'attacker@evil.com' } });

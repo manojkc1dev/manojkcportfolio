@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldCheck,
-  Lock,
   Mail,
   ArrowLeft,
   AlertCircle,
@@ -792,23 +791,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
               {/* Heading */}
               <div className="text-center mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                  Manoj Khatri | Portfolio Admin Console
+                  Manoj Khatri
                 </h1>
-                <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                  Manage projects, services, engineering case studies, skills, and client inquiries.
+                <p className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mt-0.5">
+                  Portfolio Admin Dashboard
                 </p>
-                <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300">
-                  <Lock className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                  <span>RESTRICTED ZONE · PORTFOLIO CONSOLE</span>
-                </div>
-                <div className="mt-2 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono bg-neutral-50 dark:bg-neutral-800/80 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {isDjangoConfigured
-                      ? 'Auth: Python/Django REST API'
-                      : 'Auth: Django backend not configured'}
-                  </span>
-                </div>
               </div>
 
               {authError && (
@@ -825,12 +812,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                 <form onSubmit={handleSignIn} className="space-y-4 text-xs">
                   <div>
                     <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                      Admin Email Address
+                      Email Address
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="contactmanojkc1.com.np@gmail.com"
+                      placeholder="admin@gmail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -840,7 +827,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="font-semibold text-neutral-700 dark:text-neutral-300">
-                        Passphrase
+                        Password
                       </label>
                       <button
                         type="button"
@@ -850,7 +837,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                         }}
                         className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                       >
-                        Forgot passphrase?
+                        Forgot password?
                       </button>
                     </div>
                     <div className="relative">
@@ -915,7 +902,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
                         <input
                           type="email"
                           required
-                          placeholder="contactmanojkc1.com.np@gmail.com"
+                          placeholder="admin@gmail.com"
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"

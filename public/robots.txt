@@ -1,8 +1,10 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /admin/
+Disallow: /mkc-admin-z
+Disallow: /mkc-admin-z/
 Disallow: /admin
+Disallow: /admin/
 Disallow: /mk-admin
 Disallow: /mk-zadmin-cc
 Disallow: /lc-zadmin-cc
