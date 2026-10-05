@@ -229,6 +229,16 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'authorization',
 ]
 
+# CSRF Trusted Origins for cross-origin production API requests
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://localhost:3000,http://127.0.0.1:3000,https://manojkc1.com.np,https://*.manojkc1.com.np'
+    ).split(',')
+    if origin.strip()
+]
+
 # Email & Transactional Delivery Configuration
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
