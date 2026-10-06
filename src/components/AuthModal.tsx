@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User as UserIcon, Eye, EyeOff, KeyRound, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../firebase';
 import { track } from '../lib/analytics';
+import { loginWithCredentials, requestPasswordReset, logout as djLogout, getCurrentUser } from '../lib/api/auth';
+import { getDjangoAccessToken } from '../lib/djangoApi';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'signin',
   onSuccess,
 }) => {
-  const { user, isConfigured, signIn, signUp, resetPassword, signOut } = useAuth();
+  const [user, setUser] = useState<{ email?: string } | null>(null);
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>(initialMode);
 
   const [email, setEmail] = useState('');
@@ -31,6 +32,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const modalRef = useRef<HTMLDivElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen && getDjangoAccessToken()) {
+      getCurrentUser()
+        .then((res) => {
+          if (res) setUser({ email: res.email });
+        })
+        .catch(() => setUser(null));
+    } else {
+      setUser(null);
+    }
+  }, [isOpen]);
 
   // Sync initial mode
   useEffect(() => {
@@ -77,11 +90,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    if (!isConfigured) {
-      setError('Firebase is running in UI-only mode. Set VITE_FB_API_KEY and VITE_FB_PROJECT_ID in your .env file.');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -91,7 +99,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setLoading(false);
           return;
         }
-        await signIn(emailTrimmed, password);
+        await loginWithCredentials(emailTrimmed, password);
         track('auth_action', { action: 'signin_success' });
         setSuccessNotice('Signed in successfully!');
         setTimeout(() => {
@@ -99,20 +107,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           onClose();
         }, 800);
       } else if (mode === 'signup') {
-        if (!password || password.length < 6) {
-          setError('Password must be at least 6 characters long.');
-          setLoading(false);
-          return;
-        }
-        await signUp(emailTrimmed, password, displayName.trim());
-        track('auth_action', { action: 'signup_success' });
-        setSuccessNotice('Account created and signed in!');
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-        }, 800);
+        setError('Direct registration is disabled. Administrator access only.');
       } else if (mode === 'reset') {
-        await resetPassword(emailTrimmed);
+        await requestPasswordReset(emailTrimmed);
         track('auth_action', { action: 'password_reset_sent' });
         setSuccessNotice(`Password reset instructions have been sent to ${emailTrimmed}.`);
       }
@@ -126,14 +123,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSignOutClick = async () => {
     try {
-      await signOut();
+      await djLogout();
+      setUser(null);
       track('auth_action', { action: 'signout' });
       setSuccessNotice('You have been signed out.');
       setTimeout(() => onClose(), 600);
-    } catch (err) {
+    } catch {
       setError('Error signing out.');
     }
   };
+
 
   return (
     <AnimatePresence>
@@ -185,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <p className="text-xs text-neutral-500 dark:text-neutral-400">
                     {user
                       ? `Signed in as ${user.email}`
-                      : 'Firebase Email/Password Authentication'}
+                      : 'Administrator Authentication'}
                   </p>
                 </div>
               </div>
@@ -283,15 +282,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </button>
                   </div>
 
-                  {/* Notice if Firebase env keys are missing */}
-                  {!isConfigured && (
-                    <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                      <div>
-                        <span className="font-semibold">Firebase Not Connected:</span> Make sure your Firebase project credentials are added to your <code className="font-mono">.env</code> file (<code className="font-mono">VITE_FB_API_KEY</code> &amp; <code className="font-mono">VITE_FB_PROJECT_ID</code>).
-                      </div>
-                    </div>
-                  )}
 
                   {/* Feedback alerts */}
                   {error && (

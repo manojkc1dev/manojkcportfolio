@@ -7,7 +7,7 @@ Phase 3 established the security and token lifecycle foundation for **Manoj Khat
 * **Dependency**: `djangorestframework-simplejwt`
 * **App**: `apps.authentication`
 * **URL Prefix**: `/api/v1/auth/`
-* **Status**: Complete & Verified (82/82 backend tests passing, 0 Django check issues, 119/119 frontend tests passing)
+* **Status**: Complete & Verified (128/128 backend tests passing, 0 Django check issues, 220/220 frontend tests passing)
 
 ---
 
@@ -20,6 +20,8 @@ Phase 3 established the security and token lifecycle foundation for **Manoj Khat
 | `POST` | `/api/v1/auth/token/verify/` | `AllowAny` | Cryptographically verify JWT validity and expiration |
 | `GET` | `/api/v1/auth/me/` | `IsAuthenticated` | Inspect current administrator's identity and permissions |
 | `POST` | `/api/v1/auth/change-password/` | `IsAuthenticated` | Update administrator password with validation rules |
+| `POST` | `/api/v1/auth/password-reset/` | `AllowAny` | Request secure password reset link (authorized admin email only) |
+| `POST` | `/api/v1/auth/password-reset-confirm/` | `AllowAny` | Confirm password reset via secure uid and token |
 | `POST` | `/api/v1/auth/logout/` | `IsAuthenticated` | Blacklist refresh token to invalidate active session |
 
 ---
@@ -28,8 +30,9 @@ Phase 3 established the security and token lifecycle foundation for **Manoj Khat
 
 * **Public APIs (`AllowAny`)**:
   * Profile, Projects, Skills, Experience, Uses, Currently Building, Services, Articles, Resume downloads, and Inquiry submissions.
-* **Protected Operations (`IsAuthenticated` / Staff Check)**:
-  * Admin `/me/` endpoint, password rotation, token revocation, and future administrative CRUD endpoints.
+* **Protected Operations (`IsPortfolioAdmin` / `IsAuthenticated`)**:
+  * Admin `/me/` endpoint, password rotation, token revocation, project mutations (`POST`/`PUT`/`PATCH`/`DELETE` `/api/v1/admin/projects/`), and lead management (`GET`/`DELETE` `/api/v1/inquiries/`).
+  * Enforced server-side via `IsPortfolioAdmin` (requiring active authentication and `is_staff=True`).
 
 ---
 
@@ -40,33 +43,42 @@ Phase 3 established the security and token lifecycle foundation for **Manoj Khat
 * **Token Blacklisting**: Revoked refresh tokens are persisted in `token_blacklist` to prevent replay attacks.
 * **Password Validation Suite**: Enforces Django's `MinimumLengthValidator`, `CommonPasswordValidator`, and `NumericPasswordValidator`.
 * **Zero Secrets in Code**: Credentials and keys are managed via environment variables.
+* **Enumeration Resistance**: Generic errors on unauthorized password reset and invalid login attempts.
 
 ---
 
 ## 5. Test Suite Verification
 
-* **Authentication Tests**: `apps.authentication.tests.AuthenticationTests`
+* **Authentication Tests**: `apps.authentication.tests.AuthenticationTests` (22 dedicated tests)
   * Valid login with username and email
-  * Case-insensitive email login
-  * Missing/invalid credentials rejection
+  * Case-insensitive email login with whitespace trimming
+  * Missing/invalid credentials generic error response
   * Token refresh & verify lifecycle
   * Unauthenticated `/me/` rejection (401)
   * Authenticated `/me/` safe response
   * Password rotation validation & old-credential invalidation
+  * Weak password rejection on password change & reset confirm (400)
+  * Password reset request email dispatch & secure token creation
+  * Password reset token invalidation & reuse prevention
+  * Admin endpoint rejection of unauthenticated requests (401)
+  * Admin endpoint rejection of non-staff authenticated users (403)
+  * Admin endpoint access for authenticated staff (200)
+  * Public endpoint access for anonymous requests (200)
   * Logout & token blacklisting verification
-* **Total Backend Tests**: `82/82 PASS`
-* **Total Frontend Tests**: `119/119 PASS`
+* **Total Backend Tests**: `128/128 PASS`
+* **Total Frontend Tests**: `220/220 PASS`
 
 ---
 
 ## 6. Known Limitations
 
-* **No Multi-Tenancy**: The portfolio is single-tenant and tailored specifically for Manoj Khatri's administration.
-* **No Social OAuth**: Pure JWT username/email auth is used without third-party OAuth providers.
+* **Single-Tenant Admin**: Tailored specifically for Manoj Khatri's portfolio administration.
+* **No Social OAuth**: Pure JWT username/email auth without third-party OAuth overhead.
 
 ---
 
 ## 7. Recommended Next Phase
 
 * **Phase 4**: Public Read-Only REST API Endpoints & Serializers (completed and verified).
-* **Phase 5**: Frontend React Integration with canonical Django REST API (Profile, Projects, Skills, Experience, Uses, and Writing completed).
+* **Phase 5**: Frontend React Integration with canonical Django REST API (completed and verified).
+

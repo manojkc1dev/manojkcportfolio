@@ -20,10 +20,9 @@ import {
   Sparkles,
   Info,
 } from 'lucide-react';
-import { isFirebaseConfigured, db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { track } from '../lib/analytics';
 import { projects } from '../data/projects';
+
 
 interface DirectContactItem {
   id: string;
@@ -286,32 +285,10 @@ export const Contact: React.FC = () => {
         console.warn('LocalStorage backup error:', lsErr);
       }
 
-      // 3. Direct Firestore write if available
-      if (db && isFirebaseConfigured) {
-        try {
-          const firestorePayload = {
-            name: name.trim(),
-            email: email.trim(),
-            message: message.trim(),
-            projectId: projectSlug || null,
-            projectTitle: taggedProjectTitle || null,
-            sourcePage: typeof window !== 'undefined' ? window.location.href : null,
-            createdAt: serverTimestamp(),
-            read: false,
-            replied: false,
-            source: 'portfolio_contact',
-          };
-          await addDoc(collection(db, 'inquiries'), firestorePayload);
-          await addDoc(collection(db, 'messages'), firestorePayload).catch(() => {});
-          delivered = true;
-        } catch (fsErr) {
-          console.warn('Firestore write notice (fallback active):', fsErr);
-        }
-      }
-
       if (!delivered) {
         throw new Error('Unable to deliver message at this moment. Please reach out directly to manojkc1dev@gmail.com');
       }
+
 
       setStatus('success');
       setToastMessage("Thanks! Your message has been received. I'll get back to you within 24 hours.");

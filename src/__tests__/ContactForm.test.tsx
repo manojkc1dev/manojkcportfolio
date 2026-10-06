@@ -3,14 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Contact } from '../components/Contact';
 
-// Mock Firebase as configured for contact form tests so fetch('/api/contact') is triggered
-vi.mock('../firebase', () => ({
-  isFirebaseConfigured: true,
-  auth: null,
-  db: null,
-}));
-
 describe('Contact Form Component', () => {
+
   beforeEach(() => {
     vi.restoreAllMocks();
   });

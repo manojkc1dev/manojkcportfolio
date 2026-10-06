@@ -1,13 +1,9 @@
-import { getAnalytics, isSupported, logEvent, type Analytics } from 'firebase/analytics';
-import { app, isFirebaseConfigured } from '../firebase';
-
 export interface UTMParams {
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
 }
 
-let analyticsInstance: Analytics | null = null;
 let capturedUTMs: UTMParams = {};
 
 export function getCapturedUTMs(): UTMParams {
@@ -44,47 +40,29 @@ export function getCapturedUTMs(): UTMParams {
 }
 
 /**
- * Initializes Firebase Analytics only if VITE_ENABLE_ANALYTICS === "true"
+ * Initializes client analytics and captures UTM parameters on initial visit.
  */
 export async function init(): Promise<void> {
   if (typeof window === 'undefined') return;
-
   // Always capture UTM params on initial visit
   getCapturedUTMs();
-
-  if (import.meta.env.VITE_ENABLE_ANALYTICS !== 'true') {
-    return;
-  }
-
-  if (!isFirebaseConfigured || !app) {
-    return;
-  }
-
-  try {
-    const supported = await isSupported();
-    if (!supported) return;
-
-    analyticsInstance = getAnalytics(app);
-  } catch (err) {
-    console.warn('Analytics initialization failed:', err);
-  }
 }
 
 /**
  * Tracks custom events, merging captured UTM parameters.
- * No-op if analytics is not initialized.
  */
 export function track(eventName: string, params?: Record<string, unknown>): void {
-  if (!analyticsInstance) return;
-
   try {
     const utms = getCapturedUTMs();
     const eventParams = {
       ...utms,
       ...params,
     };
-    logEvent(analyticsInstance, eventName, eventParams);
-  } catch (err) {
-    console.warn(`Analytics track failed for ${eventName}:`, err);
+    if (import.meta.env.DEV) {
+      console.debug(`[Analytics] ${eventName}`, eventParams);
+    }
+  } catch {
+    // Ignore analytics tracking errors
   }
 }
+

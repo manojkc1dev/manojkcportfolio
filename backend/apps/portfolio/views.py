@@ -2,8 +2,9 @@
 Public Read-Only API Views for Portfolio Projects and Case Studies.
 """
 from rest_framework import generics
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import NotFound
+from apps.authentication.permissions import IsPortfolioAdmin
 from .models import Project
 from .serializers import (
     ProjectListSerializer,
@@ -53,10 +54,10 @@ class ProjectDetailView(generics.RetrieveAPIView):
 
 class AdminProjectListCreateView(generics.ListCreateAPIView):
     """
-    Administrative project listing and creation (IsAuthenticated).
+    Administrative project listing and creation (IsPortfolioAdmin — staff required).
     Returns ALL projects including drafts.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsPortfolioAdmin]
     serializer_class = ProjectAdminSerializer
     queryset = Project.objects.all().prefetch_related(
         'metrics_items', 'challenges_items', 'tech_choices_items'
@@ -66,9 +67,9 @@ class AdminProjectListCreateView(generics.ListCreateAPIView):
 
 class AdminProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    Administrative project retrieval, updating, and deletion (IsAuthenticated).
+    Administrative project retrieval, updating, and deletion (IsPortfolioAdmin — staff required).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsPortfolioAdmin]
     serializer_class = ProjectAdminSerializer
     queryset = Project.objects.all().prefetch_related(
         'metrics_items', 'challenges_items', 'tech_choices_items'

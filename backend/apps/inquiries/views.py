@@ -4,8 +4,9 @@ plus Authenticated Administrative Lead Management.
 """
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.throttling import AnonRateThrottle
+from apps.authentication.permissions import IsPortfolioAdmin
 from .models import Inquiry
 from .serializers import InquiryCreateSerializer, InquiryDetailSerializer
 
@@ -21,7 +22,7 @@ class InquiryListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'POST':
             return [AllowAny()]
-        return [IsAuthenticated()]
+        return [IsPortfolioAdmin()]
 
     def get_throttles(self):
         if self.request.method == 'POST':
@@ -60,9 +61,9 @@ class InquiryListCreateView(generics.ListCreateAPIView):
 class InquiryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Authenticated endpoint for retrieving, updating (status/read/replied),
-    and deleting client inquiries (IsAuthenticated).
+    and deleting client inquiries (IsPortfolioAdmin — staff required).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsPortfolioAdmin]
     serializer_class = InquiryDetailSerializer
     queryset = Inquiry.objects.all()
     lookup_field = 'id'

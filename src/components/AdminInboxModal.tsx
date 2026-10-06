@@ -12,24 +12,13 @@ import {
   Search,
   Filter,
 } from 'lucide-react';
-import {
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  type Timestamp,
-} from 'firebase/firestore';
-import { db, isFirebaseConfigured, useAuth, handleFirestoreError, OperationType } from '../firebase';
 
 export interface ContactMessage {
   id: string;
   name: string;
   email: string;
   message: string;
-  createdAt?: Timestamp | { seconds: number; nanoseconds: number } | string;
+  createdAt?: string;
   read?: boolean;
   replied?: boolean;
 }
@@ -40,7 +29,6 @@ interface AdminInboxModalProps {
 }
 
 export const AdminInboxModal: React.FC<AdminInboxModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,112 +36,89 @@ export const AdminInboxModal: React.FC<AdminInboxModalProps> = ({ isOpen, onClos
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
-  const fetchMessages = async () => {
-    if (!db || !isFirebaseConfigured || !user) {
-      setLoading(false);
-      return;
-    }
-
+  const fetchMessages = () => {
     setLoading(true);
     setError(null);
 
     try {
-      const messagesRef = collection(db, 'messages');
-      const q = query(messagesRef, orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-
-      const items: ContactMessage[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        items.push({
-          id: docSnap.id,
-          name: data.name || 'Anonymous',
-          email: data.email || 'No email',
-          message: data.message || '',
-          createdAt: data.createdAt,
-          read: data.read || false,
-          replied: data.replied || false,
-        });
-      });
-
-      setMessages(items);
-      if (items.length > 0 && !selectedMessage) {
-        setSelectedMessage(items[0]);
+      const stored = localStorage.getItem('portfolio_inquiries') || localStorage.getItem('admin_cms_inquiries');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const items: ContactMessage[] = parsed.map((inq: any) => ({
+            id: inq.id || String(Math.random()),
+            name: inq.name || 'Anonymous',
+            email: inq.email || 'No email',
+            message: inq.message || '',
+            createdAt: inq.createdAt || inq.submittedAt || new Date().toISOString(),
+            read: inq.read || false,
+            replied: inq.replied || false,
+          }));
+          setMessages(items);
+          if (items.length > 0 && !selectedMessage) {
+            setSelectedMessage(items[0]);
+          }
+        }
       }
     } catch (err: unknown) {
-      console.error('Error loading messages from Firestore:', err);
-      try {
-        handleFirestoreError(err, OperationType.LIST, 'messages');
-      } catch (structuredErr: unknown) {
-        setError(structuredErr instanceof Error ? structuredErr.message : String(err));
-      }
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen && user) {
+    if (isOpen) {
       fetchMessages();
     }
-  }, [isOpen, user]);
+  }, [isOpen]);
 
-  const toggleReadStatus = async (msg: ContactMessage, e?: React.MouseEvent) => {
+  const toggleReadStatus = (msg: ContactMessage, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!db) return;
 
     const newStatus = !msg.read;
+    const updated = messages.map((m) => (m.id === msg.id ? { ...m, read: newStatus } : m));
+    setMessages(updated);
     try {
-      const docRef = doc(db, 'messages', msg.id);
-      await updateDoc(docRef, { read: newStatus });
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msg.id ? { ...m, read: newStatus } : m))
-      );
-      if (selectedMessage?.id === msg.id) {
-        setSelectedMessage((prev) => (prev ? { ...prev, read: newStatus } : null));
-      }
-    } catch (err) {
-      console.error('Could not update read state:', err);
+      localStorage.setItem('portfolio_inquiries', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    if (selectedMessage?.id === msg.id) {
+      setSelectedMessage((prev) => (prev ? { ...prev, read: newStatus } : null));
     }
   };
 
-  const deleteMessage = async (msgId: string, e?: React.MouseEvent) => {
+  const deleteMessage = (msgId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!db) return;
     if (!window.confirm('Are you sure you want to permanently delete this message?')) return;
 
+    const updated = messages.filter((m) => m.id !== msgId);
+    setMessages(updated);
     try {
-      await deleteDoc(doc(db, 'messages', msgId));
-      setMessages((prev) => prev.filter((m) => m.id !== msgId));
-      if (selectedMessage?.id === msgId) {
-        setSelectedMessage(null);
-      }
-    } catch (err) {
-      console.error('Could not delete message:', err);
+      localStorage.setItem('portfolio_inquiries', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    if (selectedMessage?.id === msgId) {
+      setSelectedMessage(null);
     }
   };
 
-  const formatMessageDate = (raw?: Timestamp | { seconds: number; nanoseconds: number } | string) => {
+  const formatMessageDate = (raw?: string) => {
     if (!raw) return 'Recently';
-    if (typeof raw === 'string') return new Date(raw).toLocaleDateString();
-    if ('toDate' in raw && typeof raw.toDate === 'function') {
-      return raw.toDate().toLocaleDateString(undefined, {
+    try {
+      return new Date(raw).toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       });
+    } catch {
+      return 'Recently';
     }
-    if ('seconds' in raw) {
-      return new Date(raw.seconds * 1000).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
-    return 'Recently';
   };
+
 
   const filteredMessages = messages.filter((m) => {
     if (filter === 'unread' && m.read) return false;
