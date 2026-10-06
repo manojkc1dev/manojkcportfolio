@@ -22,3 +22,33 @@ backend/.pytest_cache/
 **/__pycache__/
 *.py[cod]
 *$py.class
+
+# Local AI / GSD tooling
+.agent/
+.agents/agents/
+.agents/skills/
+.gemini/
+.gsd/
+GSD-STYLE.md
+PROJECT_RULES.md
+VERSION
+adapters/
+model_capabilities.yaml
+
+# Local AI/GSD helper scripts
+scripts/search_repo.ps1
+scripts/search_repo.sh
+scripts/setup_search.ps1
+scripts/setup_search.sh
+scripts/validate-agents.ps1
+scripts/validate-agents.sh
+scripts/validate-all.ps1
+scripts/validate-all.sh
+scripts/validate-encoding.ps1
+scripts/validate-encoding.sh
+scripts/validate-skills.ps1
+scripts/validate-skills.sh
+scripts/validate-templates.ps1
+scripts/validate-templates.sh
+scripts/validate-workflows.ps1
+scripts/validate-workflows.sh
