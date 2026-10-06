@@ -112,6 +112,47 @@ class AuthenticationTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_login_with_multiple_accounts_sharing_email_resolves_matching_credentials(self):
+        # Create a second user with the same email but different password
+        User.objects.create_user(
+            username='another_admin',
+            email=self.email,
+            password='DifferentP@ssw0rd2026!',
+            is_staff=True,
+        )
+
+        # 1. Login with self.user's password resolves self.user
+        response1 = self.client.post(self.login_url, {
+            'email': self.email,
+            'password': self.password,
+        }, format='json')
+        self.assertEqual(response1.status_code, status.HTTP_200_OK)
+        self.assertEqual(response1.json()['user']['username'], self.username)
+
+        # 2. Login with second user's password resolves second user
+        response2 = self.client.post(self.login_url, {
+            'email': self.email,
+            'password': 'DifferentP@ssw0rd2026!',
+        }, format='json')
+        self.assertEqual(response2.status_code, status.HTTP_200_OK)
+        self.assertEqual(response2.json()['user']['username'], 'another_admin')
+
+    def test_login_with_inactive_user_rejected(self):
+        inactive_user = User.objects.create_user(
+            username='inactiveadmin',
+            email='inactive@manojkc1.com.np',
+            password='InactiveP@ssw0rd2026!',
+            is_active=False,
+            is_staff=True,
+        )
+        response = self.client.post(self.login_url, {
+            'username': 'inactiveadmin',
+            'password': 'InactiveP@ssw0rd2026!',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.json()['detail'], 'Invalid email or password.')
+
+
     # -------------------------------------------------------------------------
     # 2. Token Refresh & Verification
     # -------------------------------------------------------------------------

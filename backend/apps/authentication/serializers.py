@@ -78,19 +78,27 @@ class PortfolioTokenObtainPairSerializer(TokenObtainPairSerializer):
         # 1. Try authenticating as username
         user = authenticate(request=request, username=username_or_email, password=password)
 
-        # 2. If unsuccessful, try resolving user by email
+        # 2. If unsuccessful, try resolving user by email candidates
         if user is None:
-            try:
-                user_obj = User.objects.get(email__iexact=username_or_email)
-                user = authenticate(request=request, username=user_obj.username, password=password)
-            except (User.DoesNotExist, User.MultipleObjectsReturned):
-                user = None
+            email_candidates = User.objects.filter(email__iexact=username_or_email, is_active=True).order_by(
+                '-is_superuser', '-is_staff', '-id'
+            )
+            for candidate in email_candidates:
+                authenticated_user = authenticate(
+                    request=request,
+                    username=candidate.username,
+                    password=password,
+                )
+                if authenticated_user is not None and authenticated_user.is_active:
+                    user = authenticated_user
+                    break
 
         if user is None:
             raise AuthenticationFailed('Invalid email or password.')
 
         if not user.is_active:
             raise AuthenticationFailed('Invalid email or password.')
+
 
         self.user = user
 
