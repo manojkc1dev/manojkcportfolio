@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { submitInquiry } from '../lib/api/inquiries';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Mail,
@@ -149,7 +150,7 @@ export const Contact: React.FC = () => {
           });
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const taggedProject = projectSlug ? projects.find((p) => p.id === projectSlug) : null;
@@ -217,35 +218,23 @@ export const Contact: React.FC = () => {
     try {
       let delivered = false;
 
-      // 1. Deliver via Server Contact API route (persists to server store)
+      // 1. Deliver to canonical Django inquiry API
       try {
-        const response = await fetch('/api/contact', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            message: message.trim(),
-            projectId: projectSlug || undefined,
-            projectTitle: taggedProjectTitle || undefined,
-            sourcePage: typeof window !== 'undefined' ? window.location.href : undefined,
-            _hp: honeypot,
-            hp_field: honeypot,
-          }),
+        await submitInquiry({
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+          projectId: projectSlug || undefined,
+          projectTitle: taggedProjectTitle || undefined,
+          sourcePage:
+            typeof window !== 'undefined' ? window.location.href : undefined,
+          _hp: honeypot,
+          hp_field: honeypot,
         });
 
-        if (response.ok) {
-          delivered = true;
-        } else if (response.status !== 404 && response.status !== 502) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to deliver message. Please try again.');
-        }
+        delivered = true;
       } catch (apiErr) {
-        if (apiErr instanceof Error && !apiErr.message.includes('fetch') && !apiErr.message.includes('Failed to fetch')) {
-          throw apiErr;
-        }
+        console.warn('Django inquiry API submission failed:', apiErr);
       }
 
       // 2. Client-side LocalStorage persistence mirror for instant Admin Portal sync
@@ -257,13 +246,16 @@ export const Contact: React.FC = () => {
           company: '',
           phone: '',
           hasWhatsApp: true,
-          scopeTitle: taggedProjectTitle ? `Inquiry regarding ${taggedProjectTitle}` : 'Website Contact Inquiry',
+          scopeTitle: taggedProjectTitle
+            ? `Inquiry regarding ${taggedProjectTitle}`
+            : 'Website Contact Inquiry',
           budgetRange: 'Standard Project',
           timeline: 'Flexible',
           message: message.trim(),
           projectId: projectSlug || undefined,
           projectTitle: taggedProjectTitle || undefined,
-          sourcePage: typeof window !== 'undefined' ? window.location.href : undefined,
+          sourcePage:
+            typeof window !== 'undefined' ? window.location.href : undefined,
           createdAt: new Date().toISOString(),
           submittedAt: new Date().toLocaleString(),
           status: 'New' as const,
@@ -271,13 +263,27 @@ export const Contact: React.FC = () => {
           replied: false,
         };
 
-        const localList = JSON.parse(localStorage.getItem('portfolio_inquiries') || '[]');
-        localList.unshift(newInq);
-        localStorage.setItem('portfolio_inquiries', JSON.stringify(localList.slice(0, 100)));
+        const localList = JSON.parse(
+          localStorage.getItem('portfolio_inquiries') || '[]'
+        );
 
-        const cmsList = JSON.parse(localStorage.getItem('admin_cms_inquiries') || '[]');
+        localList.unshift(newInq);
+
+        localStorage.setItem(
+          'portfolio_inquiries',
+          JSON.stringify(localList.slice(0, 100))
+        );
+
+        const cmsList = JSON.parse(
+          localStorage.getItem('admin_cms_inquiries') || '[]'
+        );
+
         cmsList.unshift(newInq);
-        localStorage.setItem('admin_cms_inquiries', JSON.stringify(cmsList.slice(0, 100)));
+
+        localStorage.setItem(
+          'admin_cms_inquiries',
+          JSON.stringify(cmsList.slice(0, 100))
+        );
 
         window.dispatchEvent(new Event('portfolio_inquiries_updated'));
         delivered = true;
@@ -286,13 +292,17 @@ export const Contact: React.FC = () => {
       }
 
       if (!delivered) {
-        throw new Error('Unable to deliver message at this moment. Please reach out directly to manojkc1dev@gmail.com');
+        throw new Error(
+          'Unable to deliver message at this moment. Please reach out directly to manojkc1dev@gmail.com'
+        );
       }
 
-
       setStatus('success');
-      setToastMessage("Thanks! Your message has been received. I'll get back to you within 24 hours.");
+      setToastMessage(
+        "Thanks! Your message has been received. I'll get back to you within 24 hours."
+      );
       track('contact_submit', { mode: 'delivered' });
+
       // Reset form
       setName('');
       setEmail('');
@@ -307,7 +317,12 @@ export const Contact: React.FC = () => {
       }, 7000);
     } catch (err: unknown) {
       setStatus('error');
-      const errStr = err instanceof Error ? err.message : 'An unexpected error occurred while sending. Please try again.';
+
+      const errStr =
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while sending. Please try again.';
+
       setErrorMessage(errStr);
     }
   };
@@ -574,11 +589,10 @@ export const Contact: React.FC = () => {
                       setName(e.target.value);
                       if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
                     }}
-                    className={`w-full h-11 px-3 rounded-lg border bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-sm placeholder:text-slate-400 focus:outline-none transition-colors ${
-                      errors.name
-                        ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
-                        : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                    }`}
+                    className={`w-full h-11 px-3 rounded-lg border bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-sm placeholder:text-slate-400 focus:outline-none transition-colors ${errors.name
+                      ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
+                      : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                      }`}
                   />
                   {errors.name && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">
@@ -607,11 +621,10 @@ export const Contact: React.FC = () => {
                       setEmail(e.target.value);
                       if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
                     }}
-                    className={`w-full h-11 px-3 rounded-lg border bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-sm placeholder:text-slate-400 focus:outline-none transition-colors ${
-                      errors.email
-                        ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
-                        : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                    }`}
+                    className={`w-full h-11 px-3 rounded-lg border bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-sm placeholder:text-slate-400 focus:outline-none transition-colors ${errors.email
+                      ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
+                      : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                      }`}
                   />
                   {errors.email && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">
@@ -631,13 +644,12 @@ export const Contact: React.FC = () => {
                       Message <span className="text-red-500">*</span>
                     </label>
                     <span
-                      className={`text-xs ${
-                        message.length > 2000
-                          ? 'text-red-500 font-semibold'
-                          : message.length < 10 && message.length > 0
+                      className={`text-xs ${message.length > 2000
+                        ? 'text-red-500 font-semibold'
+                        : message.length < 10 && message.length > 0
                           ? 'text-amber-500'
                           : 'text-slate-400'
-                      }`}
+                        }`}
                     >
                       {message.length} / 2000
                     </span>
@@ -653,11 +665,10 @@ export const Contact: React.FC = () => {
                       setMessage(e.target.value);
                       if (errors.message) setErrors((prev) => ({ ...prev, message: undefined }));
                     }}
-                    className={`w-full min-h-[140px] resize-y px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-sm placeholder:text-slate-400 focus:outline-none transition-colors ${
-                      errors.message
-                        ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
-                        : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                    }`}
+                    className={`w-full min-h-[140px] resize-y px-3 py-2 rounded-lg border bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-sm placeholder:text-slate-400 focus:outline-none transition-colors ${errors.message
+                      ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
+                      : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                      }`}
                   />
                   {errors.message && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">

@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Contact } from '../components/Contact';
 
 describe('Contact Form Component', () => {
-
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
   });
 
   it('blocks submit when fields empty (shows validation errors)', async () => {
@@ -31,7 +31,9 @@ describe('Contact Form Component', () => {
 
     fireEvent.change(nameInput, { target: { value: 'Alex Mercer' } });
     fireEvent.change(emailInput, { target: { value: 'not-an-email' } });
-    fireEvent.change(messageInput, { target: { value: 'Hello, I have a backend opportunity!' } });
+    fireEvent.change(messageInput, {
+      target: { value: 'Hello, I have a backend opportunity!' },
+    });
 
     fireEvent.click(submitBtn);
 
@@ -40,14 +42,21 @@ describe('Contact Form Component', () => {
     });
   });
 
-  it('accepts valid input and calls fetch once', async () => {
+  it('accepts valid input and calls the Django inquiry API once', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true }),
+      text: async () =>
+        JSON.stringify({
+          status: 'ok',
+          message: 'Your message has been received successfully.',
+          id: 'test-inquiry-id',
+        }),
     });
+
     global.fetch = fetchMock;
 
     render(<Contact />);
+
     const nameInput = screen.getByLabelText(/your name/i);
     const emailInput = screen.getByLabelText(/email address/i);
     const messageInput = screen.getByLabelText(/message/i);
@@ -55,29 +64,56 @@ describe('Contact Form Component', () => {
 
     fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
     fireEvent.change(emailInput, { target: { value: 'jane@example.com' } });
-    fireEvent.change(messageInput, { target: { value: 'Interested in discussing a Python Django backend contract.' } });
+    fireEvent.change(messageInput, {
+      target: {
+        value:
+          'Interested in discussing a Python Django backend contract.',
+      },
+    });
 
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/contact',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:8000/api/v1/inquiries/',
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+    );
+
+    const [, requestOptions] = fetchMock.mock.calls[0];
+
+    expect(JSON.parse(requestOptions.body)).toEqual({
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      message:
+        'Interested in discussing a Python Django backend contract.',
+      sourcePage: 'http://localhost:3000/',
+      hp_field: '',
+      _hp: '',
     });
   });
 
-  it('shows success toast on { ok: true }', async () => {
+  it('shows success toast on successful inquiry submission', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true }),
+      text: async () =>
+        JSON.stringify({
+          status: 'ok',
+          message: 'Your message has been received successfully.',
+          id: 'test-inquiry-id',
+        }),
     });
 
     render(<Contact />);
+
     const nameInput = screen.getByLabelText(/your name/i);
     const emailInput = screen.getByLabelText(/email address/i);
     const messageInput = screen.getByLabelText(/message/i);
@@ -85,7 +121,12 @@ describe('Contact Form Component', () => {
 
     fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
     fireEvent.change(emailInput, { target: { value: 'jane@example.com' } });
-    fireEvent.change(messageInput, { target: { value: 'Interested in discussing a Python Django backend contract.' } });
+    fireEvent.change(messageInput, {
+      target: {
+        value:
+          'Interested in discussing a Python Django backend contract.',
+      },
+    });
 
     fireEvent.click(submitBtn);
 
@@ -94,10 +135,13 @@ describe('Contact Form Component', () => {
     });
   });
 
-  it('shows inline error on network failure', async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network connection failed'));
+  it('falls back to local persistence when the Django API is unavailable', async () => {
+    global.fetch = vi
+      .fn()
+      .mockRejectedValue(new Error('Network connection failed'));
 
     render(<Contact />);
+
     const nameInput = screen.getByLabelText(/your name/i);
     const emailInput = screen.getByLabelText(/email address/i);
     const messageInput = screen.getByLabelText(/message/i);
@@ -105,12 +149,34 @@ describe('Contact Form Component', () => {
 
     fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
     fireEvent.change(emailInput, { target: { value: 'jane@example.com' } });
-    fireEvent.change(messageInput, { target: { value: 'Interested in discussing a Python Django backend contract.' } });
+    fireEvent.change(messageInput, {
+      target: {
+        value:
+          'Interested in discussing a Python Django backend contract.',
+      },
+    });
 
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Network connection failed/i)).toBeInTheDocument();
+      expect(screen.getByText(/within 24 hours/i)).toBeInTheDocument();
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    const portfolioInquiries = JSON.parse(
+      localStorage.getItem('portfolio_inquiries') || '[]'
+    );
+
+    expect(portfolioInquiries).toHaveLength(1);
+    expect(portfolioInquiries[0]).toMatchObject({
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      message:
+        'Interested in discussing a Python Django backend contract.',
+      status: 'New',
+      read: false,
+      replied: false,
     });
   });
 });
