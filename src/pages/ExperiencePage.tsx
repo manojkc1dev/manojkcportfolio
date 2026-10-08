@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { experiences as defaultExperiences, ExperienceType } from '../data/experience';
+import type { ExperienceType } from '../data/experience';
+import { useExperience } from '../hooks/useExperience';
 import { profile } from '../data/profile';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -100,55 +101,11 @@ function getTypeBadgeStyles(type: ExperienceType) {
 
 export const ExperiencePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [dataVersion, setDataVersion] = useState(0);
-
-  // Live updates when changes are saved from the admin CMS
-  useEffect(() => {
-    const handleUpdate = () => setDataVersion((v) => v + 1);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
+  const { data: allExperiences } = useExperience();
 
   // URL state
   const typeParam = (searchParams.get('type') || 'all') as 'all' | ExperienceType;
   const sortParam = (searchParams.get('sort') || 'newest') as ExpSortOption;
-
-  // Experience list (supports local admin edits)
-  const allExperiences = useMemo<Experience[]>(() => {
-    try {
-      const saved = localStorage.getItem('portfolio_experience');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((e: any) => ({
-            id: e.id,
-            role: e.role,
-            company: e.company,
-            companyUrl: e.companyUrl || 'https://github.com/manojkc1dev',
-            period: e.period,
-            start: e.start || (e.period?.includes('2026') ? '2026-02' : '2020-11'),
-            end: e.end || (e.period?.includes('Jul 2026') ? '2026-07' : '2025-10'),
-            location: e.location || 'Nepal',
-            type: e.type || 'internship',
-            description: e.description,
-            bullets: Array.isArray(e.bullets)
-              ? e.bullets
-              : e.bullets
-              ? [e.bullets]
-              : [],
-            tech: Array.isArray(e.tech) ? e.tech : [],
-          }));
-        }
-      }
-    } catch (err) {
-      console.warn('Experience storage load error:', err);
-    }
-    return defaultExperiences;
-  }, [dataVersion]);
 
   const updateParams = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
