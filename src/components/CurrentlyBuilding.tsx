@@ -2,9 +2,12 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Hammer, Sparkles, Clock, ArrowRight, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { currentlyBuilding, type CurrentItem } from '../data/currentlyBuilding';
+import { useCurrentlyBuilding } from '../hooks/useCurrentlyBuilding';
+import type { CurrentItem } from '../data/currentlyBuilding';
 
 export const CurrentlyBuilding: React.FC = () => {
+  const items = useCurrentlyBuilding();
+
   return (
     <section
       id="currently-building"
@@ -30,7 +33,7 @@ export const CurrentlyBuilding: React.FC = () => {
 
         {/* Grid of Work Items */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-          {currentlyBuilding.map((item: CurrentItem, idx: number) => {
+          {items.map((item: CurrentItem, idx: number) => {
             const isResearching = item.status === 'researching';
             const isPlanned = item.status === 'planned';
 
