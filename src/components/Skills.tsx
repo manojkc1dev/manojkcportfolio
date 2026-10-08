@@ -32,7 +32,7 @@ import {
   ArrowRight,
   Star,
 } from 'lucide-react';
-import { skillGroups as defaultSkillGroups, currentFocus as defaultFocus } from '../data/skills';
+import { useSkills } from '../hooks/useSkills';
 import { ViewAllLink } from './ui/ViewAllLink';
 import type { SkillGroup, SkillItem } from '../types';
 
@@ -158,52 +158,7 @@ const SkillPill: React.FC<SkillPillProps> = ({ skill }) => {
 
 export const Skills: React.FC = () => {
   const navigate = useNavigate();
-  const [dataVersion, setDataVersion] = useState(0);
-
-  // Re-read storage dynamically when admin saves changes in the CMS
-  useEffect(() => {
-    const handleUpdate = () => setDataVersion((v) => v + 1);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
-
-  const focusItems = useMemo<SkillItem[]>(() => {
-    try {
-      const savedFocus = localStorage.getItem('portfolio_current_focus');
-      if (savedFocus) {
-        const parsed = JSON.parse(savedFocus);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Current focus load error:', e);
-    }
-    return defaultFocus;
-  }, [dataVersion]);
-
-  const allSkillGroups = useMemo<SkillGroup[]>(() => {
-    try {
-      const saved = localStorage.getItem('portfolio_skills');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((g: any, idx: number) => ({
-            id: g.id || `group-${idx}`,
-            title: g.title || g.category || 'Competencies',
-            category: g.category || g.title,
-            description: g.description || '',
-            skills: Array.isArray(g.skills) ? g.skills : [],
-          }));
-        }
-      }
-    } catch (e) {
-      console.warn('Skills load error:', e);
-    }
-    return defaultSkillGroups;
-  }, [dataVersion]);
+  const { data: allSkillGroups, focus: focusItems } = useSkills();
 
   const totalSkillsCount = useMemo(() => {
     return allSkillGroups.reduce((acc, g) => acc + g.skills.length, 0);
