@@ -50,6 +50,8 @@ All authentication routes are mounted under `/api/v1/auth/`:
 | `POST` | `/api/v1/auth/token/verify/` | `AllowAny` | Cryptographically verify validity and expiration of a JWT token. |
 | `GET` | `/api/v1/auth/me/` | `IsAuthenticated` | Retrieve safe identity and role information for current administrator. |
 | `POST` | `/api/v1/auth/change-password/` | `IsAuthenticated` | Rotate administrator password with validation and current password check. |
+| `POST` | `/api/v1/auth/password-reset/` | `AllowAny` | Request a secure 24h password reset link for the authorized admin email. |
+| `POST` | `/api/v1/auth/password-reset-confirm/` | `AllowAny` | Complete password reset using uid and one-time cryptographically generated token. |
 | `POST` | `/api/v1/auth/logout/` | `IsAuthenticated` | Revoke and blacklist refresh token, invalidating subsequent refresh requests. |
 
 ### Compatibility Aliases
@@ -145,19 +147,22 @@ All standard portfolio data reads require no authentication:
 * `GET /api/v1/resume/download/`
 * `POST /api/v1/inquiries/` (Public ingestion with IP rate-limiting & honeypot)
 
-### 5.2 Protected Administrative Operations (`IsAuthenticated`)
-All data mutations and administrative views require valid authentication and staff/superuser permissions:
-* `POST`, `PUT`, `PATCH`, `DELETE` operations on content models
-* `GET /api/v1/auth/me/`
-* `POST /api/v1/auth/change-password/`
-* `POST /api/v1/auth/logout/`
+### 5.2 Protected Administrative Operations (`IsPortfolioAdmin` / `IsAuthenticated`)
+All administrative mutations and lead management endpoints require authenticated administrator access enforced via the `IsPortfolioAdmin` permission class (which verifies both authentication and `is_staff=True`):
+* `POST`, `PUT`, `PATCH`, `DELETE` operations on content models (e.g. `/api/v1/admin/projects/`, `/api/v1/admin/projects/<id>/`)
+* `GET`, `DELETE` operations on client inquiries (e.g. `/api/v1/inquiries/<id>/`)
+* `GET /api/v1/auth/me/` (`IsAuthenticated`)
+* `POST /api/v1/auth/change-password/` (`IsAuthenticated`)
+* `POST /api/v1/auth/logout/` (`IsAuthenticated`)
 
 ---
 
 ## 6. Security Controls
 
-1. **Token Lifetime Management**: Short-lived access tokens minimize blast radius if intercepted.
-2. **Blacklist on Rotation / Logout**: Prevents replay attacks using stale refresh tokens.
-3. **No Credential Logging**: Passwords and raw tokens are excluded from application logs.
-4. **Environment-Driven Configuration**: Secret keys, token durations, and CORS origins are configured via environment variables.
-5. **No Blind Frontend Trust**: Client route guards are treated as UX helpers; all security is strictly enforced on the server.
+1. **Token Lifetime Management**: Short-lived access tokens (15m) minimize blast radius if intercepted.
+2. **Blacklist on Rotation / Logout**: Prevents replay attacks using stale or revoked refresh tokens.
+3. **No Credential Logging**: Passwords, raw tokens, and secret reset keys are excluded from application logs.
+4. **Environment-Driven Configuration**: Secret keys, token durations, CORS origins, and admin email are configured via environment variables.
+5. **No Blind Frontend Trust**: Client route guards are UX helpers; all permissions (`IsPortfolioAdmin`) are enforced server-side.
+6. **Anti-Enumeration Protection**: Password reset and failed login requests return generic error messages to prevent email enumeration.
+

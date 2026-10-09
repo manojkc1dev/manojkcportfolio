@@ -20,7 +20,6 @@ import type { AdminProject, AdminService, AdminArticle, AdminInquiry, AdminSiteC
 interface SettingsViewProps {
   currentPasswordHash?: string;
   currentUserEmail?: string | null;
-  isFirebaseAuth?: boolean;
   isDjangoAuth?: boolean;
   onUpdatePassword?: (currentPass: string, newPass: string) => Promise<void>;
   onShowToast: (message: string) => void;
@@ -40,13 +39,13 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   currentUserEmail,
-  isFirebaseAuth = false,
   isDjangoAuth = false,
   onUpdatePassword,
   onShowToast,
   allData,
   onImportAllData,
 }) => {
+
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
@@ -182,11 +181,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <ShieldCheck className="w-3 h-3 text-blue-500" />
               <span>Django JWT</span>
             </span>
-          ) : isFirebaseAuth && currentUserEmail ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-              <ShieldCheck className="w-3 h-3 text-emerald-500" />
-              <span>Firebase Auth</span>
-            </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
               <AlertCircle className="w-3 h-3 text-amber-500" />
@@ -200,15 +194,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-800 text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
               Updates your live <span className="font-semibold text-neutral-900 dark:text-white">Django REST Framework</span> password for <span className="font-mono text-blue-600 dark:text-blue-400">{currentUserEmail}</span>. Requires verifying your current passphrase.
             </div>
-          ) : isFirebaseAuth && currentUserEmail ? (
-            <div className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-800 text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Updates your live <span className="font-semibold text-neutral-900 dark:text-white">Firebase Authentication</span> password for <span className="font-mono text-blue-600 dark:text-blue-400">{currentUserEmail}</span>. Requires verifying your current passphrase.
-            </div>
           ) : (
             <div className="p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-              <span className="font-semibold">Demo Mode:</span> You are currently in a local demo session. Live password updates require an active Firebase Authentication or Django JWT session.
+              <span className="font-semibold">Demo Mode:</span> You are currently in a local demo session. Live password updates require an active Django JWT session.
             </div>
           )}
+
 
           {/* Error Banner */}
           {passwordError && (

@@ -26,12 +26,32 @@ if str(APPS_DIR) not in sys.path:
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-dev-key-change-in-production-f3a7c8b2d1e4e6f9a0b1c2d3'
-)
-
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
+
+# ---------------------------------------------------------------------------
+# SECRET_KEY — fail fast in production if absent or placeholder
+# ---------------------------------------------------------------------------
+# The insecure placeholder below is ONLY permitted when DEBUG=True (local dev).
+# In production (DEBUG=False) the DJANGO_SECRET_KEY environment variable MUST
+# be set to a cryptographically-random value (e.g. `openssl rand -base64 50`).
+# Failure to set it will raise ImproperlyConfigured at startup so the error
+# is visible immediately rather than silently compromising JWT security.
+
+_INSECURE_KEY_PLACEHOLDER = 'django-insecure-dev-key-change-in-production-f3a7c8b2d1e4e6f9a0b1c2d3'
+
+_secret_key_raw = os.getenv('DJANGO_SECRET_KEY', '')
+
+if not DEBUG:
+    from django.core.exceptions import ImproperlyConfigured
+    if not _secret_key_raw or _secret_key_raw == _INSECURE_KEY_PLACEHOLDER or _secret_key_raw.startswith('django-insecure'):
+        raise ImproperlyConfigured(
+            'DJANGO_SECRET_KEY must be set to a secure random value in production. '
+            'Generate one with: openssl rand -base64 50'
+        )
+    SECRET_KEY = _secret_key_raw
+else:
+    # Development: fall back to the insecure placeholder only if no key is configured.
+    SECRET_KEY = _secret_key_raw or _INSECURE_KEY_PLACEHOLDER
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -70,6 +90,7 @@ LOCAL_APPS = [
     'apps.services',
     'apps.resume',
     'apps.siteconfig',
+    'apps.assistant',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -168,6 +189,15 @@ STATIC_URL = os.getenv('STATIC_URL', '/static/')
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+WHITENOISE_MAX_AGE = int(os.getenv('WHITENOISE_MAX_AGE', '3600'))
 
 MEDIA_URL = os.getenv('MEDIA_URL', '/media/')
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -193,6 +223,7 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
     'DEFAULT_THROTTLE_RATES': {
         'anon': '10/hour',
+        'assistant_anon': '30/min',
     },
 }
 
@@ -227,6 +258,16 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'authorization',
+]
+
+# CSRF Trusted Origins for cross-origin production API requests
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://localhost:3000,http://127.0.0.1:3000,https://manojkc1.com.np,https://*.manojkc1.com.np'
+    ).split(',')
+    if origin.strip()
 ]
 
 # Email & Transactional Delivery Configuration

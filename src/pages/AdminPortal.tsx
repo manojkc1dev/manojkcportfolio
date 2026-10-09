@@ -10,21 +10,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import {
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  type Timestamp,
-} from 'firebase/firestore';
-import {
-  useAuth,
-  db,
-  isFirebaseConfigured,
-} from '../firebase';
-import {
   isDjangoConfigured,
   getDjangoAccessToken,
   getDjangoRefreshToken,
@@ -33,6 +18,7 @@ import {
 import {
   loginWithCredentials,
   getCurrentUser,
+
   logout as djLogout,
   updatePassword as djUpdatePassword,
   requestPasswordReset,
@@ -79,8 +65,8 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
-  const { user } = useAuth();
   const { theme } = useTheme();
+
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
@@ -444,39 +430,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
         console.warn('LocalStorage inquiries load note:', lsErr);
       }
 
-      // 3. Fetch from Firestore if configured
-      if (isFirebaseConfigured && db) {
-        try {
-          const q = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
-          const snap = await getDocs(q);
-          snap.docs.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (data.name?.includes('Prashant Joshi') || data.email?.includes('prashant.j')) return;
-            if (!map.has(docSnap.id)) {
-              map.set(docSnap.id, {
-                id: docSnap.id,
-                name: data.name || 'Client',
-                company: data.company || '',
-                email: data.email || '',
-                phone: data.phone || '',
-                hasWhatsApp: data.hasWhatsApp ?? true,
-                scopeTitle: data.scopeTitle || 'Website Contact Inquiry',
-                budgetRange: data.budgetRange || 'Standard Project',
-                timeline: data.timeline || '2–3 Months',
-                message: data.message || '',
-                submittedAt: data.submittedAt || (data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000).toLocaleString() : 'Recent'),
-                status: data.status || 'New',
-                read: data.read ?? false,
-                replied: data.replied ?? false,
-              });
-            }
-          });
-        } catch (fsErr) {
-          console.warn('Firestore inquiries load note:', fsErr);
-        }
-      }
+      // 3. Merge with current state (so manually modified statuses are preserved)
 
-      // 4. Merge with current state (so manually modified statuses are preserved)
       inquiries
         .filter(
           (inq) => !inq.name?.includes('Prashant Joshi') && !inq.email?.includes('prashant.j')
@@ -595,16 +550,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
         console.warn('Django delete inquiry notice:', err);
       }
     }
-
-    // 3. Delete from Firestore if configured
-    try {
-      if (isFirebaseConfigured && db) {
-        await deleteDoc(doc(db, 'inquiries', id));
-      }
-    } catch (err) {
-      // ignore
-    }
   };
+
 
   const handleImportAllData = (imported: any) => {
     if (imported.projects && Array.isArray(imported.projects)) {
@@ -1139,10 +1086,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToHome }) => {
           {(activeTab === 'settings' || activeTab === 'security' || (activeTab as string) === 'blog') && (
             <SettingsView
               currentUserEmail={djangoUser?.email || null}
-              isFirebaseAuth={false}
               isDjangoAuth={isDjangoConfigured && !!getDjangoAccessToken()}
               onUpdatePassword={handleUpdatePassword}
               onShowToast={showToast}
+
               allData={{
                 projects,
                 skills,

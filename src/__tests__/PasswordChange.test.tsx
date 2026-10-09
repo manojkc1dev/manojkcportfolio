@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsView } from '../pages/admin/views/SettingsView';
 import { initialProjects, initialInquiries, initialSiteContent } from '../pages/admin/mockData';
 
-describe('Admin Password Change Flow (Firebase Authentication)', () => {
+describe('Admin Password Change Flow (Django JWT Authentication)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -16,11 +16,11 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     content: initialSiteContent,
   };
 
-  it('renders password change form with all required inputs and Firebase badge', () => {
+  it('renders password change form with all required inputs and Django JWT badge', () => {
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={vi.fn()}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -29,19 +29,20 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     );
 
     expect(screen.getByText(/change master admin passphrase/i)).toBeInTheDocument();
-    expect(screen.getByText(/^firebase auth$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^django jwt$/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/enter your current passphrase/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/at least 6 characters/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/repeat new passphrase/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /update passphrase/i })).toBeInTheDocument();
   });
 
+
   it('validates that current passphrase is required', async () => {
     const mockUpdatePassword = vi.fn();
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={mockUpdatePassword}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -60,7 +61,7 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={mockUpdatePassword}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -89,7 +90,7 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={mockUpdatePassword}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -125,7 +126,7 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={mockUpdatePassword}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -162,7 +163,8 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     expect(confirmInput).toHaveValue('');
   });
 
-  it('does NOT clear inputs and displays error message when Firebase rejects the password change', async () => {
+  it('does NOT clear inputs and displays error message when backend rejects the password change', async () => {
+
     const mockUpdatePassword = vi
       .fn()
       .mockRejectedValue(new Error('Current passphrase is incorrect. Please verify and try again.'));
@@ -170,7 +172,7 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={mockUpdatePassword}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -204,7 +206,7 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
     render(
       <SettingsView
         currentUserEmail="admin@manojkc1.com.np"
-        isFirebaseAuth={true}
+        isDjangoAuth={true}
         onUpdatePassword={mockUpdatePassword}
         onShowToast={vi.fn()}
         allData={dummyAllData}
@@ -236,16 +238,5 @@ describe('Admin Password Change Flow (Firebase Authentication)', () => {
       expect(key.toLowerCase()).not.toContain('passphrase');
     }
   });
-
-  describe('changeCurrentUserPassword helper validation & safety', () => {
-    it('throws error when Firebase Authentication is not configured', async () => {
-  const { changeCurrentUserPassword } = await import('../firebase');
-
-  await expect(
-    changeCurrentUserPassword('currentPass', 'newPassword123')
-  ).rejects.toThrow(
-    /firebase authentication is not configured in this environment/i
-  );
 });
-  });
-});
+

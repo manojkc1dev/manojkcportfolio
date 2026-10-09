@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,42 +6,16 @@ import {
   Calendar,
   MapPin,
   CheckCircle2,
-  Download,
   GraduationCap,
   ArrowRight,
 } from 'lucide-react';
-import { experiences as defaultExperiences } from '../data/experience';
+import { useExperience } from '../hooks/useExperience';
 import { ViewAllLink } from './ui/ViewAllLink';
 import { track } from '../lib/analytics';
-import type { Experience as ExperienceType } from '../types';
 
 export const Experience: React.FC = () => {
   const navigate = useNavigate();
-  const [dataVersion, setDataVersion] = useState(0);
-
-  // Re-read storage dynamically when admin saves changes in the CMS
-  useEffect(() => {
-    const handleUpdate = () => setDataVersion((v) => v + 1);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
-
-  const allItems = useMemo<ExperienceType[]>(() => {
-    try {
-      const saved = localStorage.getItem('portfolio_experience');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Experience load error:', e);
-    }
-    return defaultExperiences;
-  }, [dataVersion]);
+  const { data: allItems } = useExperience();
 
   // Show 3 experience entries/sections for homepage preview
   const previewItems = useMemo(() => {

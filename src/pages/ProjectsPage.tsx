@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProjectCategory, ProjectStatus } from '../data/projects';
 import { useProjects } from '../hooks/useProjects';

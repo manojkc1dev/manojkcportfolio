@@ -112,6 +112,47 @@ class AuthenticationTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_login_with_multiple_accounts_sharing_email_resolves_matching_credentials(self):
+        # Create a second user with the same email but different password
+        User.objects.create_user(
+            username='another_admin',
+            email=self.email,
+            password='DifferentP@ssw0rd2026!',
+            is_staff=True,
+        )
+
+        # 1. Login with self.user's password resolves self.user
+        response1 = self.client.post(self.login_url, {
+            'email': self.email,
+            'password': self.password,
+        }, format='json')
+        self.assertEqual(response1.status_code, status.HTTP_200_OK)
+        self.assertEqual(response1.json()['user']['username'], self.username)
+
+        # 2. Login with second user's password resolves second user
+        response2 = self.client.post(self.login_url, {
+            'email': self.email,
+            'password': 'DifferentP@ssw0rd2026!',
+        }, format='json')
+        self.assertEqual(response2.status_code, status.HTTP_200_OK)
+        self.assertEqual(response2.json()['user']['username'], 'another_admin')
+
+    def test_login_with_inactive_user_rejected(self):
+        inactive_user = User.objects.create_user(
+            username='inactiveadmin',
+            email='inactive@manojkc1.com.np',
+            password='InactiveP@ssw0rd2026!',
+            is_active=False,
+            is_staff=True,
+        )
+        response = self.client.post(self.login_url, {
+            'username': 'inactiveadmin',
+            'password': 'InactiveP@ssw0rd2026!',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.json()['detail'], 'Invalid email or password.')
+
+
     # -------------------------------------------------------------------------
     # 2. Token Refresh & Verification
     # -------------------------------------------------------------------------
@@ -304,3 +345,60 @@ class AuthenticationTests(TestCase):
         }, format='json')
 
         self.assertEqual(refresh_attempt.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # -------------------------------------------------------------------------
+    # 7. Password Complexity Validation Tests
+    # -------------------------------------------------------------------------
+    def test_password_change_weak_password_fails(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(self.change_password_url, {
+            'old_password': self.password,
+            'new_password': '123',  # Too short / common
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('new_password', response.json())
+
+    def test_password_reset_confirm_weak_password_fails(self):
+        token = default_token_generator.make_token(self.user)
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+
+        response = self.client.post(self.password_reset_confirm_url, {
+            'uid': uid,
+            'token': token,
+            'new_password': '123',  # Too short
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # -------------------------------------------------------------------------
+    # 8. Authorization & Role-Based Access Control Tests
+    # -------------------------------------------------------------------------
+    def test_admin_endpoint_unauthenticated_returns_401(self):
+        admin_projects_url = reverse('v1_portfolio:admin_project_list_create')
+        response = self.client.get(admin_projects_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_admin_endpoint_non_staff_authenticated_returns_403(self):
+        non_staff_user = User.objects.create_user(
+            username='regularuser',
+            email='regular@example.com',
+            password='Password123!SafePass',
+            is_staff=False
+        )
+        self.client.force_authenticate(user=non_staff_user)
+        admin_projects_url = reverse('v1_portfolio:admin_project_list_create')
+        response = self.client.get(admin_projects_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_endpoint_staff_authenticated_returns_200(self):
+        self.client.force_authenticate(user=self.user)
+        admin_projects_url = reverse('v1_portfolio:admin_project_list_create')
+        response = self.client.get(admin_projects_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_public_endpoint_unauthenticated_returns_200(self):
+        public_projects_url = reverse('v1_portfolio:project_list')
+        response = self.client.get(public_projects_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+

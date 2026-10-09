@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getSkills } from '../lib/api/public';
-import { skillGroups as defaultSkillGroups, currentFocus, SkillLevel } from '../data/skills';
+import { currentFocus, SkillLevel } from '../data/skills';
+import { useSkills, normalizeSkillLevel } from '../hooks/useSkills';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -10,7 +10,7 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AuthorBio } from '../components/ui/AuthorBio';
 import { Seo } from '../components/Seo';
-import type { SkillGroup, SkillItem, SkillCategory } from '../types';
+import type { SkillGroup, SkillItem } from '../types';
 import { Sparkles, Layers, ChevronDown, Star } from 'lucide-react';
 import { track } from '../lib/analytics';
 
@@ -31,44 +31,6 @@ const LEVEL_WEIGHT: Record<SkillLevel, number> = {
   learning: 1,
 };
 
-function normalizeSkillLevel(skill: SkillItem): SkillLevel {
-  if (skill.level) return skill.level;
-  if (skill.proficiency) {
-    const p = skill.proficiency.toLowerCase();
-    if (p.includes('expert')) return 'expert';
-    if (p.includes('adv')) return 'advanced';
-    if (p.includes('int')) return 'intermediate';
-    if (p.includes('learn')) return 'learning';
-  }
-  return 'intermediate';
-}
-
-function normalizeApiSkillGroups(categories: SkillCategory[]): SkillGroup[] {
-  return categories.map((cat, idx) => ({
-    id: cat.id ? String(cat.id) : `category-${idx}`,
-    title: cat.title || cat.category || 'Competencies',
-    category: cat.category || cat.title || 'Competencies',
-    description: cat.description || '',
-    skills: Array.isArray(cat.skills)
-      ? cat.skills.map((s) => ({
-          name: s.name,
-          iconName: s.iconName,
-          highlight: Boolean(s.highlight),
-          proficiency:
-            s.proficiency ||
-            (s.level
-              ? ((s.level.charAt(0).toUpperCase() + s.level.slice(1)) as
-                  | 'Advanced'
-                  | 'Intermediate'
-                  | 'Learning')
-              : 'Intermediate'),
-          level: normalizeSkillLevel(s),
-          years: s.years ?? 2,
-        }))
-      : [],
-  }));
-}
-
 function getLevelBadgeStyles(level: SkillLevel) {
   switch (level) {
     case 'expert':
@@ -86,56 +48,7 @@ function getLevelBadgeStyles(level: SkillLevel) {
 export const SkillsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [skills, setSkills] = useState<SkillGroup[]>(defaultSkillGroups);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [, setApiError] = useState<boolean>(false);
-  const [refreshCounter, setRefreshCounter] = useState<number>(0);
-
-  // Live updates when changes are saved from the admin CMS
-  useEffect(() => {
-    const handleUpdate = () => setRefreshCounter((c) => c + 1);
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
-
-  // Fetch skills from Django public API
-  useEffect(() => {
-    let isCancelled = false;
-    const controller = new AbortController();
-
-    setIsLoading(true);
-    getSkills({ signal: controller.signal })
-      .then((apiCategories) => {
-        if (isCancelled || controller.signal.aborted) return;
-        if (Array.isArray(apiCategories) && apiCategories.length > 0) {
-          setSkills(normalizeApiSkillGroups(apiCategories));
-          setApiError(false);
-        } else {
-          // Empty response -> fallback to defaultSkillGroups
-          setSkills(defaultSkillGroups);
-        }
-      })
-      .catch((err: Error) => {
-        if (isCancelled || controller.signal.aborted) return;
-        if (import.meta.env.DEV) {
-          console.warn('Failed to load skills from public API:', err);
-        }
-        setApiError(true);
-        setSkills(defaultSkillGroups);
-      })
-      .finally(() => {
-        if (!isCancelled && !controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-      controller.abort();
-    };
-  }, [refreshCounter]);
+  const { data: skills, loading: isLoading } = useSkills();
 
   // Query params
   const queryParam = searchParams.get('q') || '';
