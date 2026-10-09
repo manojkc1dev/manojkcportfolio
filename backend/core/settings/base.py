@@ -26,12 +26,32 @@ if str(APPS_DIR) not in sys.path:
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-dev-key-change-in-production-f3a7c8b2d1e4e6f9a0b1c2d3'
-)
-
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
+
+# ---------------------------------------------------------------------------
+# SECRET_KEY — fail fast in production if absent or placeholder
+# ---------------------------------------------------------------------------
+# The insecure placeholder below is ONLY permitted when DEBUG=True (local dev).
+# In production (DEBUG=False) the DJANGO_SECRET_KEY environment variable MUST
+# be set to a cryptographically-random value (e.g. `openssl rand -base64 50`).
+# Failure to set it will raise ImproperlyConfigured at startup so the error
+# is visible immediately rather than silently compromising JWT security.
+
+_INSECURE_KEY_PLACEHOLDER = 'django-insecure-dev-key-change-in-production-f3a7c8b2d1e4e6f9a0b1c2d3'
+
+_secret_key_raw = os.getenv('DJANGO_SECRET_KEY', '')
+
+if not DEBUG:
+    from django.core.exceptions import ImproperlyConfigured
+    if not _secret_key_raw or _secret_key_raw == _INSECURE_KEY_PLACEHOLDER or _secret_key_raw.startswith('django-insecure'):
+        raise ImproperlyConfigured(
+            'DJANGO_SECRET_KEY must be set to a secure random value in production. '
+            'Generate one with: openssl rand -base64 50'
+        )
+    SECRET_KEY = _secret_key_raw
+else:
+    # Development: fall back to the insecure placeholder only if no key is configured.
+    SECRET_KEY = _secret_key_raw or _INSECURE_KEY_PLACEHOLDER
 
 ALLOWED_HOSTS = [
     host.strip()
