@@ -45,12 +45,14 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # api.manojkc1.com.np is HTTPS-only
 SECURE_HSTS_PRELOAD = False            # Requires deliberate preload-list submission
 
 # ---------------------------------------------------------------------------
-# SSL redirect — enabled by default; can be disabled behind a proxy that
-# handles HTTPS termination and emits X-Forwarded-Proto itself.
+# SSL redirect & Reverse Proxy (TLS termination)
 # ---------------------------------------------------------------------------
 if os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1', 'yes'):
     SECURE_SSL_REDIRECT = True
-    # Trust the reverse proxy's X-Forwarded-Proto header to identify HTTPS.
+
+# When deployed behind a trusted reverse proxy (Render, Nginx, Cloudflare),
+# trust the X-Forwarded-Proto header to identify HTTPS.
+if os.getenv('SECURE_PROXY_SSL_HEADER', 'True').lower() in ('true', '1', 'yes'):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ---------------------------------------------------------------------------
@@ -62,6 +64,39 @@ if os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1', 'yes'):
 SESSION_COOKIE_SECURE = True      # H2: cookie sent only over HTTPS
 SESSION_COOKIE_HTTPONLY = True    # H3: cookie inaccessible to JavaScript
 CSRF_COOKIE_SECURE = True         # H2: CSRF token sent only over HTTPS
+
+# ---------------------------------------------------------------------------
+# CORS & CSRF — Production Origins
+# ---------------------------------------------------------------------------
+# Production frontend is hosted at https://manojkc1.com.np.
+# Localhost HTTP origins are strictly excluded by default in production.
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'https://manojkc1.com.np'
+    ).split(',')
+    if origin.strip()
+]
+
+# Wildcard origin with credentials is a critical security vulnerability.
+# Explicitly prevent '*' in CORS_ALLOWED_ORIGINS.
+from django.core.exceptions import ImproperlyConfigured  # noqa: E402
+if '*' in CORS_ALLOWED_ORIGINS:
+    raise ImproperlyConfigured(
+        "Wildcard '*' origin is forbidden in CORS_ALLOWED_ORIGINS when CORS_ALLOW_CREDENTIALS is True."
+    )
+
+CORS_ALLOW_ALL_ORIGINS = False
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'https://manojkc1.com.np,https://*.manojkc1.com.np'
+    ).split(',')
+    if origin.strip()
+]
 
 # ---------------------------------------------------------------------------
 # Production Email: enforce real SMTP / transactional delivery

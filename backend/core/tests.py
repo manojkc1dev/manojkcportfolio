@@ -241,3 +241,123 @@ class DevelopmentSettingsSmokeTests(SimpleTestCase):
         """Dev: DEBUG must be True in development settings."""
         settings = self._load_dev()
         self.assertTrue(settings.DEBUG)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6B — Production CORS & CSRF Origin Hardening Tests
+# ---------------------------------------------------------------------------
+
+class ProductionCorsCsrfSecurityTests(SimpleTestCase):
+    """Verify production CORS and CSRF configuration and wildcard rejection."""
+
+    _SAFE_KEY = 'v3ry-s3cur3-t3st-k3y-that-is-not-insecure-0xDEADBEEF!#2026'
+
+    def _load_prod(self, extra_env: dict | None = None):
+        overrides = {'DJANGO_SECRET_KEY': self._SAFE_KEY}
+        if extra_env:
+            overrides.update(extra_env)
+        return _load_settings('core.settings.production', overrides)
+
+    def test_production_cors_defaults_to_production_frontend_only(self):
+        """Production CORS origins must not include localhost by default."""
+        settings = self._load_prod()
+        self.assertIn('https://manojkc1.com.np', settings.CORS_ALLOWED_ORIGINS)
+        self.assertNotIn('http://localhost:3000', settings.CORS_ALLOWED_ORIGINS)
+        self.assertNotIn('http://127.0.0.1:3000', settings.CORS_ALLOWED_ORIGINS)
+
+    def test_production_cors_rejects_wildcard_origin(self):
+        """Production must raise ImproperlyConfigured if wildcard '*' is supplied."""
+        from django.core.exceptions import ImproperlyConfigured
+        with self.assertRaises(ImproperlyConfigured):
+            self._load_prod({'CORS_ALLOWED_ORIGINS': '*'})
+
+    def test_production_cors_allow_all_origins_is_false(self):
+        """CORS_ALLOW_ALL_ORIGINS must be explicitly False in production."""
+        settings = self._load_prod()
+        self.assertFalse(settings.CORS_ALLOW_ALL_ORIGINS)
+
+    def test_production_csrf_defaults_to_production_domain(self):
+        """Production CSRF trusted origins must include the production domain."""
+        settings = self._load_prod()
+        self.assertIn('https://manojkc1.com.np', settings.CSRF_TRUSTED_ORIGINS)
+        self.assertNotIn('http://localhost:3000', settings.CSRF_TRUSTED_ORIGINS)
+
+    def test_production_reverse_proxy_ssl_header_configured(self):
+        """Production must trust X-Forwarded-Proto for TLS termination."""
+        settings = self._load_prod()
+        self.assertEqual(settings.SECURE_PROXY_SSL_HEADER, ('HTTP_X_FORWARDED_PROTO', 'https'))
+
+
+# ---------------------------------------------------------------------------
+# Phase 6B — Static Storage & WhiteNoise Tests
+# ---------------------------------------------------------------------------
+
+class StaticMediaStorageSettingsTests(SimpleTestCase):
+    """Verify static asset and WhiteNoise storage configuration."""
+
+    _SAFE_KEY = 'v3ry-s3cur3-t3st-k3y-that-is-not-insecure-0xDEADBEEF!#2026'
+
+    def test_whitenoise_configured_in_storages(self):
+        """STORAGES['staticfiles'] must use WhiteNoise manifest storage."""
+        settings = _load_settings('core.settings.production', {'DJANGO_SECRET_KEY': self._SAFE_KEY})
+        self.assertIn('staticfiles', settings.STORAGES)
+        self.assertEqual(
+            settings.STORAGES['staticfiles']['BACKEND'],
+            'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        )
+
+    def test_whitenoise_middleware_present(self):
+        """WhiteNoiseMiddleware must be present in MIDDLEWARE."""
+        settings = _load_settings('core.settings.production', {'DJANGO_SECRET_KEY': self._SAFE_KEY})
+        self.assertIn('whitenoise.middleware.WhiteNoiseMiddleware', settings.MIDDLEWARE)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6B — Health Check Endpoints Tests
+# ---------------------------------------------------------------------------
+
+class HealthCheckEndpointsTests(SimpleTestCase):
+    """Verify health check routes for load balancers and orchestrators."""
+
+    def test_root_health_returns_ok(self):
+        """GET /health/ must return 200 {"status": "ok"}."""
+        response = self.client.get('/health/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_root_healthz_returns_ok(self):
+        """GET /healthz/ must return 200 {"status": "ok"}."""
+        response = self.client.get('/healthz/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_versioned_health_returns_ok(self):
+        """GET /api/v1/health/ must continue to return 200 {"status": "ok"}."""
+        response = self.client.get('/api/v1/health/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+
+# ---------------------------------------------------------------------------
+# Phase 6B — Gunicorn Configuration Smoke Tests
+# ---------------------------------------------------------------------------
+
+class GunicornConfigurationSmokeTests(SimpleTestCase):
+    """Verify gunicorn.conf.py parses valid configuration without errors."""
+
+    def test_gunicorn_conf_evaluates_cleanly(self):
+        """Import gunicorn.conf.py in a dedicated namespace and verify defaults."""
+        import runpy
+        from pathlib import Path
+
+        conf_path = Path(__file__).resolve().parent.parent / 'gunicorn.conf.py'
+        self.assertTrue(conf_path.exists(), "gunicorn.conf.py must exist")
+
+        conf_globals = runpy.run_path(str(conf_path))
+        self.assertIn('bind', conf_globals)
+        self.assertIn('workers', conf_globals)
+        self.assertIn('threads', conf_globals)
+        self.assertIn('timeout', conf_globals)
+        self.assertIn('max_requests', conf_globals)
+        self.assertGreater(conf_globals['workers'], 0)
+        self.assertGreater(conf_globals['threads'], 0)
