@@ -6,8 +6,9 @@ ENV/
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
 
 # Databases
 *.sqlite3

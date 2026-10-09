@@ -1,27 +1,43 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python secrets and local configuration
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+backend/.venv/
+backend/.pytest_cache/
+backend/staticfiles/
+
+# Frontend
 node_modules/
 dist/
-.env
-.env.local
-.env.*.local
 functions/lib/
 .firebase/
+
+# Local databases and uploaded media
+*.sqlite3
+*.sqlite3-journal
+*.db
+media/
+backend/media/
+
+# Logs & Editors
 *.log
 .DS_Store
 .vscode/
 .idea/
-
-# Python & Django
-backend/.venv/
-backend/.env
-backend/.env.local
-backend/db.sqlite3
-backend/db.sqlite3-journal
-backend/staticfiles/
-backend/media/
-backend/.pytest_cache/
-**/__pycache__/
-*.py[cod]
-*$py.class
 
 # Local AI / GSD tooling
 .agent/
