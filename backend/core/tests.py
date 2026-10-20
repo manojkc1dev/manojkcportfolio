@@ -361,3 +361,45 @@ class GunicornConfigurationSmokeTests(SimpleTestCase):
         self.assertIn('max_requests', conf_globals)
         self.assertGreater(conf_globals['workers'], 0)
         self.assertGreater(conf_globals['threads'], 0)
+
+
+# ---------------------------------------------------------------------------
+# Render + Neon Deployment — Database Configuration Tests
+# ---------------------------------------------------------------------------
+
+class NeonDatabaseSettingsTests(SimpleTestCase):
+    """Verify Neon PostgreSQL configuration via DATABASE_URL and environment settings."""
+
+    _SAFE_KEY = 'v3ry-s3cur3-t3st-k3y-that-is-not-insecure-0xDEADBEEF!#2026'
+
+    def test_neon_database_url_with_sslmode_require(self):
+        """DATABASE_URL with ?sslmode=require must set sslmode in database options."""
+        neon_url = 'postgresql://user:pass@ep-cool-fog-12345.us-east-2.aws.neon.tech/neondb?sslmode=require'
+        settings = _load_settings('core.settings.production', {
+            'DJANGO_SECRET_KEY': self._SAFE_KEY,
+            'DATABASE_URL': neon_url,
+        })
+        self.assertEqual(settings.DATABASES['default']['ENGINE'], 'django.db.backends.postgresql')
+        self.assertEqual(settings.DATABASES['default']['OPTIONS'].get('sslmode'), 'require')
+        self.assertTrue(settings.DATABASES['default']['CONN_HEALTH_CHECKS'])
+        self.assertEqual(settings.DATABASES['default']['CONN_MAX_AGE'], 600)
+
+    def test_neon_pooled_connection_supports_zero_conn_max_age(self):
+        """Neon pooler connections must support configurable DATABASE_CONN_MAX_AGE=0."""
+        neon_url = 'postgresql://user:pass@ep-cool-fog-12345-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require'
+        settings = _load_settings('core.settings.production', {
+            'DJANGO_SECRET_KEY': self._SAFE_KEY,
+            'DATABASE_URL': neon_url,
+            'DATABASE_CONN_MAX_AGE': '0',
+        })
+        self.assertEqual(settings.DATABASES['default']['CONN_MAX_AGE'], 0)
+
+    def test_database_ssl_require_environment_flag(self):
+        """DATABASE_SSL_REQUIRE=True must explicitly configure sslmode require."""
+        db_url = 'postgresql://user:pass@localhost:5432/portfolio_db'
+        settings = _load_settings('core.settings.production', {
+            'DJANGO_SECRET_KEY': self._SAFE_KEY,
+            'DATABASE_URL': db_url,
+            'DATABASE_SSL_REQUIRE': 'True',
+        })
+        self.assertEqual(settings.DATABASES['default']['OPTIONS'].get('sslmode'), 'require')

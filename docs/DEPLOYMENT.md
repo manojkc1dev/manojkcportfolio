@@ -183,3 +183,78 @@ python manage.py migrate --noinput --settings=core.settings.production
 # 4. Start Gunicorn WSGI process
 gunicorn --config gunicorn.conf.py core.wsgi:application
 ```
+
+---
+
+## 8. Render + Neon Deployment Architecture
+
+### Architecture Summary
+
+* **Frontend:** Render Static Site built from root repository via `npm install && npm run build` (publish dir: `dist`).
+* **Backend:** Render Web Service built from `backend/` directory using Python runtime (or Docker) with `gunicorn.conf.py`.
+* **Database:** External Neon PostgreSQL (Free Tier) connected via `DATABASE_URL` with SSL mode `require`.
+
+### Render Blueprint Deployment (`render.yaml`)
+
+The repository root contains [`render.yaml`](file:///Users/manojk.c./Desktop/workspace/my-portfolio/manojkcportfolio/render.yaml) preconfigured to launch both services simultaneously:
+
+1. **New Render Account:** Log into the target Render account.
+2. **Blueprints:** Click **New +** -> **Blueprint**.
+3. **Connect Repository:** Select `manojkc1dev/manojkcportfolio` (branch: `feature/render-neon-deployment` or `main` after merge).
+4. **Environment Parameters:**
+   * `DATABASE_URL`: Paste the Neon connection string (`postgresql://USER:PASSWORD@HOST/neondb?sslmode=require`).
+   * `VITE_DJANGO_API_URL`: Set to the deployed backend URL (e.g. `https://manojkc-portfolio-api.onrender.com` or custom domain).
+   * `CORS_ALLOWED_ORIGINS`: Set to your frontend URLs (`https://manojkc-portfolio-frontend.onrender.com,https://manojkc1.com.np`).
+   * `CSRF_TRUSTED_ORIGINS`: Set to `https://*.onrender.com,https://manojkc1.com.np`.
+   * `FRONTEND_URL`: Set to the frontend static site URL.
+
+### Manual Render Dashboard Setup (Alternative)
+
+If setting up services individually through the Render Web UI:
+
+#### Service 1: Django Backend Web Service
+* **Type:** Web Service
+* **Root Directory:** `backend`
+* **Environment:** Python 3
+* **Build Command:** `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
+* **Start Command:** `gunicorn --config gunicorn.conf.py core.wsgi:application`
+* **Health Check Path:** `/health/`
+* **Required Environment Variables:**
+  * `DJANGO_SETTINGS_MODULE`: `core.settings.production`
+  * `DJANGO_SECRET_KEY`: *(Generate a secure random string)*
+  * `DJANGO_ALLOWED_HOSTS`: `api.manojkc1.com.np,.onrender.com`
+  * `DATABASE_URL`: Neon PostgreSQL connection string (`?sslmode=require`)
+  * `DATABASE_CONN_MAX_AGE`: `600` (or `0` for pooled endpoint)
+  * `CORS_ALLOWED_ORIGINS`: Frontend URL(s)
+  * `CSRF_TRUSTED_ORIGINS`: Frontend URL(s)
+  * `SECURE_PROXY_SSL_HEADER`: `True`
+
+#### Service 2: React Frontend Static Site
+* **Type:** Static Site
+* **Root Directory:** `.` (repository root)
+* **Build Command:** `npm install && npm run build`
+* **Publish Directory:** `dist`
+* **Redirects / Rewrites:**
+  * **Source:** `/*`
+  * **Destination:** `/index.html`
+  * **Action:** `Rewrite`
+* **Environment Variables:**
+  * `VITE_DJANGO_API_URL`: Your Render backend URL (e.g. `https://manojkc-portfolio-api.onrender.com`)
+  * `VITE_SITE_URL`: Your Render frontend URL (e.g. `https://manojkc-portfolio-frontend.onrender.com`)
+
+### Neon PostgreSQL Considerations
+
+1. **SSL Mode:** Neon requires SSL connection (`sslmode=require`). Handled automatically by `dj-database-url`.
+2. **Direct vs. Pooled Connection:**
+   * Direct connection string: recommended for migrations and initial schema provisioning.
+   * Pooled connection string (`-pooler` in host name): recommended for production if concurrency exceeds limits. When using the pooler, set `DATABASE_CONN_MAX_AGE=0`.
+3. **Compute Suspension & Wake-Up:** Neon compute suspends when idle. Django's `conn_health_checks=True` automatically detects and re-establishes dropped connections when compute resumes.
+
+### Media File Persistence on Render
+
+* On Render Web Services, the root container filesystem is ephemeral and resets upon each deployment or container restart.
+* The portfolio serves downloadable ATS PDF resumes via Django's streaming view (`/api/v1/resume/download/`).
+* **Options for Media Persistence:**
+  1. **Render Persistent Disk (Paid):** Attach a persistent disk mounted at `/app/media` (costs $0.25/GB/mo on Render paid instance types).
+  2. **Free Cloud Storage:** Configure S3-compatible storage (e.g. Cloudflare R2 has a 10 GB free tier with $0 egress) via `django-storages`.
+  3. **Fallback Static Resume:** When no uploaded media exists in the database, the portfolio cleanly falls back to `/public/resume.pdf` bundled into the frontend.

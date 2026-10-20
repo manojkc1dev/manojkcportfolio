@@ -133,11 +133,14 @@ ASGI_APPLICATION = 'core.asgi.application'
 # Fallback: SQLite3 for quick zero-config local verification
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
+    _conn_max_age = int(os.getenv('DATABASE_CONN_MAX_AGE', '600'))
+    _ssl_require = os.getenv('DATABASE_SSL_REQUIRE', '').lower() in ('true', '1', 'yes')
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=_conn_max_age,
             conn_health_checks=True,
+            ssl_require=_ssl_require if _ssl_require else None,
         )
     }
 elif os.getenv('POSTGRES_DB') and os.getenv('POSTGRES_HOST'):

@@ -1,11 +1,39 @@
 services:
+  # ----------------------------------------------------------------------------
+  # Frontend — React + TypeScript + Vite Static Site
+  # ----------------------------------------------------------------------------
+  - type: static
+    name: manojkc-portfolio-frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_DJANGO_API_URL
+        sync: false
+      - key: VITE_SITE_URL
+        sync: false
+      - key: VITE_ENABLE_ANALYTICS
+        value: "false"
+    routes:
+      # React SPA fallback rewrite for deep-linking & direct navigation
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+  # ----------------------------------------------------------------------------
+  # Backend — Django REST Framework Web Service
+  # ----------------------------------------------------------------------------
   - type: web
     name: manojkc-portfolio-api
     runtime: python
     rootDir: backend
-    plan: starter
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: gunicorn --config gunicorn.conf.py core.wsgi:application
+    healthCheckPath: /health/
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: core.settings.production
@@ -13,25 +41,22 @@ services:
         generateValue: true
       - key: DJANGO_ALLOWED_HOSTS
         value: api.manojkc1.com.np,.onrender.com
+      # Neon PostgreSQL connection string (supplied via Render Dashboard / Blueprint prompt)
       - key: DATABASE_URL
-        fromDatabase:
-          name: manojkc-portfolio-db
-          property: connectionString
+        sync: false
+      - key: DATABASE_CONN_MAX_AGE
+        value: "600"
       - key: CORS_ALLOWED_ORIGINS
-        value: https://manojkc1.com.np
+        sync: false
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://manojkc1.com.np,https://*.manojkc1.com.np
+        sync: false
       - key: FRONTEND_URL
-        value: https://manojkc1.com.np
+        sync: false
+      - key: SECURE_PROXY_SSL_HEADER
+        value: "True"
       - key: ADMIN_LOGIN_EMAIL
         value: contactmanojkc1.com.np@gmail.com
       - key: DEFAULT_FROM_EMAIL
         value: Manoj Khatri <contact@manojkc1.com.np>
       - key: PYTHON_VERSION
         value: 3.12.0
-
-databases:
-  - name: manojkc-portfolio-db
-    plan: starter
-    databaseName: portfolio_db
-    user: portfolio_user
